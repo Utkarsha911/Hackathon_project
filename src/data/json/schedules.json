@@ -1,0 +1,44 @@
+[
+  {
+    "id": "sch-01",
+    "is_active": true,
+    "created_at": "2026-10-04T09:00:00Z",
+    "updated_at": "2026-10-04T09:00:00Z",
+    "hackathon_id": "a8f3b174-8b92-4d7a-b9c1-5231dfb8e001",
+    "title": "Day 1: Kickoff & Ideation Forge",
+    "description": "Team registration, breakfast, opening ceremony, and hacking commences.",
+    "start_time": "2026-11-14T08:00:00Z",
+    "end_time": "2026-11-14T23:59:00Z",
+    "status": "smooth",
+    "remarks": "Keynote speaker arrival confirmed by protocol team.",
+    "created_by": "11111111-2222-3333-4444-555555555555"
+  },
+  {
+    "id": "sch-02",
+    "is_active": true,
+    "created_at": "2026-10-04T09:00:00Z",
+    "updated_at": "2026-10-04T09:00:00Z",
+    "hackathon_id": "a8f3b174-8b92-4d7a-b9c1-5231dfb8e001",
+    "title": "Day 2: Architecture & Midnight Sprint",
+    "description": "Deep-tech mentor routing, midnight code checkpoints, and red-bull stations.",
+    "start_time": "2026-11-15T00:00:00Z",
+    "end_time": "2026-11-15T23:59:00Z",
+    "status": "smooth",
+    "remarks": "Midnight pizza drop & mentor speed consultation booths.",
+    "created_by": "11111111-2222-3333-4444-555555555555"
+  },
+  {
+    "id": "sch-03",
+    "is_active": true,
+    "created_at": "2026-10-04T09:00:00Z",
+    "updated_at": "2026-10-04T09:00:00Z",
+    "hackathon_id": "a8f3b174-8b92-4d7a-b9c1-5231dfb8e001",
+    "title": "Day 3: Pitch Arena & Grand Awards",
+    "description": "Code freeze, semi-final pitches, top 8 live stage demos, and awards gala.",
+    "start_time": "2026-11-16T00:00:00Z",
+    "end_time": "2026-11-16T18:00:00Z",
+    "status": "smooth",
+    "remarks": "Live streaming on YouTube and BIC TV Portal.",
+    "created_by": "11111111-2222-3333-4444-555555555555"
+  }
+]

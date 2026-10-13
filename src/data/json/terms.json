@@ -1,0 +1,10 @@
+[
+  {
+    "id": "trm-01",
+    "is_active": true,
+    "created_at": "2026-10-01T08:00:00Z",
+    "updated_at": "2026-10-01T08:00:00Z",
+    "hackathon_id": "a8f3b174-8b92-4d7a-b9c1-5231dfb8e001",
+    "content": "By participating in BIC InnovateX 2026, all attendees agree to uphold academic honesty and community safety. Plagiarism, offensive content, or unauthorized network interception will result in instant disqualification. Participants retain full ownership of IP produced. BIC reserves the right to capture photos, video, and audio during the hackathon for promotional and reporting purposes."
+  }
+]

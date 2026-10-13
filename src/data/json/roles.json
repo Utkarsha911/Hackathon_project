@@ -1,0 +1,26 @@
+[
+  {
+    "id": "rol-01",
+    "is_active": true,
+    "created_at": "2026-10-01T08:00:00Z",
+    "updated_at": "2026-10-01T08:00:00Z",
+    "name": "Super Admin",
+    "description": "Full platform governance, financial ledger access, model exports, and operational override."
+  },
+  {
+    "id": "rol-02",
+    "is_active": true,
+    "created_at": "2026-10-01T08:05:00Z",
+    "updated_at": "2026-10-01T08:05:00Z",
+    "name": "Organizer",
+    "description": "Operations management, task execution, desk check-ins, and participant table allocation."
+  },
+  {
+    "id": "rol-03",
+    "is_active": true,
+    "created_at": "2026-10-01T08:10:00Z",
+    "updated_at": "2026-10-01T08:10:00Z",
+    "name": "Participant",
+    "description": "Standard participant access, team formation, project repo submission, and schedule tracking."
+  }
+]

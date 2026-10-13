@@ -1,0 +1,32 @@
+[
+  {
+    "id": "par-001",
+    "is_active": true,
+    "created_at": "2026-10-09T14:10:00Z",
+    "updated_at": "2026-10-09T14:10:00Z",
+    "hackathon_id": "a8f3b174-8b92-4d7a-b9c1-5231dfb8e001",
+    "user_id": "usr-005",
+    "team_id": "team-001",
+    "cv": "https://storage.bichackathon.org/cvs/aarav-adhikari-resume.pdf",
+    "food_preference": "Vegetarian",
+    "tshirt_size": "L",
+    "medications": "Mild asthma inhaler carried; no food allergies.",
+    "extra_details": "Team Leader for NeuralNomads. 3x previous regional hackathon winner.",
+    "github_link": "https://github.com/aarav-adhikari"
+  },
+  {
+    "id": "par-002",
+    "is_active": true,
+    "created_at": "2026-10-09T14:40:00Z",
+    "updated_at": "2026-10-09T14:40:00Z",
+    "hackathon_id": "a8f3b174-8b92-4d7a-b9c1-5231dfb8e001",
+    "user_id": "usr-006",
+    "team_id": "team-002",
+    "cv": "https://storage.bichackathon.org/cvs/binita-kc-portfolio.pdf",
+    "food_preference": "Vegan",
+    "tshirt_size": "M",
+    "medications": "Peanut allergy; carries EpiPen in backpack.",
+    "extra_details": "ZK cryptographic researcher & Solidity smart contracts developer.",
+    "github_link": "https://github.com/binitakc"
+  }
+]

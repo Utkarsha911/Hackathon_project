@@ -1,0 +1,32 @@
+[
+  {
+    "id": "notif-01",
+    "is_active": true,
+    "created_at": "2026-11-14T08:00:00Z",
+    "updated_at": "2026-11-14T08:00:00Z",
+    "user_id": null,
+    "recipients": "all_participants",
+    "message": "Welcome to BIC InnovateX 2026! Wi-Fi SSID: BIC_InnovateX_5G (Password provided on your desk badge). Mandatory briefing starts at 10:00 AM in Main Auditorium.",
+    "read_at": null
+  },
+  {
+    "id": "notif-02",
+    "is_active": true,
+    "created_at": "2026-11-14T13:00:00Z",
+    "updated_at": "2026-11-14T13:00:00Z",
+    "user_id": null,
+    "recipients": "team_leads",
+    "message": "Lunch buffet is officially open at Dining Terrace 2. Please rotate squad members to maintain hacking continuity.",
+    "read_at": null
+  },
+  {
+    "id": "notif-03",
+    "is_active": true,
+    "created_at": "2026-11-15T09:30:00Z",
+    "updated_at": "2026-11-15T09:30:00Z",
+    "user_id": null,
+    "recipients": "organizers",
+    "message": "URGENT OPS: Mentor check-in round 1 begins at 10:00 AM. Logistics team please ensure mentor badges and evaluation tablets are charged.",
+    "read_at": "2026-11-15T09:35:00Z"
+  }
+]

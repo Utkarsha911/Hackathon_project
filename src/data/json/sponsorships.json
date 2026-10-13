@@ -1,0 +1,54 @@
+[
+  {
+    "id": "sps-01",
+    "is_active": true,
+    "created_at": "2026-10-05T09:00:00Z",
+    "updated_at": "2026-10-10T14:00:00Z",
+    "hackathon_id": "a8f3b174-8b92-4d7a-b9c1-5231dfb8e001",
+    "sponsor_id": "spn-01",
+    "paid": 400000.00,
+    "pledged": 500000.00,
+    "type": "title_sponsor",
+    "service": "Main Auditorium naming rights, opening keynote slot, and judge seat",
+    "notes": "Remaining NPR 100k scheduled for release upon Day 2 milestone invoice. Contract signed by VP of Research."
+  },
+  {
+    "id": "sps-02",
+    "is_active": true,
+    "created_at": "2026-10-05T09:30:00Z",
+    "updated_at": "2026-10-08T11:00:00Z",
+    "hackathon_id": "a8f3b174-8b92-4d7a-b9c1-5231dfb8e001",
+    "sponsor_id": "spn-02",
+    "paid": 300000.00,
+    "pledged": 300000.00,
+    "type": "entitle_sponsor",
+    "service": "$15,000 Cloud credits + networking dinner sponsorship",
+    "notes": "Full payment received via Swift wire transfer. Logo approved on lanyard."
+  },
+  {
+    "id": "sps-03",
+    "is_active": true,
+    "created_at": "2026-10-05T10:00:00Z",
+    "updated_at": "2026-10-09T16:30:00Z",
+    "hackathon_id": "a8f3b174-8b92-4d7a-b9c1-5231dfb8e001",
+    "sponsor_id": "spn-03",
+    "paid": 150000.00,
+    "pledged": 200000.00,
+    "type": "gold",
+    "service": "Fintech Track sponsorship and Judge Panel Chair",
+    "notes": "Cheque cleared for first tranche. Final tranche due post-event recap report."
+  },
+  {
+    "id": "sps-04",
+    "is_active": true,
+    "created_at": "2026-10-05T10:30:00Z",
+    "updated_at": "2026-10-07T12:00:00Z",
+    "hackathon_id": "a8f3b174-8b92-4d7a-b9c1-5231dfb8e001",
+    "sponsor_id": "spn-04",
+    "paid": 100000.00,
+    "pledged": 100000.00,
+    "type": "platinum",
+    "service": "Security track bounty and hardware tokens giveaway",
+    "notes": "Payment fully settled in local bank deposit. Hardware tokens received in BIC locker."
+  }
+]
