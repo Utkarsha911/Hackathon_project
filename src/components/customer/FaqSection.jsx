@@ -1,54 +1,62 @@
 import React, { useState } from 'react';
 import { useHackathon } from '../../context/HackathonContext';
-import { HelpCircle, ChevronDown, ChevronUp } from 'lucide-react';
+import { HelpCircle, ChevronDown } from 'lucide-react';
 
 export default function FaqSection() {
-  const { faqs } = useHackathon();
-  const [openId, setOpenId] = useState(faqs[0]?.id || null);
+  const { faqs, isLoadingApi } = useHackathon();
+  const [openId, setOpenId] = useState(null);
+
+  const activeOpenId = openId !== null ? openId : faqs[0]?.id;
 
   const toggle = (id) => {
-    setOpenId(openId === id ? null : id);
+    setOpenId(activeOpenId === id ? false : id);
   };
 
+  if (faqs.length === 0 && !isLoadingApi) {
+    return null;
+  }
+
   return (
-    <section id="faq" className="py-20 relative bg-slate-950/40">
+    <section id="faq" className="py-20 bg-white border-b border-slate-200">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        
+
         {/* Section Heading */}
-        <div className="text-center mb-16">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-xs font-semibold text-cyan-400 mb-3">
-            <HelpCircle className="w-3.5 h-3.5" />
+        <div className="text-center mb-14">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-coral-50 border border-coral-200 text-xs font-semibold text-coral-700 mb-4">
+            <HelpCircle className="w-3.5 h-3.5 text-coral-600" />
             <span>Got Questions?</span>
           </div>
-          <h2 className="text-3xl sm:text-5xl font-black text-white tracking-tight">
+          <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
             Frequently Asked Questions
           </h2>
-          <p className="mt-4 text-slate-400 text-sm sm:text-base">
+          <p className="mt-3 text-slate-600 text-sm">
             Everything you need to know about eligibility, equipment, food, mentors, and prize dispersal.
           </p>
         </div>
 
         {/* FAQ Accordion */}
-        <div className="space-y-4">
+        <div className="space-y-3">
           {faqs.map((faq) => {
             const isOpen = openId === faq.id;
             return (
               <div
                 key={faq.id}
-                className="glass-card rounded-2xl border-slate-800 transition-all overflow-hidden"
+                className={`bg-white border rounded-2xl overflow-hidden transition-all shadow-sm ${
+                  isOpen ? 'border-coral-400 shadow-md' : 'border-slate-200 hover:border-slate-300'
+                }`}
               >
                 <button
                   onClick={() => toggle(faq.id)}
-                  className="w-full p-6 text-left flex items-center justify-between gap-4 font-semibold text-base text-white hover:text-cyan-300 transition-colors"
+                  className="w-full p-5 text-left flex items-center justify-between gap-4 font-semibold text-sm text-slate-900 hover:text-coral-600 transition-colors"
                 >
                   <span>{faq.question}</span>
-                  <div className={`p-1.5 rounded-lg bg-slate-800 text-slate-300 shrink-0 transition-transform ${isOpen ? 'rotate-180 text-cyan-400' : ''}`}>
+                  <div className={`p-1.5 rounded-lg bg-slate-50 border border-slate-200 text-slate-500 shrink-0 transition-transform duration-200 ${isOpen ? 'rotate-180 text-coral-600 border-coral-300' : ''}`}>
                     <ChevronDown className="w-4 h-4" />
                   </div>
                 </button>
 
                 {isOpen && (
-                  <div className="px-6 pb-6 text-sm text-slate-300 leading-relaxed border-t border-slate-800/60 pt-4">
+                  <div className="px-5 pb-5 text-sm text-slate-600 leading-relaxed border-t border-slate-100 pt-4">
                     {faq.answer}
                   </div>
                 )}

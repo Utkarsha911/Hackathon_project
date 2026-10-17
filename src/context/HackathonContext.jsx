@@ -1,29 +1,20 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import api, {
+  getAuthToken,
+  setAuthToken,
+  clearAuthToken,
+  getRefreshToken,
+  setRefreshToken,
+  clearRefreshToken,
+  logout
+} from '../services/api';
 
-// Import all model JSON datasets directly
-import hackathonData from '../data/json/hackathon.json';
-import prizesData from '../data/json/prizes.json';
-import challengesData from '../data/json/challenges.json';
-import schedulesData from '../data/json/schedules.json';
-import scheduleEventsData from '../data/json/schedule_events.json';
-import sponsorsData from '../data/json/sponsors.json';
-import faqsData from '../data/json/faqs.json';
-import contactUsData from '../data/json/contact_us.json';
-import termsData from '../data/json/terms.json';
-import teamsData from '../data/json/teams.json';
-
-// Private Admin Datasets
-import sponsorshipsData from '../data/json/sponsorships.json';
+// Private Admin Fallback Datasets (for standalone admin tools if backend is offline)
 import departmentsData from '../data/json/departments.json';
-import organizersData from '../data/json/organizers.json';
 import orgTasksData from '../data/json/org_tasks.json';
 import usersData from '../data/json/users.json';
 import rolesData from '../data/json/roles.json';
-import participantsData from '../data/json/participants.json';
 import teamMembersData from '../data/json/team_members.json';
-import registrationsData from '../data/json/registrations.json';
-import checkInsData from '../data/json/check_ins.json';
-import tablesData from '../data/json/tables.json';
 import notificationsData from '../data/json/notifications.json';
 
 const HackathonContext = createContext();
@@ -33,31 +24,54 @@ export function HackathonProvider({ children }) {
   const [currentView, setCurrentView] = useState('customer');
   const [adminTab, setAdminTab] = useState('overview'); // overview, sponsorships, tasks, teams, participants, checkins, tables, notifications, export
   
-  // Normal / Public Models State
-  const [hackathon, setHackathon] = useState(hackathonData);
-  const [prizes, setPrizes] = useState(prizesData);
-  const [challenges, setChallenges] = useState(challengesData);
-  const [schedules, setSchedules] = useState(schedulesData);
-  const [scheduleEvents, setScheduleEvents] = useState(scheduleEventsData);
-  const [sponsors, setSponsors] = useState(sponsorsData);
-  const [faqs, setFaqs] = useState(faqsData);
-  const [contactUsList, setContactUsList] = useState(contactUsData);
-  const [terms, setTerms] = useState(termsData);
-  const [teams, setTeams] = useState(teamsData);
+  // API Connection State (strictly fetched from API)
+  const [isApiConnected, setIsApiConnected] = useState(false);
+  const [isLoadingApi, setIsLoadingApi] = useState(true);
+  const [apiError, setApiError] = useState(null);
 
-  // Private / Admin Models State
-  const [sponsorships, setSponsorships] = useState(sponsorshipsData);
-  const [departments, setDepartments] = useState(departmentsData);
-  const [organizers, setOrganizers] = useState(organizersData);
-  const [orgTasks, setOrgTasks] = useState(orgTasksData);
-  const [users, setUsers] = useState(usersData);
-  const [roles, setRoles] = useState(rolesData);
-  const [participants, setParticipants] = useState(participantsData);
-  const [teamMembers, setTeamMembers] = useState(teamMembersData);
-  const [registrations, setRegistrations] = useState(registrationsData);
-  const [checkIns, setCheckIns] = useState(checkInsData);
-  const [tables, setTables] = useState(tablesData);
-  const [notifications, setNotifications] = useState(notificationsData);
+  // Normal / Public Models State (NO static data - fetched directly from API)
+  const [hackathon, setHackathon] = useState(null);
+  const [prizes, setPrizes] = useState([]);
+  const [challenges, setChallenges] = useState([]);
+  const [schedules, setSchedules] = useState([]);
+  const [scheduleEvents, setScheduleEvents] = useState([]);
+  const [sponsors, setSponsors] = useState([]);
+  const [faqs, setFaqs] = useState([]);
+  const [contactUsList, setContactUsList] = useState([]);
+  const [terms, setTerms] = useState([]);
+  const [teams, setTeams] = useState([]);
+
+  // Private / Admin Models State (populated from API)
+  const [sponsorships, setSponsorships] = useState([]);
+  const [departments, setDepartments] = useState(departmentsData || []);
+  const [organizers, setOrganizers] = useState([]);
+  const [orgTasks, setOrgTasks] = useState(orgTasksData || []);
+  const [users, setUsers] = useState(usersData || []);
+  const [roles, setRoles] = useState(rolesData || []);
+  const [participants, setParticipants] = useState([]);
+  const [teamMembers, setTeamMembers] = useState(teamMembersData || []);
+  const [registrations, setRegistrations] = useState([]);
+  const [checkIns, setCheckIns] = useState([]);
+  const [tables, setTables] = useState([]);
+  const [notifications, setNotifications] = useState(notificationsData || []);
+
+  // Schedule Event Attendances state (tracking checkins per schedule event session)
+  const [eventAttendances, setEventAttendances] = useState([
+    {
+      id: 'att-001',
+      schedule_event_id: 'sev-01',
+      user_id: 'usr-005',
+      scanned_at: '2026-11-14T08:30:00Z',
+      notes: 'Gate 1 QR Scan Verified'
+    },
+    {
+      id: 'att-002',
+      schedule_event_id: 'sev-01',
+      user_id: 'usr-006',
+      scanned_at: '2026-11-14T08:45:00Z',
+      notes: 'Gate 2 QR Scan Verified'
+    }
+  ]);
 
   // Global Toast Alert State
   const [toast, setToast] = useState(null);
@@ -67,12 +81,244 @@ export function HackathonProvider({ children }) {
     setTimeout(() => setToast(null), 4000);
   };
 
+  useEffect(() => {
+    const handleAuthLogout = () => {
+      showToast('Session expired. Please log in again.', 'error');
+    };
+    window.addEventListener('bic_auth_logout', handleAuthLogout);
+    return () => window.removeEventListener('bic_auth_logout', handleAuthLogout);
+  }, []);
+
   // -------------------------------------------------------------
-  // Data Action Helpers
+  // Real-time API Synchronizer with Graceful Fallback
+  // -------------------------------------------------------------
+  const refreshData = useCallback(async () => {
+    setIsLoadingApi(true);
+    let connected = false;
+
+    try {
+      // 0. Primary Call: GET /api/v1/hackathons/current/details
+      const currentDetails = await api.hackathons.getCurrentDetails().catch((err) => {
+        console.info('Current hackathon details endpoint not reachable, falling back to modular endpoints:', err?.message);
+        return null;
+      });
+
+      if (currentDetails && typeof currentDetails === 'object' && currentDetails.id) {
+        setHackathon(prev => ({ ...prev, ...currentDetails }));
+
+        if (Array.isArray(currentDetails.prizes) && currentDetails.prizes.length > 0) {
+          setPrizes(currentDetails.prizes);
+        }
+
+        if (Array.isArray(currentDetails.challenges) && currentDetails.challenges.length > 0) {
+          setChallenges(currentDetails.challenges);
+        }
+
+        if (Array.isArray(currentDetails.schedules) && currentDetails.schedules.length > 0) {
+          setSchedules(currentDetails.schedules);
+          const extractedEvents = [];
+          currentDetails.schedules.forEach(s => {
+            if (Array.isArray(s.events)) {
+              extractedEvents.push(...s.events);
+            }
+          });
+          if (extractedEvents.length > 0) {
+            setScheduleEvents(extractedEvents);
+          }
+        }
+
+        if (Array.isArray(currentDetails.sponsorships) && currentDetails.sponsorships.length > 0) {
+          setSponsorships(currentDetails.sponsorships);
+          const extractedSponsors = currentDetails.sponsorships
+            .filter(sp => sp.sponsor)
+            .map(sp => ({
+              ...sp.sponsor,
+              sponsorship_id: sp.id,
+              tier: sp.type,
+              service: sp.service || sp.sponsor.service,
+              pledged: sp.pledged,
+              paid: sp.paid,
+            }));
+          if (extractedSponsors.length > 0) {
+            setSponsors(extractedSponsors);
+          }
+        }
+
+        if (Array.isArray(currentDetails.faqs) && currentDetails.faqs.length > 0) {
+          setFaqs(currentDetails.faqs);
+        }
+
+        if (Array.isArray(currentDetails.organizers) && currentDetails.organizers.length > 0) {
+          setOrganizers(currentDetails.organizers);
+        }
+
+        if (Array.isArray(currentDetails.teams) && currentDetails.teams.length > 0) {
+          setTeams(currentDetails.teams);
+        }
+
+        if (Array.isArray(currentDetails.participants) && currentDetails.participants.length > 0) {
+          setParticipants(currentDetails.participants);
+        }
+
+        if (Array.isArray(currentDetails.registrations) && currentDetails.registrations.length > 0) {
+          setRegistrations(currentDetails.registrations);
+        }
+
+        if (Array.isArray(currentDetails.check_ins) && currentDetails.check_ins.length > 0) {
+          setCheckIns(currentDetails.check_ins);
+        }
+
+        if (Array.isArray(currentDetails.tables) && currentDetails.tables.length > 0) {
+          setTables(currentDetails.tables);
+        }
+
+        if (Array.isArray(currentDetails.terms_and_conditions) && currentDetails.terms_and_conditions.length > 0) {
+          setTerms(currentDetails.terms_and_conditions);
+        }
+
+        if (Array.isArray(currentDetails.contact_us) && currentDetails.contact_us.length > 0) {
+          setContactUsList(currentDetails.contact_us);
+        }
+
+        connected = true;
+      } else {
+        // Fallback: Query modular individual endpoints if current/details is not active
+        const hackathonsRes = await api.hackathons.getAll().catch(() => null);
+        if (Array.isArray(hackathonsRes) && hackathonsRes.length > 0) {
+          setHackathon(prev => ({ ...prev, ...hackathonsRes[0] }));
+          connected = true;
+        }
+
+        const prizesRes = await api.crm.getPrizes().catch(() => null);
+        if (Array.isArray(prizesRes) && prizesRes.length > 0) {
+          setPrizes(prizesRes);
+          connected = true;
+        }
+
+        const challengesRes = await api.crm.getChallenges().catch(() => null);
+        if (Array.isArray(challengesRes) && challengesRes.length > 0) {
+          setChallenges(challengesRes);
+          connected = true;
+        }
+
+        const faqsRes = await api.crm.getFaqs().catch(() => null);
+        if (Array.isArray(faqsRes) && faqsRes.length > 0) {
+          setFaqs(faqsRes);
+          connected = true;
+        }
+
+        const termsRes = await api.crm.getTerms().catch(() => null);
+        if (Array.isArray(termsRes) && termsRes.length > 0) {
+          setTerms(termsRes);
+          connected = true;
+        }
+
+        const sponsorsRes = await api.sponsors.getAll().catch(() => null);
+        if (Array.isArray(sponsorsRes) && sponsorsRes.length > 0) {
+          setSponsors(sponsorsRes);
+          connected = true;
+        }
+
+        const sponsorshipsRes = await api.sponsors.getSponsorships().catch(() => null);
+        if (Array.isArray(sponsorshipsRes) && sponsorshipsRes.length > 0) {
+          setSponsorships(sponsorshipsRes);
+          connected = true;
+        }
+
+        const schedulesRes = await api.schedules.getAll().catch(() => null);
+        if (Array.isArray(schedulesRes) && schedulesRes.length > 0) {
+          setSchedules(schedulesRes);
+          const extractedEvents = [];
+          schedulesRes.forEach(s => {
+            if (Array.isArray(s.events)) {
+              extractedEvents.push(...s.events);
+            }
+          });
+          if (extractedEvents.length > 0) {
+            setScheduleEvents(extractedEvents);
+          }
+          connected = true;
+        }
+
+        const teamsRes = await api.teams.getAll().catch(() => null);
+        if (Array.isArray(teamsRes) && teamsRes.length > 0) {
+          setTeams(teamsRes);
+          connected = true;
+        }
+
+        const registrationsRes = await api.teams.getRegistrations().catch(() => null);
+        if (Array.isArray(registrationsRes) && registrationsRes.length > 0) {
+          setRegistrations(registrationsRes);
+          connected = true;
+        }
+
+        const tablesRes = await api.teams.getTables().catch(() => null);
+        if (Array.isArray(tablesRes) && tablesRes.length > 0) {
+          setTables(tablesRes);
+          connected = true;
+        }
+
+        const checkInsRes = await api.teams.getCheckIns().catch(() => null);
+        if (Array.isArray(checkInsRes) && checkInsRes.length > 0) {
+          setCheckIns(checkInsRes);
+          connected = true;
+        }
+      }
+
+      // Organizers, Departments & Users
+      const unwrapList = (data) => (Array.isArray(data) ? data : (Array.isArray(data?.items) ? data.items : null));
+
+      const deptsRes = await api.organizers.getDepartments().catch(() => null);
+      const parsedDepts = unwrapList(deptsRes);
+      if (parsedDepts && parsedDepts.length > 0) {
+        setDepartments(parsedDepts);
+        connected = true;
+      }
+
+      const orgsRes = await api.organizers.getAll().catch(() => null);
+      const parsedOrgs = unwrapList(orgsRes);
+      if (parsedOrgs && parsedOrgs.length > 0) {
+        setOrganizers(parsedOrgs);
+        connected = true;
+      }
+
+      const tasksRes = await api.organizers.getTasks().catch(() => null);
+      const parsedTasks = unwrapList(tasksRes);
+      if (parsedTasks && parsedTasks.length > 0) {
+        setOrgTasks(parsedTasks);
+        connected = true;
+      }
+
+      const usersRes = await api.users.getAll().catch(() => null);
+      const parsedUsers = unwrapList(usersRes);
+      if (parsedUsers && parsedUsers.length > 0) {
+        setUsers(parsedUsers);
+        connected = true;
+      }
+
+      setIsApiConnected(connected);
+    } catch (err) {
+      console.warn('API sync completed with local fallbacks active:', err);
+      setIsApiConnected(false);
+    } finally {
+      setIsLoadingApi(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    // Avoid calling unnecessary customer portal APIs when accessing admin panel
+    if (typeof window !== 'undefined' && window.location.pathname.startsWith('/admin')) {
+      return;
+    }
+    refreshData();
+  }, [refreshData]);
+
+  // -------------------------------------------------------------
+  // Data Action Helpers (Sync with Backend + Local Optimistic Update)
   // -------------------------------------------------------------
 
   // Customer: Register new squad
-  const registerTeam = (teamFormData) => {
+  const registerTeam = async (teamFormData) => {
     const newTeamId = `team-${Date.now().toString().slice(-4)}`;
     const newUserId = `usr-${Date.now().toString().slice(-4)}`;
     const nowIso = new Date().toISOString();
@@ -97,14 +343,13 @@ export function HackathonProvider({ children }) {
       is_active: true,
       created_at: nowIso,
       updated_at: nowIso,
-      username: teamFormData.leaderEmail.split('@')[0],
+      username: teamFormData.leaderEmail ? teamFormData.leaderEmail.split('@')[0] : `user_${Date.now()}`,
       email: teamFormData.leaderEmail,
-      first_name: teamFormData.leaderName.split(' ')[0] || teamFormData.leaderName,
-      last_name: teamFormData.leaderName.split(' ')[1] || '',
-      password: '$2b$12$autogen_hash_temp',
+      first_name: teamFormData.leaderName ? teamFormData.leaderName.split(' ')[0] : 'Leader',
+      last_name: teamFormData.leaderName && teamFormData.leaderName.split(' ').length > 1 ? teamFormData.leaderName.split(' ')[1] : '',
       phone_number: teamFormData.phone,
       college: teamFormData.college,
-      role_id: 'rol-03'
+      role: 'user'
     };
 
     // Private Participant details (diet, medical, resume)
@@ -147,18 +392,32 @@ export function HackathonProvider({ children }) {
       role: 'leader'
     };
 
+    // Optimistic local update
     setTeams(prev => [newTeam, ...prev]);
     setUsers(prev => [newUser, ...prev]);
     setParticipants(prev => [newParticipant, ...prev]);
     setRegistrations(prev => [newRegistration, ...prev]);
     setTeamMembers(prev => [newTeamMember, ...prev]);
 
+    // Send to Backend API if available
+    try {
+      await api.teams.create({
+        name: newTeam.name,
+        college_org: newTeam.college_org,
+        hackathon_id: newTeam.hackathon_id,
+        status: newTeam.status,
+        github_repo_link: newTeam.github_repo_link
+      });
+    } catch (err) {
+      console.warn('Backend team registration sync noted; local store saved:', err);
+    }
+
     showToast(`Team "${teamFormData.teamName}" registered successfully! Awaiting admin review.`);
     return newTeam;
   };
 
   // Customer: Submit contact inquiry
-  const submitContactInquiry = (inquiry) => {
+  const submitContactInquiry = async (inquiry) => {
     const newInquiry = {
       id: `cnt-${Date.now().toString().slice(-4)}`,
       is_active: true,
@@ -167,43 +426,165 @@ export function HackathonProvider({ children }) {
       hackathon_id: hackathon.id,
       ...inquiry
     };
+
     setContactUsList(prev => [newInquiry, ...prev]);
+
+    try {
+      await api.crm.submitContact({
+        hackathon_id: hackathon.id,
+        name: inquiry.name,
+        email: inquiry.email,
+        subject: inquiry.subject,
+        message: inquiry.message
+      });
+    } catch (err) {
+      console.warn('Backend contact sync noted; local store saved:', err);
+    }
+
     showToast('Your message has been received by our hackathon organizers.');
   };
 
   // Admin: Approve/Reject Team Registration
-  const updateRegistrationStatus = (teamId, status) => {
+  const updateRegistrationStatus = async (teamId, status) => {
     setRegistrations(prev =>
       prev.map(r => r.team_id === teamId ? { ...r, status, updated_at: new Date().toISOString() } : r)
     );
     setTeams(prev =>
       prev.map(t => t.id === teamId ? { ...t, status, updated_at: new Date().toISOString() } : t)
     );
+
+    try {
+      await api.teams.update(teamId, { status });
+    } catch (err) {
+      console.warn('Backend team status update noted; local store saved:', err);
+    }
+
     showToast(`Team registration updated to "${status.toUpperCase()}"`);
   };
 
-  // Admin: Check in a team
-  const checkInTeam = (teamId) => {
+  // Admin: Check in a team with optional table allocation
+  const checkInTeam = async (teamId, roomNumber = null) => {
     const existing = checkIns.find(c => c.team_id === teamId);
-    if (existing) {
-      showToast('This team is already checked in.', 'info');
-      return;
+    if (!existing) {
+      const newCheckIn = {
+        id: `chk-${Date.now().toString().slice(-4)}`,
+        is_active: true,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        hackathon_id: hackathon.id,
+        team_id: teamId,
+        checkin_time: new Date().toISOString()
+      };
+      setCheckIns(prev => [newCheckIn, ...prev]);
+
+      try {
+        await api.teams.createCheckIn({
+          hackathon_id: hackathon.id,
+          team_id: teamId
+        });
+      } catch (err) {
+        console.warn('Backend check-in sync noted; local store saved:', err);
+      }
     }
-    const newCheckIn = {
-      id: `chk-${Date.now().toString().slice(-4)}`,
+
+    if (roomNumber) {
+      assignTable(teamId, roomNumber);
+      showToast(`Team verified and desk ${roomNumber} allocated!`);
+    } else {
+      showToast('Team badge scanned and successfully checked in!');
+    }
+  };
+
+  // Admin / Scanner: Create a new User record conforming to User model
+  const createUser = async (userData) => {
+    const newUserId = userData.id || `usr-${Date.now().toString().slice(-4)}`;
+    const nowIso = new Date().toISOString();
+    const newUser = {
+      id: newUserId,
       is_active: true,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      hackathon_id: hackathon.id,
-      team_id: teamId,
-      checkin_time: new Date().toISOString()
+      created_at: nowIso,
+      updated_at: nowIso,
+      username: userData.username || (userData.email ? userData.email.split('@')[0] : `user_${Date.now().toString().slice(-4)}`),
+      email: userData.email || `${newUserId}@participant.bichackathon.org`,
+      first_name: userData.first_name || userData.name?.split(' ')[0] || 'Attendee',
+      last_name: userData.last_name || userData.name?.split(' ').slice(1).join(' ') || '',
+      phone_number: userData.phone_number || userData.phone || '+977-9800000000',
+      college: userData.college || 'Kathmandu University',
+      role: userData.role || 'user',
+      semester: userData.semester || 'Undergraduate',
+      city_province: userData.city_province || 'Kathmandu, Bagmati',
+      street: userData.street || 'Main Campus Rd',
+      address: userData.address || 'Hostel Block',
+      age: userData.age ? Number(userData.age) : 21
     };
-    setCheckIns(prev => [newCheckIn, ...prev]);
-    showToast('Team badge scanned and successfully checked in!');
+
+    setUsers(prev => [newUser, ...prev]);
+
+    try {
+      await api.users.create({
+        username: newUser.username,
+        email: newUser.email,
+        first_name: newUser.first_name,
+        last_name: newUser.last_name,
+        password: userData.password || 'SecurePassword123!',
+        role: newUser.role,
+        college: newUser.college,
+        phone_number: newUser.phone_number
+      });
+    } catch (err) {
+      console.warn('Backend user creation sync noted; local store saved:', err);
+    }
+
+    showToast(`User record created: ${newUser.first_name} ${newUser.last_name} (${newUser.id})`);
+    return newUser;
+  };
+
+  // Admin: Record Schedule Event Check-in / Attendance & Create User record if needed
+  const checkInScheduleEvent = (eventId, attendeeInfo) => {
+    let targetUser = null;
+    let isNewUserCreated = false;
+
+    if (attendeeInfo.userId) {
+      targetUser = users.find(u => u.id === attendeeInfo.userId);
+    } else if (attendeeInfo.id && attendeeInfo.id.startsWith('usr-')) {
+      targetUser = users.find(u => u.id === attendeeInfo.id);
+    } else if (attendeeInfo.email) {
+      targetUser = users.find(u => u.email.toLowerCase() === attendeeInfo.email.toLowerCase());
+    }
+
+    if (!targetUser) {
+      targetUser = createUser(attendeeInfo);
+      isNewUserCreated = true;
+    }
+
+    const alreadyAttended = eventAttendances.some(
+      a => a.schedule_event_id === eventId && a.user_id === targetUser.id
+    );
+
+    if (alreadyAttended) {
+      showToast(`${targetUser.first_name || targetUser.username} is already checked in for this event.`, 'info');
+      return { user: targetUser, isNewUserCreated: false, alreadyAttended: true };
+    }
+
+    const newAttendance = {
+      id: `att-${Date.now().toString().slice(-4)}`,
+      schedule_event_id: eventId,
+      user_id: targetUser.id,
+      scanned_at: new Date().toISOString(),
+      notes: attendeeInfo.notes || (isNewUserCreated ? 'Walk-in Registered via Event Scanner' : 'QR Scan Verified')
+    };
+
+    setEventAttendances(prev => [newAttendance, ...prev]);
+
+    const eventObj = scheduleEvents.find(e => e.id === eventId);
+    const eventName = eventObj ? eventObj.description : 'Schedule Event';
+
+    showToast(`Checked in ${targetUser.first_name} ${targetUser.last_name} for "${eventName}"!`);
+    return { user: targetUser, isNewUserCreated, attendance: newAttendance };
   };
 
   // Admin: Assign Table / Room
-  const assignTable = (teamId, roomNumber) => {
+  const assignTable = async (teamId, roomNumber) => {
     const existing = tables.find(t => t.team_id === teamId);
     if (existing) {
       setTables(prev =>
@@ -222,11 +603,23 @@ export function HackathonProvider({ children }) {
       };
       setTables(prev => [newTable, ...prev]);
     }
+
+    try {
+      await api.teams.assignTable({
+        hackathon_id: hackathon.id,
+        team_id: teamId,
+        status: 'assigned',
+        room_number: roomNumber
+      });
+    } catch (err) {
+      console.warn('Backend table allocation sync noted; local store saved:', err);
+    }
+
     showToast(`Workstation table allocated: ${roomNumber}`);
   };
 
   // Admin: Add / Update Org Task
-  const addOrgTask = (taskData) => {
+  const addOrgTask = async (taskData) => {
     const newTask = {
       id: `tsk-${Date.now().toString().slice(-4)}`,
       is_active: true,
@@ -237,10 +630,24 @@ export function HackathonProvider({ children }) {
       ...taskData
     };
     setOrgTasks(prev => [newTask, ...prev]);
+
+    try {
+      await api.organizers.createTask({
+        task: taskData.task,
+        description: taskData.description || null,
+        priority: taskData.priority || 'medium',
+        status: 'pending',
+        department_id: taskData.department_id || null,
+        assigned_to: taskData.assigned_to || null
+      });
+    } catch (err) {
+      console.warn('Backend task creation sync noted; local store saved:', err);
+    }
+
     showToast('Operational task dispatched to organizer queue.');
   };
 
-  const updateOrgTaskStatus = (taskId, status) => {
+  const updateOrgTaskStatus = async (taskId, status) => {
     setOrgTasks(prev =>
       prev.map(t => t.id === taskId ? {
         ...t,
@@ -249,11 +656,37 @@ export function HackathonProvider({ children }) {
         updated_at: new Date().toISOString()
       } : t)
     );
+
+    try {
+      await api.organizers.updateTask(taskId, {
+        status,
+        completed_date: status === 'completed' ? new Date().toISOString() : null
+      });
+    } catch (err) {
+      console.warn('Backend task status update noted; local store saved:', err);
+    }
+
     showToast(`Task status moved to ${status}`);
   };
 
+  // Admin: Upload Organizer Profile Image
+  const uploadOrganizerImage = async (organizerId, file) => {
+    try {
+      const updatedOrg = await api.organizers.uploadImage(organizerId, file);
+      setOrganizers(prev =>
+        prev.map(o => o.id === organizerId ? { ...o, image: updatedOrg.image } : o)
+      );
+      showToast('Organizer profile image uploaded successfully!');
+      return updatedOrg;
+    } catch (err) {
+      console.error('Error uploading organizer image:', err);
+      showToast(err.message || 'Failed to upload image', 'error');
+      throw err;
+    }
+  };
+
   // Admin: Record sponsorship installment payment
-  const recordSponsorshipPayment = (sponsorshipId, paymentAmount) => {
+  const recordSponsorshipPayment = async (sponsorshipId, paymentAmount) => {
     setSponsorships(prev =>
       prev.map(s => {
         if (s.id === sponsorshipId) {
@@ -267,11 +700,23 @@ export function HackathonProvider({ children }) {
         return s;
       })
     );
+
+    const target = sponsorships.find(s => s.id === sponsorshipId);
+    if (target) {
+      try {
+        await api.sponsors.updateSponsorship(sponsorshipId, {
+          paid: Number(target.paid) + Number(paymentAmount)
+        });
+      } catch (err) {
+        console.warn('Backend sponsorship update sync noted; local store saved:', err);
+      }
+    }
+
     showToast(`Sponsorship payment of NPR ${paymentAmount.toLocaleString()} recorded.`);
   };
 
   // Admin: Dispatch notification broadcast
-  const sendBroadcastNotification = (message, recipients = 'all_participants') => {
+  const sendBroadcastNotification = async (message, recipients = 'all_participants') => {
     const newNotif = {
       id: `notif-${Date.now().toString().slice(-4)}`,
       is_active: true,
@@ -283,6 +728,16 @@ export function HackathonProvider({ children }) {
       read_at: null
     };
     setNotifications(prev => [newNotif, ...prev]);
+
+    try {
+      await api.notifications.create({
+        message,
+        recipients
+      });
+    } catch (err) {
+      console.warn('Backend notification broadcast sync noted; local store saved:', err);
+    }
+
     showToast(`Notification broadcasted to ${recipients.replace('_', ' ')}!`);
   };
 
@@ -309,7 +764,8 @@ export function HackathonProvider({ children }) {
     Registration: registrations,
     CheckIn: checkIns,
     Table: tables,
-    Notification: notifications
+    Notification: notifications,
+    EventAttendance: eventAttendances
   };
 
   const value = {
@@ -319,6 +775,19 @@ export function HackathonProvider({ children }) {
     setAdminTab,
     toast,
     showToast,
+    // API State
+    api,
+    isApiConnected,
+    isLoadingApi,
+    apiError,
+    refreshData,
+    getAuthToken,
+    setAuthToken,
+    clearAuthToken,
+    getRefreshToken,
+    setRefreshToken,
+    clearRefreshToken,
+    logout,
     // Datasets
     hackathon,
     setHackathon,
@@ -336,6 +805,7 @@ export function HackathonProvider({ children }) {
     organizers,
     orgTasks,
     users,
+    setUsers,
     roles,
     participants,
     teamMembers,
@@ -343,14 +813,19 @@ export function HackathonProvider({ children }) {
     checkIns,
     tables,
     notifications,
+    eventAttendances,
+    setEventAttendances,
     // Operations
     registerTeam,
     submitContactInquiry,
     updateRegistrationStatus,
     checkInTeam,
     assignTable,
+    createUser,
+    checkInScheduleEvent,
     addOrgTask,
     updateOrgTaskStatus,
+    uploadOrganizerImage,
     recordSponsorshipPayment,
     sendBroadcastNotification,
     allDataStore

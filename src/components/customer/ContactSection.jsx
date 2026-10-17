@@ -19,79 +19,79 @@ export default function ContactSection() {
   };
 
   return (
-    <section id="contact" className="py-20 relative">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        
+    <section id="contact" className="py-20 bg-[#fafafa]">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+
         {/* Section Heading */}
-        <div className="text-center max-w-3xl mx-auto mb-16">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-xs font-semibold text-cyan-400 mb-3">
-            <MessageSquare className="w-3.5 h-3.5" />
+        <div className="text-center max-w-3xl mx-auto mb-14">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-coral-50 border border-coral-200 text-xs font-semibold text-coral-700 mb-4">
+            <MessageSquare className="w-3.5 h-3.5 text-coral-600" />
             <span>Connect with Organizers</span>
           </div>
-          <h2 className="text-3xl sm:text-5xl font-black text-white tracking-tight">
+          <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
             Have Inquiries? Reach Out
           </h2>
-          <p className="mt-4 text-slate-400 text-sm sm:text-base">
-            Have questions regarding sponsorship, mentor volunteering, or campus travel logistics? Message our core committee directly.
+          <p className="mt-3 text-slate-600 text-sm">
+            Questions about sponsorship, mentor volunteering, or campus travel logistics?
+            Message our core committee directly.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-10">
-          
-          {/* Contact Details Card */}
-          <div className="lg:col-span-2 glass-card p-8 rounded-3xl border-slate-800 flex flex-col justify-between">
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
+
+          {/* Contact Details */}
+          <div className="lg:col-span-2 bg-white border border-slate-200/90 p-8 rounded-2xl flex flex-col justify-between shadow-sm">
             <div>
-              <h3 className="text-2xl font-bold text-white mb-4">
-                BIC Hackathon HQ
-              </h3>
-              <p className="text-sm text-slate-300 leading-relaxed mb-8">
-                The organizing desk operates 24/7 during sprint days. For urgent inquiries, visit our information counter at Hall A foyer.
+              <h3 className="text-xl font-bold text-slate-900 mb-3">BIC Hackathon HQ</h3>
+              <p className="text-sm text-slate-600 leading-relaxed mb-8">
+                The organizing desk operates 24/7 during sprint days. For urgent inquiries,
+                visit our information counter at Hall A foyer.
               </p>
 
-              <div className="space-y-5 text-sm text-slate-300">
+              <div className="space-y-5 text-sm text-slate-700">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
+                  <div className="w-10 h-10 rounded-xl bg-coral-50 border border-coral-200 flex items-center justify-center text-coral-600">
                     <MapPin className="w-5 h-5" />
                   </div>
                   <div>
-                    <span className="block text-xs text-slate-500 font-semibold uppercase">Venue</span>
-                    <span>{hackathon.venue}</span>
+                    <span className="block text-[10px] text-slate-400 font-mono uppercase tracking-wider">Venue</span>
+                    <span className="text-slate-900 font-medium">{hackathon?.venue || 'BIC Innovation Hub, Kathmandu'}</span>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
+                  <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-600">
                     <Mail className="w-5 h-5" />
                   </div>
                   <div>
-                    <span className="block text-xs text-slate-500 font-semibold uppercase">Email</span>
-                    <span>operations@bichackathon.org</span>
+                    <span className="block text-[10px] text-slate-400 font-mono uppercase tracking-wider">Email</span>
+                    <span className="text-slate-900 font-medium">operations@bichackathon.org</span>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-400">
+                  <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-600">
                     <Phone className="w-5 h-5" />
                   </div>
                   <div>
-                    <span className="block text-xs text-slate-500 font-semibold uppercase">Helpline</span>
-                    <span>+977-1-4458921</span>
+                    <span className="block text-[10px] text-slate-400 font-mono uppercase tracking-wider">Helpline</span>
+                    <span className="text-slate-900 font-medium">+977-1-4458921</span>
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="mt-8 pt-6 border-t border-slate-800/80 text-xs text-slate-400 font-mono">
-              BIC Backend Model: ContactUs (crm.py)
+            <div className="mt-8 pt-5 border-t border-slate-100 text-[11px] text-slate-400 font-mono">
+              BIC Model: ContactUs (crm.py)
             </div>
           </div>
 
           {/* Contact Form */}
-          <div className="lg:col-span-3 glass-card p-8 rounded-3xl border-slate-800">
+          <div className="lg:col-span-3 bg-white border border-slate-200/90 p-8 rounded-2xl shadow-sm">
             <form onSubmit={handleSubmit} className="space-y-5">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-2">
                     Your Full Name
                   </label>
                   <input
@@ -100,12 +100,12 @@ export default function ContactSection() {
                     placeholder="e.g. Dr. Ramesh Thapa"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full px-4 py-3 rounded-xl bg-slate-950/80 border border-slate-800 text-white placeholder-slate-600 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none text-sm"
+                    className="bic-input"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-2">
                     Email Address
                   </label>
                   <input
@@ -114,13 +114,13 @@ export default function ContactSection() {
                     placeholder="ramesh@institute.edu"
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="w-full px-4 py-3 rounded-xl bg-slate-950/80 border border-slate-800 text-white placeholder-slate-600 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none text-sm"
+                    className="bic-input"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-2">
                   Subject Line
                 </label>
                 <input
@@ -129,12 +129,12 @@ export default function ContactSection() {
                   placeholder="e.g. Lab equipment request / Mentor pass"
                   value={formData.subject}
                   onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
-                  className="w-full px-4 py-3 rounded-xl bg-slate-950/80 border border-slate-800 text-white placeholder-slate-600 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none text-sm"
+                  className="bic-input"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-2">
                   Message Details
                 </label>
                 <textarea
@@ -143,13 +143,13 @@ export default function ContactSection() {
                   placeholder="How can the organizing committee assist you?"
                   value={formData.message}
                   onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                  className="w-full px-4 py-3 rounded-xl bg-slate-950/80 border border-slate-800 text-white placeholder-slate-600 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none text-sm resize-none"
+                  className="bic-input resize-none"
                 />
               </div>
 
               <button
                 type="submit"
-                className="w-full py-4 rounded-xl font-bold text-sm tracking-wide text-white bg-gradient-to-r from-cyan-500 via-indigo-600 to-purple-600 hover:shadow-glow-cyan transition-all flex items-center justify-center gap-2"
+                className="btn-primary w-full py-3.5 justify-center gap-2 text-sm font-bold"
               >
                 <Send className="w-4 h-4" />
                 <span>Transmit Message to Committee</span>
@@ -158,7 +158,6 @@ export default function ContactSection() {
           </div>
 
         </div>
-
       </div>
     </section>
   );

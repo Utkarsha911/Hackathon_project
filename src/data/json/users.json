@@ -1,116 +1,99 @@
 [
   {
-    "id": "usr-001",
-    "is_active": true,
-    "created_at": "2026-10-01T08:00:00Z",
-    "updated_at": "2026-10-01T08:00:00Z",
-    "username": "saurav.sharma",
+    "id": 1,
+    "email": "admin@gmail.com",
+    "first_name": "admin",
+    "last_name": "admin",
+    "full_name": "admin admin",
+    "phone_number": null,
+    "date_of_birth": null,
+    "profile_picture": null,
+    "bio": "",
+    "role": "user",
+    "is_verified": false,
+    "created_at": "2026-10-17T04:29:13.171857Z",
+    "updated_at": "2026-10-17T07:20:24.684533Z",
+    "groups": [
+      {
+        "id": 12,
+        "name": "Something",
+        "permissions_name": {
+          "Category": [
+            {
+              "id": 33,
+              "name": "Can add Category",
+              "codename": "add_category"
+            },
+            {
+              "id": 34,
+              "name": "Can change Category",
+              "codename": "change_category"
+            },
+            {
+              "id": 35,
+              "name": "Can delete Category",
+              "codename": "delete_category"
+            },
+            {
+              "id": 36,
+              "name": "Can view Category",
+              "codename": "view_category"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "id": 2,
     "email": "saurav.director@bichackathon.org",
     "first_name": "Saurav",
     "last_name": "Sharma",
-    "password": "$2b$12$e8xL4J3M0zW...[HASHED]",
-    "age": 28,
-    "street": "Lazimpat Marg, Ward 2",
-    "address": "Bansbari Heights",
-    "city_province": "Kathmandu, Bagmati",
-    "college": "Kathmandu University",
-    "semester": "Graduate Alumni",
+    "full_name": "Saurav Sharma",
     "phone_number": "+977-9841234567",
-    "role_id": "rol-01"
+    "date_of_birth": null,
+    "profile_picture": null,
+    "bio": "Lead Director",
+    "role": "admin",
+    "is_verified": true,
+    "created_at": "2026-10-01T08:00:00Z",
+    "updated_at": "2026-10-01T08:00:00Z",
+    "groups": [
+      {
+        "id": 0,
+        "name": "Super Admin",
+        "permissions_name": {
+          "Administration": [
+            { "id": 1, "name": "All Permissions", "codename": "all_admin" }
+          ]
+        }
+      }
+    ]
   },
   {
-    "id": "usr-002",
-    "is_active": true,
-    "created_at": "2026-10-01T08:05:00Z",
-    "updated_at": "2026-10-01T08:05:00Z",
-    "username": "roshan.adhikari",
+    "id": 3,
     "email": "roshan.tech@bichackathon.org",
     "first_name": "Roshan",
     "last_name": "Adhikari",
-    "password": "$2b$12$k9yQ8P1N2vX...[HASHED]",
-    "age": 25,
-    "street": "Kupondole Road",
-    "address": "Sanepa Enclave",
-    "city_province": "Lalitpur, Bagmati",
-    "college": "Pulchowk Campus, IOE",
-    "semester": "Graduate Alumni",
+    "full_name": "Roshan Adhikari",
     "phone_number": "+977-9851239876",
-    "role_id": "rol-02"
-  },
-  {
-    "id": "usr-003",
-    "is_active": true,
-    "created_at": "2026-10-01T08:10:00Z",
-    "updated_at": "2026-10-01T08:10:00Z",
-    "username": "sneha.pandey",
-    "email": "sneha.sponsor@bichackathon.org",
-    "first_name": "Sneha",
-    "last_name": "Pandey",
-    "password": "$2b$12$m7aR3T5V9wZ...[HASHED]",
-    "age": 24,
-    "street": "Naxal Chowk",
-    "address": "Bhatbhateni Villa",
-    "city_province": "Kathmandu, Bagmati",
-    "college": "Apex College",
-    "semester": "Graduate Alumni",
-    "phone_number": "+977-9801987654",
-    "role_id": "rol-02"
-  },
-  {
-    "id": "usr-004",
-    "is_active": true,
-    "created_at": "2026-10-01T08:15:00Z",
-    "updated_at": "2026-10-01T08:15:00Z",
-    "username": "kiran.thapa",
-    "email": "kiran.logistics@bichackathon.org",
-    "first_name": "Kiran",
-    "last_name": "Thapa",
-    "password": "$2b$12$z2bW9L6Y4tP...[HASHED]",
-    "age": 26,
-    "street": "Jhamsikhel",
-    "address": "Aroma Lane 4",
-    "city_province": "Lalitpur, Bagmati",
-    "college": "Thapathali Campus",
-    "semester": "Graduate Alumni",
-    "phone_number": "+977-9860112233",
-    "role_id": "rol-02"
-  },
-  {
-    "id": "usr-005",
-    "is_active": true,
-    "created_at": "2026-10-09T14:00:00Z",
-    "updated_at": "2026-10-09T14:00:00Z",
-    "username": "aarav.adhikari",
-    "email": "aarav.dev@pulchowk.edu.np",
-    "first_name": "Aarav",
-    "last_name": "Adhikari",
-    "password": "$2b$12$p5jT8K2W3mQ...[HASHED]",
-    "age": 21,
-    "street": "Kupandole",
-    "address": "Campus Hostel Block B",
-    "city_province": "Lalitpur, Bagmati",
-    "college": "IOE Pulchowk",
-    "semester": "7th Semester",
-    "phone_number": "+977-9812345678",
-    "role_id": "rol-03"
-  },
-  {
-    "id": "usr-006",
-    "is_active": true,
-    "created_at": "2026-10-09T14:30:00Z",
-    "updated_at": "2026-10-09T14:30:00Z",
-    "username": "binita.kc",
-    "email": "binita.zk@ku.edu.np",
-    "first_name": "Binita",
-    "last_name": "KC",
-    "password": "$2b$12$w3rY6M1B8tK...[HASHED]",
-    "age": 22,
-    "street": "Dhulikhel",
-    "address": "University Road 14",
-    "city_province": "Kavre, Bagmati",
-    "college": "Kathmandu University",
-    "semester": "8th Semester",
-    "phone_number": "+977-9849876543",
-    "role_id": "rol-03"
+    "date_of_birth": null,
+    "profile_picture": null,
+    "bio": "Tech Lead",
+    "role": "organizer",
+    "is_verified": true,
+    "created_at": "2026-10-01T08:05:00Z",
+    "updated_at": "2026-10-01T08:05:00Z",
+    "groups": [
+      {
+        "id": 1,
+        "name": "Organizer",
+        "permissions_name": {
+          "Operations": [
+            { "id": 10, "name": "Can manage check-ins", "codename": "manage_checkins" }
+          ]
+        }
+      }
+    ]
   }
 ]

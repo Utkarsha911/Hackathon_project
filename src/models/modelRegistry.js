@@ -96,6 +96,7 @@ export const BACKEND_MODELS = {
       { name: 'start_time', type: 'DateTime(timezone=True)', required: true },
       { name: 'end_time', type: 'DateTime(timezone=True)', required: true },
       { name: 'status', type: 'String(50)', required: true },
+      { name: 'image', type: 'String(500)' },
       { name: 'remarks', type: 'String(255)' },
       { name: 'created_by', type: 'ForeignKey("users.id")' }
     ]

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useHackathon } from '../../context/HackathonContext';
-import { X, UserPlus, Shield, Sparkles, AlertCircle } from 'lucide-react';
+import { X, UserPlus, Shield, Flame } from 'lucide-react';
 
 export default function RegistrationModal({ isOpen, onClose }) {
   const { registerTeam, hackathon } = useHackathon();
@@ -11,7 +11,6 @@ export default function RegistrationModal({ isOpen, onClose }) {
     projectTitle: '',
     track: 'Autonomous AI & HealthTech',
     githubRepo: '',
-    // Leader & Private Participant details
     leaderName: '',
     leaderEmail: '',
     phone: '',
@@ -32,237 +31,175 @@ export default function RegistrationModal({ isOpen, onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md overflow-y-auto">
-      <div className="glass-card w-full max-w-2xl rounded-3xl border-slate-700 p-6 sm:p-8 relative max-h-[90vh] overflow-y-auto">
-        
-        {/* Close Button */}
-        <button
-          onClick={onClose}
-          className="absolute top-6 right-6 p-2 rounded-xl bg-slate-800 text-slate-400 hover:text-white transition-colors"
-        >
-          <X className="w-5 h-5" />
-        </button>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm overflow-y-auto">
+      <div className="w-full max-w-2xl rounded-2xl relative max-h-[90vh] overflow-y-auto bg-white border border-slate-200 shadow-2xl">
+        <div className="p-6 sm:p-8">
 
-        {/* Header */}
-        <div className="mb-6">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-xs font-semibold text-cyan-400 mb-2">
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>Squad Enrollment</span>
+          {/* Close Button */}
+          <button
+            onClick={onClose}
+            className="absolute top-5 right-5 p-2 rounded-xl text-slate-400 hover:text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
+
+          {/* Header */}
+          <div className="mb-7">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-8 h-8 rounded-full bg-coral-500 flex items-center justify-center shadow-sm">
+                <Flame className="w-4 h-4 text-white" />
+              </div>
+              <span className="text-xs font-mono font-bold uppercase tracking-widest text-coral-600">
+                Squad Enrollment
+              </span>
+            </div>
+            <h3 className="text-2xl sm:text-3xl font-extrabold text-slate-900">
+              Register for {hackathon?.title || 'BIC Hackathon'}
+            </h3>
+            <p className="text-xs sm:text-sm text-slate-600 mt-2">
+              Min {hackathon?.minimum_team_size || 2} – Max {hackathon?.max_team_size || 4} members.
+              Public details are published to the leaderboard; medical & personal records are strictly private.
+            </p>
           </div>
-          <h3 className="text-2xl sm:text-3xl font-black text-white">
-            Register for {hackathon.title}
-          </h3>
-          <p className="text-xs sm:text-sm text-slate-400 mt-1">
-            Min {hackathon.minimum_team_size || 2} - Max {hackathon.max_team_size || 4} members. Public details are published to the leaderboard; medical & personal records are strictly private.
-          </p>
+
+          <form onSubmit={handleSubmit} className="space-y-6">
+
+            {/* SECTION 1: PUBLIC TEAM PROFILE */}
+            <div className="p-5 rounded-xl bg-slate-50 border border-slate-200/90">
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-xs font-bold uppercase tracking-wider text-coral-700">
+                  1. Team Profile
+                </span>
+                <span className="text-[10px] font-mono text-slate-600 px-2 py-0.5 rounded border border-slate-200 bg-white">
+                  Public Model: Team
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {[
+                  { label: 'Team / Squad Name *', key: 'teamName', type: 'text', placeholder: 'e.g. CyberVanguard', required: true },
+                  { label: 'College / Institution *', key: 'college', type: 'text', placeholder: 'e.g. Pulchowk Campus, IOE', required: true },
+                  { label: 'Project Title', key: 'projectTitle', type: 'text', placeholder: 'e.g. NeuroWatch AI' },
+                  { label: 'GitHub Repo (optional)', key: 'githubRepo', type: 'url', placeholder: 'https://github.com/org/repo' },
+                ].map(({ label, key, type, placeholder, required }) => (
+                  <div key={key}>
+                    <label className="block text-xs text-slate-700 font-semibold mb-1.5">{label}</label>
+                    <input
+                      type={type}
+                      required={required}
+                      placeholder={placeholder}
+                      value={formData[key]}
+                      onChange={(e) => setFormData({ ...formData, [key]: e.target.value })}
+                      className="bic-input"
+                    />
+                  </div>
+                ))}
+
+                <div className="sm:col-span-2">
+                  <label className="block text-xs text-slate-700 font-semibold mb-1.5">Challenge Track</label>
+                  <select
+                    value={formData.track}
+                    onChange={(e) => setFormData({ ...formData, track: e.target.value })}
+                    className="bic-input"
+                  >
+                    <option value="Autonomous AI & HealthTech">Autonomous AI & HealthTech</option>
+                    <option value="Fintech & Decentralized Trust">Fintech & Decentralized Trust</option>
+                    <option value="Climate Intelligence & IoT">Climate Intelligence & IoT</option>
+                    <option value="EdTech & Generative Tools">EdTech & Generative Tools</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* SECTION 2: PRIVATE PARTICIPANT DETAILS */}
+            <div className="p-5 rounded-xl bg-slate-50 border border-slate-200/90">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <Shield className="w-3.5 h-3.5 text-slate-500" />
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-700">
+                    2. Leader & Confidential Data
+                  </span>
+                </div>
+                <span className="text-[10px] font-mono text-coral-700 px-2 py-0.5 rounded border border-coral-200 bg-coral-50 font-semibold">
+                  Admin Only
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {[
+                  { label: 'Team Leader Full Name *', key: 'leaderName', type: 'text', placeholder: 'e.g. Aarav Adhikari', required: true },
+                  { label: 'Leader Email *', key: 'leaderEmail', type: 'email', placeholder: 'aarav@institute.edu', required: true },
+                  { label: 'Phone Number', key: 'phone', type: 'tel', placeholder: '+977-9800000000' },
+                  { label: 'Resume / CV Drive Link', key: 'cvLink', type: 'url', placeholder: 'https://drive.google.com/...' },
+                ].map(({ label, key, type, placeholder, required }) => (
+                  <div key={key}>
+                    <label className="block text-xs text-slate-700 font-semibold mb-1.5">{label}</label>
+                    <input
+                      type={type}
+                      required={required}
+                      placeholder={placeholder}
+                      value={formData[key]}
+                      onChange={(e) => setFormData({ ...formData, [key]: e.target.value })}
+                      className="bic-input"
+                    />
+                  </div>
+                ))}
+
+                <div>
+                  <label className="block text-xs text-slate-700 font-semibold mb-1.5">Food Preference</label>
+                  <select value={formData.foodPreference} onChange={(e) => setFormData({ ...formData, foodPreference: e.target.value })} className="bic-input">
+                    <option>Vegetarian</option>
+                    <option>Non-veg</option>
+                    <option>Vegan</option>
+                    <option>Halal</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs text-slate-700 font-semibold mb-1.5">T-Shirt Size</label>
+                  <select value={formData.tshirtSize} onChange={(e) => setFormData({ ...formData, tshirtSize: e.target.value })} className="bic-input">
+                    <option value="S">S – Small</option>
+                    <option value="M">M – Medium</option>
+                    <option value="L">L – Large</option>
+                    <option value="XL">XL – Extra Large</option>
+                    <option value="XXL">XXL – Double Extra Large</option>
+                  </select>
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className="block text-xs text-slate-700 font-semibold mb-1.5">
+                    Medical Information & Allergies (Private to Medical Staff)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Peanut allergy, Asthma inhaler carried (or 'None')"
+                    value={formData.medications}
+                    onChange={(e) => setFormData({ ...formData, medications: e.target.value })}
+                    className="bic-input"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Submit */}
+            <div className="flex items-center gap-3 pt-1">
+              <button
+                type="button"
+                onClick={onClose}
+                className="btn-secondary flex-1 py-3 justify-center text-xs"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="btn-primary flex-[2] py-3 justify-center gap-2 text-xs"
+              >
+                <UserPlus className="w-4 h-4" />
+                <span>Submit Application</span>
+              </button>
+            </div>
+          </form>
         </div>
-
-        <form onSubmit={handleSubmit} className="space-y-6">
-          
-          {/* SECTION 1: PUBLIC TEAM PROFILE */}
-          <div className="p-4 rounded-2xl bg-slate-950/60 border border-slate-800">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-bold uppercase tracking-wider text-cyan-400">
-                1. Team Profile (Public Model: Team)
-              </span>
-              <span className="text-[10px] bg-cyan-500/10 text-cyan-400 px-2 py-0.5 rounded border border-cyan-500/20">
-                Normal Visibility
-              </span>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs text-slate-300 font-semibold mb-1.5">
-                  Team / Squad Name *
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. CyberVanguard"
-                  value={formData.teamName}
-                  onChange={(e) => setFormData({ ...formData, teamName: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-sm text-white focus:border-cyan-500 outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs text-slate-300 font-semibold mb-1.5">
-                  College / Institution *
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Pulchowk Campus, IOE"
-                  value={formData.college}
-                  onChange={(e) => setFormData({ ...formData, college: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-sm text-white focus:border-cyan-500 outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs text-slate-300 font-semibold mb-1.5">
-                  Target Challenge Track
-                </label>
-                <select
-                  value={formData.track}
-                  onChange={(e) => setFormData({ ...formData, track: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-sm text-white focus:border-cyan-500 outline-none"
-                >
-                  <option value="Autonomous AI & HealthTech">Autonomous AI & HealthTech</option>
-                  <option value="Fintech & Decentralized Trust">Fintech & Decentralized Trust</option>
-                  <option value="Climate Intelligence & IoT">Climate Intelligence & IoT</option>
-                  <option value="EdTech & Generative Tools">EdTech & Generative Tools</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs text-slate-300 font-semibold mb-1.5">
-                  Public GitHub Repo Link (Optional)
-                </label>
-                <input
-                  type="url"
-                  placeholder="https://github.com/org/repo"
-                  value={formData.githubRepo}
-                  onChange={(e) => setFormData({ ...formData, githubRepo: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-sm text-white focus:border-cyan-500 outline-none"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* SECTION 2: PRIVATE PARTICIPANT & SENSITIVE DETAILS */}
-          <div className="p-4 rounded-2xl bg-slate-950/60 border border-indigo-900/30">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-bold uppercase tracking-wider text-indigo-400">
-                2. Leader & Confidential Data (Private Models: User & Participant)
-              </span>
-              <span className="text-[10px] bg-amber-500/10 text-amber-300 px-2 py-0.5 rounded border border-amber-500/30">
-                Admin Panel Only
-              </span>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs text-slate-300 font-semibold mb-1.5">
-                  Team Leader Full Name *
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Aarav Adhikari"
-                  value={formData.leaderName}
-                  onChange={(e) => setFormData({ ...formData, leaderName: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-sm text-white focus:border-indigo-500 outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs text-slate-300 font-semibold mb-1.5">
-                  Leader Email Address *
-                </label>
-                <input
-                  type="email"
-                  required
-                  placeholder="aarav@institute.edu"
-                  value={formData.leaderEmail}
-                  onChange={(e) => setFormData({ ...formData, leaderEmail: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-sm text-white focus:border-indigo-500 outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs text-slate-300 font-semibold mb-1.5">
-                  Phone Number
-                </label>
-                <input
-                  type="tel"
-                  placeholder="+977-9800000000"
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-sm text-white focus:border-indigo-500 outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs text-slate-300 font-semibold mb-1.5">
-                  Food Preference (For 48h Catering)
-                </label>
-                <select
-                  value={formData.foodPreference}
-                  onChange={(e) => setFormData({ ...formData, foodPreference: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-sm text-white focus:border-indigo-500 outline-none"
-                >
-                  <option value="Vegetarian">Vegetarian</option>
-                  <option value="Non-veg">Non-Vegetarian</option>
-                  <option value="Vegan">Vegan</option>
-                  <option value="Halal">Halal</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs text-slate-300 font-semibold mb-1.5">
-                  T-Shirt Size
-                </label>
-                <select
-                  value={formData.tshirtSize}
-                  onChange={(e) => setFormData({ ...formData, tshirtSize: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-sm text-white focus:border-indigo-500 outline-none"
-                >
-                  <option value="S">S - Small</option>
-                  <option value="M">M - Medium</option>
-                  <option value="L">L - Large</option>
-                  <option value="XL">XL - Extra Large</option>
-                  <option value="XXL">XXL - Double Extra Large</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs text-slate-300 font-semibold mb-1.5">
-                  Resume / CV Drive Link
-                </label>
-                <input
-                  type="url"
-                  placeholder="https://drive.google.com/..."
-                  value={formData.cvLink}
-                  onChange={(e) => setFormData({ ...formData, cvLink: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-sm text-white focus:border-indigo-500 outline-none"
-                />
-              </div>
-
-              <div className="sm:col-span-2">
-                <label className="block text-xs text-slate-300 font-semibold mb-1.5">
-                  Medical Information & Allergies (Private to Medical Staff)
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. Peanut allergy, Asthma inhaler carried (or leave 'None')"
-                  value={formData.medications}
-                  onChange={(e) => setFormData({ ...formData, medications: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-sm text-white focus:border-indigo-500 outline-none"
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 py-3 rounded-xl font-semibold text-xs text-slate-400 bg-slate-900 border border-slate-800 hover:text-white"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="flex-2 py-3 px-6 rounded-xl font-bold text-xs text-white bg-gradient-to-r from-cyan-500 via-indigo-600 to-purple-600 hover:shadow-glow-cyan transition-all flex items-center justify-center gap-2"
-            >
-              <UserPlus className="w-4 h-4" />
-              <span>Submit Application</span>
-            </button>
-          </div>
-
-        </form>
-
       </div>
     </div>
   );

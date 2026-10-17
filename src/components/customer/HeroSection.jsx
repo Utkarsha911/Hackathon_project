@@ -1,94 +1,180 @@
 import React from 'react';
 import { useHackathon } from '../../context/HackathonContext';
-import { Calendar, MapPin, Trophy, ArrowRight, ShieldCheck, Code2 } from 'lucide-react';
+import { Calendar, MapPin, Trophy, ArrowRight, Flame } from 'lucide-react';
 
 export default function HeroSection({ onOpenRegister }) {
-  const { hackathon, prizes } = useHackathon();
-  const totalPrizePool = prizes.reduce((acc, curr) => acc + (curr.prize_money || 0), 0);
+  const { hackathon, prizes, isLoadingApi } = useHackathon();
+
+  const totalPrizePool = prizes.reduce(
+    (acc, curr) => acc + (Number(curr.prize_money) || 0),
+    0
+  );
+
+  const formatDateRange = () => {
+    if (!hackathon?.start_date || !hackathon?.end_date) {
+      return hackathon?.year ? `Nov 14 – 16, ${hackathon.year}` : 'Nov 14 – 16, 2026';
+    }
+    const s = new Date(hackathon.start_date);
+    const e = new Date(hackathon.end_date);
+    const sMonth = s.toLocaleString('default', { month: 'short' });
+    const eMonth = e.toLocaleString('default', { month: 'short' });
+    if (sMonth === eMonth) {
+      return `${sMonth} ${s.getDate()} – ${e.getDate()}, ${s.getFullYear()}`;
+    }
+    return `${sMonth} ${s.getDate()} – ${eMonth} ${e.getDate()}, ${s.getFullYear()}`;
+  };
+
+  // Modern Skeleton state while fetching API
+  if (isLoadingApi && !hackathon) {
+    return (
+      <section className="relative pt-24 pb-28 bg-[#f8fafc] overflow-hidden">
+        <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 animate-pulse">
+          <div className="h-7 w-64 bg-slate-200 rounded-full mb-8" />
+          <div className="h-14 w-3/4 max-w-2xl bg-slate-200 rounded-2xl mb-4" />
+          <div className="h-6 w-1/2 bg-slate-200 rounded-lg mb-6" />
+          <div className="h-20 w-full max-w-xl bg-slate-200/60 rounded-xl mb-8" />
+          <div className="flex gap-4">
+            <div className="h-12 w-44 bg-slate-200 rounded-xl" />
+            <div className="h-12 w-44 bg-slate-200 rounded-xl" />
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  const h = hackathon || {};
 
   return (
-    <section className="relative pt-16 pb-20 border-b border-slate-800/60 overflow-hidden">
-      {/* Subtle background grid pattern */}
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,#1f293d0f_1px,transparent_1px),linear-gradient(to_bottom,#1f293d0f_1px,transparent_1px)] bg-[size:32px_32px] pointer-events-none" />
+    <section className="relative pt-20 pb-24 bg-[#fafafa] border-b border-gray-200/80 overflow-hidden">
+      <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
 
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative">
-        
-        {/* Top announcement pill */}
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900 border border-slate-800 text-xs font-mono text-slate-300 mb-8">
-          <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
-          <span>Applications open until Nov 05, {hackathon.year}</span>
-          <span className="text-slate-600">|</span>
-          <span className="text-indigo-400 font-medium">{hackathon.event_time}</span>
+        {/* Live status badge - Solid indicator, NO BLINKING */}
+        <div className="inline-flex flex-wrap items-center gap-2 px-3.5 py-1.5 rounded-full bg-white border border-slate-200 text-xs font-mono text-slate-700 shadow-sm mb-8">
+          <span className="w-2 h-2 rounded-full bg-coral-500" />
+          <span>
+            Registration:{' '}
+            {h.registration_enddate
+              ? `Closes ${new Date(h.registration_enddate).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}`
+              : `Closes Nov 05, ${h.year || 2026}`}
+          </span>
+          <span className="text-slate-300">|</span>
+          <span className="text-coral-600 font-semibold">{h.event_time || '48 Hours Non-Stop Sprint'}</span>
+          {h.version && (
+            <>
+              <span className="text-slate-300">|</span>
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-coral-50 text-coral-700 border border-coral-200 font-bold">
+                {h.version}
+              </span>
+            </>
+          )}
         </div>
 
-        {/* Headline */}
-        <h1 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-white max-w-4xl leading-[1.08]">
-          Build the Next Generation of <br />
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 via-sky-300 to-teal-300">
-            Intelligent Systems
+        {/* BIC Crest / Flame + College Name */}
+        <div className="flex items-center gap-3 mb-5">
+          <div className="w-12 h-12 rounded-full bg-coral-500 flex items-center justify-center shadow-lg shadow-coral-500/25">
+            <Flame className="w-7 h-7 text-white" />
+          </div>
+          <div>
+            <p className="text-xs font-mono font-bold uppercase tracking-widest text-coral-600">
+              Boston International College
+            </p>
+            <p className="text-[11px] text-slate-500 font-mono">Kathmandu, Nepal</p>
+          </div>
+        </div>
+
+        {/* Main Headline */}
+        <h1 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-slate-900 max-w-4xl leading-[1.06]">
+          {h.title || 'BIC InnovateX'} <br />
+          <span className="text-coral-600">
+            {h.year || 2026}
           </span>
         </h1>
 
-        <p className="mt-6 text-base sm:text-lg text-slate-400 max-w-2xl leading-relaxed font-normal">
-          {hackathon.description}
-        </p>
+        {/* Sub-Heading */}
+        {h.sub_heading && (
+          <p className="mt-4 text-lg sm:text-xl font-medium text-slate-700 max-w-3xl leading-snug">
+            {h.sub_heading}
+          </p>
+        )}
 
-        {/* Event Key Facts */}
-        <div className="mt-8 flex flex-wrap items-center gap-4 text-xs font-mono text-slate-300">
-          <div className="flex items-center gap-2 bg-[#0e131f] border border-slate-800/80 px-3.5 py-2 rounded-lg">
-            <Calendar className="w-3.5 h-3.5 text-indigo-400" />
-            <span>Nov 14 – 16, {hackathon.year}</span>
+        {/* Theme Pill */}
+        {h.theme && (
+          <div className="mt-4 inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-coral-50 border border-coral-200 text-xs font-mono text-coral-800">
+            <span className="text-coral-600 font-bold uppercase">Theme:</span>
+            <span>{h.theme}</span>
           </div>
+        )}
 
-          <div className="flex items-center gap-2 bg-[#0e131f] border border-slate-800/80 px-3.5 py-2 rounded-lg">
-            <MapPin className="w-3.5 h-3.5 text-sky-400" />
-            <span>{hackathon.venue}</span>
-          </div>
+        {h.description && (
+          <p className="mt-5 text-base sm:text-lg text-slate-600 max-w-2xl leading-relaxed">
+            {h.description}
+          </p>
+        )}
 
-          <div className="flex items-center gap-2 bg-[#0e131f] border border-slate-800/80 px-3.5 py-2 rounded-lg">
-            <Trophy className="w-3.5 h-3.5 text-amber-400" />
-            <span>Prize Pool: NPR {totalPrizePool.toLocaleString()}</span>
+        {/* Event Facts */}
+        <div className="mt-8 flex flex-wrap items-center gap-3 text-xs font-mono text-slate-700">
+          <div className="flex items-center gap-2 bg-white border border-slate-200 px-3.5 py-2 rounded-lg shadow-sm">
+            <Calendar className="w-3.5 h-3.5 text-coral-600" />
+            <span>{formatDateRange()}</span>
           </div>
+          {h.venue && (
+            <div className="flex items-center gap-2 bg-white border border-slate-200 px-3.5 py-2 rounded-lg shadow-sm">
+              <MapPin className="w-3.5 h-3.5 text-slate-500" />
+              <span>{h.venue}</span>
+            </div>
+          )}
+          {totalPrizePool > 0 && (
+            <div className="flex items-center gap-2 bg-white border border-slate-200 px-3.5 py-2 rounded-lg shadow-sm">
+              <Trophy className="w-3.5 h-3.5 text-coral-600" />
+              <span>Prize Pool: NPR {totalPrizePool.toLocaleString()}</span>
+            </div>
+          )}
         </div>
 
-        {/* Action Buttons */}
-        <div className="mt-10 flex flex-wrap items-center gap-4">
+        {/* CTA Buttons */}
+        <div className="mt-10 flex flex-wrap items-center gap-3">
           <button
             onClick={onOpenRegister}
-            className="px-6 py-3 rounded-lg text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-500 transition-colors flex items-center gap-2 shadow-sm"
+            className="btn-primary flex items-center gap-2"
           >
             <span>Register Your Squad</span>
-            <ArrowRight className="w-3.5 h-3.5" />
+            <ArrowRight className="w-4 h-4" />
           </button>
-
           <a
             href="#tracks"
-            className="px-5 py-3 rounded-lg text-xs font-semibold text-slate-300 bg-[#0e131f] border border-slate-800 hover:border-slate-700 hover:text-white transition-colors"
+            className="btn-secondary"
           >
-            Review Problem Statements
+            View Problem Statements
+          </a>
+          <a
+            href="#rules"
+            className="btn-secondary"
+          >
+            Rules & Criteria
           </a>
         </div>
 
-        {/* Architecture Specs Counter */}
-        <div className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-4 pt-10 border-t border-slate-800/60">
-          <div className="p-4 rounded-xl bg-[#0e131f]/60 border border-slate-800/80">
-            <div className="text-2xl font-bold text-white font-mono">48 Hours</div>
-            <div className="text-xs text-slate-400 mt-1">Continuous Sprint</div>
+        {/* Stats Bar */}
+        <div className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-4 pt-10 border-t border-slate-200">
+          <div className="p-5 rounded-xl bg-white border border-slate-200 shadow-sm">
+            <div className="text-2xl font-bold text-slate-900 font-mono">48h</div>
+            <div className="text-xs text-slate-500 mt-1">{h.event_time || 'Continuous Sprint'}</div>
           </div>
-
-          <div className="p-4 rounded-xl bg-[#0e131f]/60 border border-slate-800/80">
-            <div className="text-2xl font-bold text-indigo-400 font-mono">NPR 565k</div>
-            <div className="text-xs text-slate-400 mt-1">Cash Grants & Perks</div>
+          <div className="p-5 rounded-xl bg-white border border-slate-200 shadow-sm">
+            <div className="text-2xl font-bold text-coral-600 font-mono">
+              NPR {totalPrizePool > 0 ? (totalPrizePool / 1000).toFixed(0) + 'k' : '565k'}
+            </div>
+            <div className="text-xs text-slate-500 mt-1">Total Prize Pool</div>
           </div>
-
-          <div className="p-4 rounded-xl bg-[#0e131f]/60 border border-slate-800/80">
-            <div className="text-2xl font-bold text-white font-mono">2 - 4</div>
-            <div className="text-xs text-slate-400 mt-1">Engineers per Squad</div>
+          <div className="p-5 rounded-xl bg-white border border-slate-200 shadow-sm">
+            <div className="text-2xl font-bold text-slate-900 font-mono">
+              {h.minimum_team_size || 2} – {h.max_team_size || 4}
+            </div>
+            <div className="text-xs text-slate-500 mt-1">Members per Squad</div>
           </div>
-
-          <div className="p-4 rounded-xl bg-[#0e131f]/60 border border-slate-800/80">
-            <div className="text-2xl font-bold text-emerald-400 font-mono">100%</div>
-            <div className="text-xs text-slate-400 mt-1">Participant IP Retained</div>
+          <div className="p-5 rounded-xl bg-white border border-slate-200 shadow-sm">
+            <div className="text-2xl font-bold text-slate-900 font-mono">100%</div>
+            <div className="text-xs text-slate-500 mt-1">Participant IP Retained</div>
           </div>
         </div>
 

@@ -1,6 +1,6 @@
 import React from 'react';
 import { useHackathon } from '../../context/HackathonContext';
-import { CheckCircle2, AlertCircle, Info, X } from 'lucide-react';
+import { CheckCircle2, AlertCircle, Info } from 'lucide-react';
 
 export default function Toast() {
   const { toast } = useHackathon();
@@ -10,25 +10,26 @@ export default function Toast() {
   const isSuccess = toast.type === 'success';
   const isInfo = toast.type === 'info';
 
+  const style = isSuccess
+    ? { backgroundColor: 'rgba(14,32,64,0.95)', borderColor: '#e8622a', color: '#fdddd4' }
+    : isInfo
+    ? { backgroundColor: 'rgba(14,32,64,0.95)', borderColor: '#4a6bbf', color: '#d5e2f8' }
+    : { backgroundColor: 'rgba(14,32,64,0.95)', borderColor: '#b84a1a', color: '#fdddd4' };
+
   return (
-    <div className="fixed bottom-6 right-6 z-50 animate-bounce-in max-w-md">
-      <div className={`flex items-center gap-3 px-5 py-3.5 rounded-xl border backdrop-blur-xl shadow-2xl ${
-        isSuccess
-          ? 'bg-emerald-950/80 border-emerald-500/40 text-emerald-200'
-          : isInfo
-          ? 'bg-cyan-950/80 border-cyan-500/40 text-cyan-200'
-          : 'bg-rose-950/80 border-rose-500/40 text-rose-200'
-      }`}>
+    <div className="fixed bottom-6 right-6 z-50 max-w-sm animate-fade-in">
+      <div
+        className="flex items-center gap-3 px-5 py-3.5 rounded-xl border shadow-2xl backdrop-blur"
+        style={style}
+      >
         {isSuccess ? (
-          <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+          <CheckCircle2 className="w-5 h-5 shrink-0" style={{ color: '#f07040' }} />
         ) : isInfo ? (
-          <Info className="w-5 h-5 text-cyan-400 shrink-0" />
+          <Info className="w-5 h-5 shrink-0" style={{ color: '#6b8cd4' }} />
         ) : (
-          <AlertCircle className="w-5 h-5 text-rose-400 shrink-0" />
+          <AlertCircle className="w-5 h-5 shrink-0" style={{ color: '#f58a5e' }} />
         )}
-        <div className="text-sm font-medium pr-2">
-          {toast.message}
-        </div>
+        <div className="text-sm font-medium">{toast.message}</div>
       </div>
     </div>
   );

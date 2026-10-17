@@ -1,51 +1,57 @@
 import React from 'react';
-import { Terminal, ArrowUpRight } from 'lucide-react';
+import { Flame, ArrowUpRight } from 'lucide-react';
 import { useHackathon } from '../../context/HackathonContext';
 
 export default function CustomerNavbar({ onOpenRegister }) {
   const { hackathon } = useHackathon();
 
   return (
-    <header className="sticky top-0 z-40 w-full bg-[#080b11]/90 backdrop-blur-md border-b border-slate-800/80">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-        
-        {/* Brand identity */}
-        <a href="#" className="flex items-center gap-2.5 group">
-          <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-bold transition-transform group-hover:scale-105">
-            <Terminal className="w-4 h-4" />
+    <header className="sticky top-0 z-40 w-full bg-white/95 backdrop-blur-md border-b border-slate-200/90 shadow-[0_1px_3px_0_rgba(15,23,42,0.03)]">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+
+        {/* Brand */}
+        <a href="#" className="flex items-center gap-3 group">
+          {/* BIC Flame Seal Icon */}
+          <div className="w-9 h-9 rounded-full bg-coral-500 flex items-center justify-center shadow-md shadow-coral-500/20">
+            <Flame className="w-5 h-5 text-white" />
           </div>
-          <div className="flex items-center gap-2">
-            <span className="font-bold text-base tracking-tight text-white group-hover:text-indigo-300 transition-colors">
-              {hackathon.title}
-            </span>
-            <span className="text-[11px] font-mono text-slate-400 bg-slate-800/80 px-2 py-0.5 rounded border border-slate-700/60 hidden sm:inline">
-              {hackathon.year}
+          <div className="flex flex-col leading-tight">
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-sm tracking-tight text-slate-900 group-hover:text-coral-600 transition-colors">
+                {hackathon?.title || 'BIC Hackathon'}
+              </span>
+              {hackathon?.version && (
+                <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-coral-50 text-coral-700 border border-coral-200 font-bold hidden sm:inline-block">
+                  {hackathon.version}
+                </span>
+              )}
+            </div>
+            <span className="text-[10px] font-mono text-slate-500 hidden sm:block">
+              Boston International College · {hackathon?.year || 2026}
             </span>
           </div>
         </a>
 
-        {/* Navigation Links */}
-        <nav className="hidden md:flex items-center gap-7 text-xs font-medium text-slate-300">
-          <a href="#tracks" className="hover:text-white transition-colors">Challenges</a>
-          <a href="#prizes" className="hover:text-white transition-colors">Prizes</a>
-          <a href="#schedule" className="hover:text-white transition-colors">Schedule</a>
-          <a href="#squads" className="hover:text-white transition-colors">Squads</a>
-          <a href="#sponsors" className="hover:text-white transition-colors">Sponsors</a>
-          <a href="#faq" className="hover:text-white transition-colors">FAQ</a>
-          <a href="#contact" className="hover:text-white transition-colors">Contact</a>
+        {/* Nav Links */}
+        <nav className="hidden lg:flex items-center gap-6 text-xs font-medium text-slate-600">
+          <a href="#tracks" className="hover:text-coral-600 transition-colors">Challenges</a>
+          <a href="#prizes" className="hover:text-coral-600 transition-colors">Prizes</a>
+          <a href="#schedule" className="hover:text-coral-600 transition-colors">Schedule</a>
+          <a href="#rules" className="hover:text-coral-600 transition-colors">Rules</a>
+          <a href="#squads" className="hover:text-coral-600 transition-colors">Squads</a>
+          <a href="#sponsors" className="hover:text-coral-600 transition-colors">Sponsors</a>
+          <a href="#organizers" className="hover:text-coral-600 transition-colors">Organizers</a>
+          <a href="#contact" className="hover:text-coral-600 transition-colors">Contact</a>
         </nav>
 
         {/* CTA */}
-        <div className="flex items-center gap-3">
-          <button
-            onClick={onOpenRegister}
-            className="px-4 py-2 rounded-lg text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-500 transition-colors flex items-center gap-1.5 shadow-sm"
-          >
-            <span>Register Squad</span>
-            <ArrowUpRight className="w-3.5 h-3.5" />
-          </button>
-        </div>
-
+        <button
+          onClick={onOpenRegister}
+          className="btn-primary flex items-center gap-1.5 text-xs"
+        >
+          <span>Register Squad</span>
+          <ArrowUpRight className="w-3.5 h-3.5" />
+        </button>
       </div>
     </header>
   );
