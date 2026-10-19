@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import api, {
   getAuthToken,
   setAuthToken,
@@ -6,6 +6,9 @@ import api, {
   getRefreshToken,
   setRefreshToken,
   clearRefreshToken,
+  getCurrentUser,
+  setCurrentUser,
+  clearCurrentUser,
   logout
 } from '../services/api';
 
@@ -75,19 +78,68 @@ export function HackathonProvider({ children }) {
 
   // Global Toast Alert State
   const [toast, setToast] = useState(null);
+  const toastTimeoutRef = useRef(null);
 
-  const showToast = (message, type = 'success') => {
+  // Authenticated Current User State (for normal users outside and admins)
+  const [currentUser, setCurrentUserState] = useState(() => getCurrentUser());
+
+  const closeToast = useCallback(() => {
+    if (toastTimeoutRef.current) {
+      clearTimeout(toastTimeoutRef.current);
+      toastTimeoutRef.current = null;
+    }
+    setToast(null);
+  }, []);
+
+  const showToast = useCallback((message, type = 'success', duration = 4000) => {
+    if (toastTimeoutRef.current) {
+      clearTimeout(toastTimeoutRef.current);
+    }
     setToast({ id: Date.now(), message, type });
-    setTimeout(() => setToast(null), 4000);
-  };
+    toastTimeoutRef.current = setTimeout(() => {
+      setToast(null);
+      toastTimeoutRef.current = null;
+    }, duration);
+  }, []);
 
   useEffect(() => {
     const handleAuthLogout = () => {
-      showToast('Session expired. Please log in again.', 'error');
+      setCurrentUserState(null);
+      showToast('You have been logged out.', 'info');
     };
+
+    const handleUserUpdated = (e) => {
+      setCurrentUserState(e?.detail || getCurrentUser());
+    };
+
+    const handleAuthLogin = (e) => {
+      const u = e?.detail?.user || getCurrentUser();
+      setCurrentUserState(u);
+      showToast(`Welcome back, ${u?.first_name || u?.email || 'Hacker'}!`, 'success');
+    };
+
     window.addEventListener('bic_auth_logout', handleAuthLogout);
-    return () => window.removeEventListener('bic_auth_logout', handleAuthLogout);
-  }, []);
+    window.addEventListener('bic_user_updated', handleUserUpdated);
+    window.addEventListener('bic_auth_login', handleAuthLogin);
+
+    return () => {
+      window.removeEventListener('bic_auth_logout', handleAuthLogout);
+      window.removeEventListener('bic_user_updated', handleUserUpdated);
+      window.removeEventListener('bic_auth_login', handleAuthLogin);
+    };
+  }, [showToast]);
+
+  const loginWithGoogle = async (token) => {
+    const res = await api.users.googleLogin(token);
+    const u = res?.user || getCurrentUser();
+    setCurrentUserState(u);
+    return res;
+  };
+
+  const logoutUser = () => {
+    logout();
+    setCurrentUserState(null);
+  };
 
   // -------------------------------------------------------------
   // Real-time API Synchronizer with Graceful Fallback
@@ -97,21 +149,29 @@ export function HackathonProvider({ children }) {
     let connected = false;
 
     try {
-      // 0. Primary Call: GET /api/v1/hackathons/current/details
-      const currentDetails = await api.hackathons.getCurrentDetails().catch((err) => {
-        console.info('Current hackathon details endpoint not reachable, falling back to modular endpoints:', err?.message);
+      // 0. Primary Call: GET /api/v1/hackathons/current-hackathon/
+      const currentDetails = await (api.hackathons.getCurrentHackathon
+        ? api.hackathons.getCurrentHackathon()
+        : api.hackathons.getCurrentDetails()
+      ).catch((err) => {
+        console.info('Current hackathon endpoint not reachable, trying fallback:', err?.message);
         return null;
       });
 
+      let hasEmbeddedRelations = false;
+
       if (currentDetails && typeof currentDetails === 'object' && currentDetails.id) {
         setHackathon(prev => ({ ...prev, ...currentDetails }));
+        connected = true;
 
         if (Array.isArray(currentDetails.prizes) && currentDetails.prizes.length > 0) {
           setPrizes(currentDetails.prizes);
+          hasEmbeddedRelations = true;
         }
 
         if (Array.isArray(currentDetails.challenges) && currentDetails.challenges.length > 0) {
           setChallenges(currentDetails.challenges);
+          hasEmbeddedRelations = true;
         }
 
         if (Array.isArray(currentDetails.schedules) && currentDetails.schedules.length > 0) {
@@ -125,6 +185,7 @@ export function HackathonProvider({ children }) {
           if (extractedEvents.length > 0) {
             setScheduleEvents(extractedEvents);
           }
+          hasEmbeddedRelations = true;
         }
 
         if (Array.isArray(currentDetails.sponsorships) && currentDetails.sponsorships.length > 0) {
@@ -142,52 +203,69 @@ export function HackathonProvider({ children }) {
           if (extractedSponsors.length > 0) {
             setSponsors(extractedSponsors);
           }
+          hasEmbeddedRelations = true;
         }
 
         if (Array.isArray(currentDetails.faqs) && currentDetails.faqs.length > 0) {
           setFaqs(currentDetails.faqs);
+          hasEmbeddedRelations = true;
         }
 
         if (Array.isArray(currentDetails.organizers) && currentDetails.organizers.length > 0) {
           setOrganizers(currentDetails.organizers);
+          hasEmbeddedRelations = true;
         }
 
         if (Array.isArray(currentDetails.teams) && currentDetails.teams.length > 0) {
           setTeams(currentDetails.teams);
+          hasEmbeddedRelations = true;
         }
 
         if (Array.isArray(currentDetails.participants) && currentDetails.participants.length > 0) {
           setParticipants(currentDetails.participants);
+          hasEmbeddedRelations = true;
         }
 
         if (Array.isArray(currentDetails.registrations) && currentDetails.registrations.length > 0) {
           setRegistrations(currentDetails.registrations);
+          hasEmbeddedRelations = true;
         }
 
         if (Array.isArray(currentDetails.check_ins) && currentDetails.check_ins.length > 0) {
           setCheckIns(currentDetails.check_ins);
+          hasEmbeddedRelations = true;
         }
 
         if (Array.isArray(currentDetails.tables) && currentDetails.tables.length > 0) {
           setTables(currentDetails.tables);
+          hasEmbeddedRelations = true;
         }
 
         if (Array.isArray(currentDetails.terms_and_conditions) && currentDetails.terms_and_conditions.length > 0) {
           setTerms(currentDetails.terms_and_conditions);
+          hasEmbeddedRelations = true;
         }
 
         if (Array.isArray(currentDetails.contact_us) && currentDetails.contact_us.length > 0) {
           setContactUsList(currentDetails.contact_us);
+          hasEmbeddedRelations = true;
         }
-
-        connected = true;
       } else {
-        // Fallback: Query modular individual endpoints if current/details is not active
+        // Fallback: Query hackathons list
         const hackathonsRes = await api.hackathons.getAll().catch(() => null);
-        if (Array.isArray(hackathonsRes) && hackathonsRes.length > 0) {
-          setHackathon(prev => ({ ...prev, ...hackathonsRes[0] }));
+        const list = Array.isArray(hackathonsRes)
+          ? hackathonsRes
+          : Array.isArray(hackathonsRes?.results)
+          ? hackathonsRes.results
+          : [];
+        if (list.length > 0) {
+          setHackathon(prev => ({ ...prev, ...list[0] }));
           connected = true;
         }
+      }
+
+      // If modular relations are not bundled in current-hackathon, query modular endpoints
+      if (!hasEmbeddedRelations) {
 
         const prizesRes = await api.crm.getPrizes().catch(() => null);
         if (Array.isArray(prizesRes) && prizesRes.length > 0) {
@@ -214,14 +292,24 @@ export function HackathonProvider({ children }) {
         }
 
         const sponsorsRes = await api.sponsors.getAll().catch(() => null);
-        if (Array.isArray(sponsorsRes) && sponsorsRes.length > 0) {
-          setSponsors(sponsorsRes);
+        const sponsorsList = Array.isArray(sponsorsRes)
+          ? sponsorsRes
+          : Array.isArray(sponsorsRes?.results)
+          ? sponsorsRes.results
+          : [];
+        if (sponsorsList.length > 0) {
+          setSponsors(sponsorsList);
           connected = true;
         }
 
-        const sponsorshipsRes = await api.sponsors.getSponsorships().catch(() => null);
-        if (Array.isArray(sponsorshipsRes) && sponsorshipsRes.length > 0) {
-          setSponsorships(sponsorshipsRes);
+        const sponsorshipsRes = await api.sponsors.getPackages().catch(() => null);
+        const packagesList = Array.isArray(sponsorshipsRes)
+          ? sponsorshipsRes
+          : Array.isArray(sponsorshipsRes?.results)
+          ? sponsorshipsRes.results
+          : [];
+        if (packagesList.length > 0) {
+          setSponsorships(packagesList);
           connected = true;
         }
 
@@ -307,7 +395,10 @@ export function HackathonProvider({ children }) {
 
   useEffect(() => {
     // Avoid calling unnecessary customer portal APIs when accessing admin panel
-    if (typeof window !== 'undefined' && window.location.pathname.startsWith('/admin')) {
+    if (
+      typeof window !== 'undefined' &&
+      (window.location.pathname.startsWith('/admin-control-site') || window.location.pathname.startsWith('/admin'))
+    ) {
       return;
     }
     refreshData();
@@ -775,6 +866,7 @@ export function HackathonProvider({ children }) {
     setAdminTab,
     toast,
     showToast,
+    closeToast,
     // API State
     api,
     isApiConnected,
@@ -815,6 +907,12 @@ export function HackathonProvider({ children }) {
     notifications,
     eventAttendances,
     setEventAttendances,
+    // Authentication (Normal Users & Admins)
+    currentUser,
+    setCurrentUser: setCurrentUserState,
+    loginWithGoogle,
+    logoutUser,
+    showToast,
     // Operations
     registerTeam,
     submitContactInquiry,

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { api, getMediaUrl, getAdminUser, setAdminUser } from '../../services/api';
+import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
 import {
   Users,
   UserPlus,
@@ -26,18 +27,12 @@ import {
   Phone,
   Calendar,
   Save,
-  FileText
+  FileText,
+  Camera,
+  Upload,
+  Trash2
 } from 'lucide-react';
 import sampleUsers from '../../data/json/users.json';
-import fallbackTeams from '../../data/json/teams.json';
-
-const DEFAULT_FALLBACK_GROUPS = [
-  { id: 12, name: 'Something', description: 'Category and content management permissions' },
-  { id: 0, name: 'Super Admin', description: 'Complete system administrative access' },
-  { id: 1, name: 'Organizer', description: 'Event operations, logistics, and verification' },
-  { id: 2, name: 'Judge', description: 'Scoring, evaluation, and participant review' },
-  { id: 3, name: 'Participant', description: 'Hackathon attendee and team member' }
-];
 
 // Module-level in-memory cache to ensure data loads once and NEVER re-fetches
 // until the user explicitly clicks the Refresh button or reloads the webpage.
@@ -52,8 +47,9 @@ export default function UserManagement() {
     if (hasLoadedOnce && Array.isArray(cachedGroupsData)) {
       return cachedGroupsData;
     }
-    return DEFAULT_FALLBACK_GROUPS;
+    return [];
   });
+  const [teamsList, setTeamsList] = useState([]);
 
   const [usersList, setUsersList] = useState(() => {
     if (hasLoadedOnce && Array.isArray(cachedUsersData)) {
@@ -91,7 +87,7 @@ export default function UserManagement() {
     password: '',
     password_confirm: '',
     role: 'user',
-    groups: [12],
+    groups: [],
     team: ''
   });
 
@@ -103,6 +99,9 @@ export default function UserManagement() {
 
   // Admin Edit User Modal State (for PATCH /api/v1/users/{id}/update/)
   const [editUser, setEditUser] = useState(null);
+
+  // Disable background scrolling when any modal in UserManagement is opened
+  useBodyScrollLock(Boolean(isRegisterModalOpen || viewPayloadModalUser || editUser));
   const [editLoading, setEditLoading] = useState(false);
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError] = useState('');
@@ -120,9 +119,14 @@ export default function UserManagement() {
     is_verified: true,
     is_active: true,
     is_staff: false,
-    is_superuser: false,
     groups: []
   });
+
+  // Edit image upload state
+  const [editImageFile, setEditImageFile] = useState(null);
+  const [editImagePreview, setEditImagePreview] = useState('');
+  const [editImageRemoved, setEditImageRemoved] = useState(false);
+  const editFileInputRef = useRef(null);
 
   // Track initial mount so we don't double fire
   const isFirstRender = useRef(true);
@@ -137,7 +141,7 @@ export default function UserManagement() {
     setUsersLoading(true);
     try {
       const params = query ? { search: query } : {};
-      const data = await api.users.getAll(params);
+      const data = await api.users.getAll(params, { forceRefresh: force });
       const list = Array.isArray(data?.results)
         ? data.results
         : Array.isArray(data)
@@ -204,7 +208,7 @@ export default function UserManagement() {
 
     setGroupsLoading(true);
     try {
-      const data = await api.users.listGroups();
+      const data = await api.users.listGroups({ forceRefresh: force });
       const rawList = Array.isArray(data?.results)
         ? data.results
         : Array.isArray(data)
@@ -222,6 +226,9 @@ export default function UserManagement() {
         }));
         setGroups(parsed);
         cachedGroupsData = parsed;
+      } else {
+        setGroups([]);
+        cachedGroupsData = [];
       }
       hasLoadedOnce = true;
     } catch (err) {
@@ -236,6 +243,15 @@ export default function UserManagement() {
     if (!hasLoadedOnce || searchParamQuery) {
       fetchUsers(searchParamQuery, Boolean(searchParamQuery));
       fetchGroups(false);
+      api.teams
+        .getAll()
+        .then((res) => {
+          const list = Array.isArray(res) ? res : res?.results || res?.data || [];
+          setTeamsList(list);
+        })
+        .catch(() => {
+          setTeamsList([]);
+        });
     }
   }, []);
 
@@ -381,6 +397,11 @@ export default function UserManagement() {
       is_superuser: Boolean(user?.is_superuser),
       groups: groupIds
     });
+
+    setEditImageFile(null);
+    setEditImageRemoved(false);
+    setEditImagePreview(user?.profile_picture ? getMediaUrl(user.profile_picture) : '');
+    if (editFileInputRef.current) editFileInputRef.current.value = '';
   };
 
   // Toggle group selection for admin edit form
@@ -454,8 +475,10 @@ export default function UserManagement() {
       patchPayload.groups = currentGroupIds;
     }
 
+    const hasImageChange = editImageFile !== null || (editImageRemoved && Boolean(editUser?.profile_picture));
+
     // If no changes made, notify gently and close
-    if (Object.keys(patchPayload).length === 0) {
+    if (Object.keys(patchPayload).length === 0 && !hasImageChange) {
       setEditSuccess('No changes to update.');
       setTimeout(() => {
         setEditUser(null);
@@ -465,11 +488,37 @@ export default function UserManagement() {
       return;
     }
 
+    let requestBody;
+    if (editImageFile) {
+      const fd = new FormData();
+      Object.entries(patchPayload).forEach(([key, val]) => {
+        if (key === 'groups' && Array.isArray(val)) {
+          val.forEach((gid) => fd.append('groups', gid));
+        } else if (val !== null && val !== undefined) {
+          fd.append(key, val);
+        }
+      });
+      fd.append('profile_picture', editImageFile);
+      requestBody = fd;
+    } else if (editImageRemoved) {
+      requestBody = { ...patchPayload, profile_picture: null };
+    } else {
+      requestBody = patchPayload;
+    }
+
     try {
-      const updatedUser = await api.users.update(editUser.id, patchPayload, { method: 'PATCH' });
+      const updatedUser = await api.users.update(editUser.id, requestBody, { method: 'PATCH' });
       const mergedUser = updatedUser && typeof updatedUser === 'object' && updatedUser.id
         ? updatedUser
-        : { ...editUser, ...patchPayload };
+        : {
+            ...editUser,
+            ...patchPayload,
+            profile_picture: editImagePreview || (editImageRemoved ? null : editUser?.profile_picture)
+          };
+
+      if (!mergedUser.profile_picture && editImagePreview) {
+        mergedUser.profile_picture = editImagePreview;
+      }
 
       setUsersList((prev) =>
         prev.map((u) => (String(u.id) === String(editUser.id) ? { ...u, ...mergedUser } : u))
@@ -579,7 +628,7 @@ export default function UserManagement() {
           password: '',
           password_confirm: '',
           role: 'user',
-          groups: groups[0]?.id !== undefined ? [groups[0].id] : [12],
+          groups: groups[0]?.id !== undefined ? [groups[0].id] : [],
           team: ''
         });
         setIsRegisterModalOpen(false);
@@ -651,7 +700,7 @@ export default function UserManagement() {
         password: '',
         password_confirm: '',
         role: 'user',
-        groups: [12],
+        groups: groups[0]?.id !== undefined ? [groups[0].id] : [],
         team: ''
       });
       setIsRegisterModalOpen(false);
@@ -731,45 +780,26 @@ export default function UserManagement() {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto w-full text-slate-900">
-      {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="w-8 h-8 rounded-xl bg-orange-50 text-[#e8622a] flex items-center justify-center font-bold">
-              <Users className="w-4 h-4" />
-            </span>
-            <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
-              User Management
-            </h1>
-          </div>
-          <p className="text-xs sm:text-sm text-slate-500">
-            System accounts, roles, group memberships, and profile details.
+          <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">
+            User Management
+          </h2>
+          <p className="text-xs sm:text-sm text-slate-500 mt-1">
+            System accounts, roles, group memberships, and profile details
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5">
-          <button
-            onClick={() => {
-              // Force re-fetch from API when clicking Refresh
-              fetchUsers(true);
-              fetchGroups(true);
-            }}
-            disabled={usersLoading || groupsLoading}
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold border border-slate-200 text-slate-700 bg-white hover:bg-slate-50 transition shadow-sm active:scale-95"
-            title="Refresh Users from Server"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${usersLoading ? 'animate-spin text-[#e8622a]' : ''}`} />
-            <span>Refresh</span>
-          </button>
-
+        <div className="flex items-center gap-2.5 w-full sm:w-auto">
           <button
             onClick={() => {
               setIsRegisterModalOpen(true);
               setRegisterError('');
               setRegisterSuccess('');
             }}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold text-white shadow-md shadow-orange-500/20 hover:shadow-orange-500/30 active:scale-[0.99] transition-all"
-            style={{ backgroundColor: '#e8622a' }}
+            className="w-full sm:w-auto justify-center inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold text-white shadow-md shadow-orange-500/20 hover:shadow-orange-500/30 active:scale-[0.99] transition-all cursor-pointer"
+            style={{ backgroundColor: '#ea580c' }}
           >
             <UserPlus className="w-4 h-4" />
             <span>Register New User</span>
@@ -778,8 +808,8 @@ export default function UserManagement() {
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3">
-        <div className="relative w-full sm:w-96">
+      <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
+        <div className="relative w-full lg:w-96">
           <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
           <input
             type="text"
@@ -825,7 +855,7 @@ export default function UserManagement() {
           )}
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+        <div className="flex flex-wrap items-center gap-2.5 w-full lg:w-auto">
           {/* Group Filter */}
           <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium">
             <Filter className="w-3.5 h-3.5" />
@@ -855,7 +885,7 @@ export default function UserManagement() {
             className="px-3 py-2 rounded-xl border border-slate-200 text-xs sm:text-sm text-slate-700 bg-white focus:outline-none focus:border-[#e8622a]"
           >
             <option value="all">All Teams</option>
-            {fallbackTeams.map((t) => (
+            {teamsList.map((t) => (
               <option key={t.id} value={t.name}>
                 {t.name}
               </option>
@@ -1046,36 +1076,36 @@ export default function UserManagement() {
 
       {/* REGISTRATION MODAL */}
       {isRegisterModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-xl w-full max-h-[92vh] sm:max-h-[90vh] overflow-y-auto">
             {/* Modal Header */}
-            <div className="sticky top-0 bg-white px-6 py-4 border-b border-slate-100 flex items-center justify-between z-10">
+            <div className="sticky top-0 bg-white px-4 sm:px-6 py-3.5 sm:py-4 border-b border-slate-100 flex items-center justify-between z-10">
               <div className="flex items-center gap-2.5">
                 <div
-                  className="w-9 h-9 rounded-xl flex items-center justify-center text-white shadow-sm"
+                  className="w-9 h-9 rounded-xl flex items-center justify-center text-white shadow-sm shrink-0"
                   style={{ backgroundColor: '#e8622a' }}
                 >
                   <UserPlus className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-slate-900">
+                  <h3 className="text-sm sm:text-base font-bold text-slate-900">
                     Register New User
                   </h3>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-[11px] sm:text-xs text-slate-500">
                     Create a user account with role and group permissions
                   </p>
                 </div>
               </div>
               <button
                 onClick={() => setIsRegisterModalOpen(false)}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition"
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition shrink-0"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {/* Modal Body */}
-            <div className="p-6">
+            <div className="p-4 sm:p-6">
               {registerError && (
                 <div className="mb-5 p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-start gap-2.5">
                   <AlertCircle className="w-4 h-4 shrink-0 text-red-600 mt-0.5" />
@@ -1311,7 +1341,7 @@ export default function UserManagement() {
                     className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs sm:text-sm bg-white text-slate-800 focus:outline-none focus:border-[#e8622a]"
                   >
                     <option value="">No Team Assigned (Independent)</option>
-                    {fallbackTeams.map((t) => (
+                    {teamsList.map((t) => (
                       <option key={t.id} value={t.name}>
                         {t.name} ({t.track || t.college_org || 'Team'})
                       </option>
@@ -1356,13 +1386,13 @@ export default function UserManagement() {
 
       {/* USER DETAIL VIEW MODAL */}
       {viewPayloadModalUser && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-2xl w-full p-6 max-h-[88vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-2xl w-full p-4 sm:p-6 max-h-[90vh] sm:max-h-[88vh] overflow-y-auto">
             {/* Modal Header */}
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center gap-2.5">
                 <div
-                  className="w-9 h-9 rounded-xl flex items-center justify-center text-white shadow-xs"
+                  className="w-9 h-9 rounded-xl flex items-center justify-center text-white shadow-xs shrink-0"
                   style={{ backgroundColor: '#e8622a' }}
                 >
                   <User className="w-4 h-4" />
@@ -1378,14 +1408,14 @@ export default function UserManagement() {
               </div>
               <button
                 onClick={() => setViewPayloadModalUser(null)}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition"
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition shrink-0"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             {/* Profile Picture & User Banner Card */}
-            <div className="mt-4 flex items-center gap-4 p-4 rounded-xl bg-slate-50 border border-slate-200">
+            <div className="mt-4 flex flex-col sm:flex-row items-start sm:items-center gap-3.5 sm:gap-4 p-3.5 sm:p-4 rounded-xl bg-slate-50 border border-slate-200">
               {viewPayloadModalUser.profile_picture ? (
                 <img
                   src={getMediaUrl(viewPayloadModalUser.profile_picture)}
@@ -1553,22 +1583,22 @@ export default function UserManagement() {
 
       {/* ADMIN EDIT USER MODAL (DIFFERENT TABS: PROFILE, ROLE, AND OTHER) */}
       {editUser && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
           <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-xl w-full max-h-[92vh] flex flex-col overflow-hidden">
             {/* Header */}
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-white shrink-0">
-              <div className="flex items-center gap-3">
+            <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-slate-100 flex items-center justify-between bg-white shrink-0">
+              <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
                 <div
-                  className="w-10 h-10 rounded-xl flex items-center justify-center text-white shadow-sm"
+                  className="w-9 sm:w-10 h-9 sm:h-10 rounded-xl flex items-center justify-center text-white shadow-sm shrink-0"
                   style={{ backgroundColor: '#e8622a' }}
                 >
-                  <Edit3 className="w-5 h-5" />
+                  <Edit3 className="w-4 sm:w-5 h-4 sm:h-5" />
                 </div>
-                <div>
-                  <h3 className="text-base font-bold text-slate-900">
+                <div className="min-w-0">
+                  <h3 className="text-sm sm:text-base font-bold text-slate-900 truncate">
                     Edit User Account
                   </h3>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-[11px] sm:text-xs text-slate-500 truncate">
                     {editUser.first_name || editUser.last_name
                       ? `${editUser.first_name || ''} ${editUser.last_name || ''}`.trim()
                       : editUser.email} (ID: #{editUser.id})
@@ -1577,14 +1607,14 @@ export default function UserManagement() {
               </div>
               <button
                 onClick={() => setEditUser(null)}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition"
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition shrink-0 ml-2"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {/* TAB BAR: PROFILE, ROLE, AND OTHER */}
-            <div className="flex border-b border-slate-200 px-6 bg-slate-50/70 gap-2 shrink-0">
+            <div className="flex border-b border-slate-200 px-4 sm:px-6 bg-slate-50/70 gap-1 sm:gap-2 shrink-0 overflow-x-auto">
               <button
                 type="button"
                 onClick={() => setEditActiveTab('profile')}
@@ -1722,21 +1752,107 @@ export default function UserManagement() {
                       </div>
                     </div>
 
-                    {/* Profile Picture */}
+                    {/* Profile Picture Upload Area */}
                     <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1 flex items-center justify-between">
+                      <label className="block text-xs font-semibold text-slate-700 mb-1.5 flex items-center justify-between">
                         <span className="flex items-center gap-1.5">
-                          <ImageIcon className="w-3.5 h-3.5 text-slate-400" />
-                          <span>Profile Picture URL / Path</span>
+                          <Camera className="w-3.5 h-3.5 text-slate-400" />
+                          <span>Profile Picture</span>
                         </span>
+                        <span className="text-[11px] text-slate-400 font-normal">PNG, JPG, WEBP (Max 5MB)</span>
                       </label>
+
                       <input
-                        type="text"
-                        value={editFormData.profile_picture}
-                        onChange={(e) => setEditFormData({ ...editFormData, profile_picture: e.target.value })}
-                        className="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-xl font-mono focus:ring-2 focus:ring-[#e8622a] focus:border-transparent outline-hidden transition"
-                        placeholder="https://example.com/avatar.jpg"
+                        ref={editFileInputRef}
+                        type="file"
+                        accept="image/png,image/jpeg,image/webp,image/gif"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            if (!file.type.startsWith('image/')) {
+                              setEditError('Please choose a valid image file.');
+                              return;
+                            }
+                            if (file.size > 5 * 1024 * 1024) {
+                              setEditError('Image size exceeds 5MB limit.');
+                              return;
+                            }
+                            setEditError('');
+                            setEditImageFile(file);
+                            setEditImageRemoved(false);
+                            const reader = new FileReader();
+                            reader.onload = (ev) => setEditImagePreview(ev.target.result);
+                            reader.readAsDataURL(file);
+                          }
+                        }}
                       />
+
+                      <div className="p-3.5 rounded-2xl border-2 border-dashed border-slate-200 hover:border-slate-300 bg-slate-50/60 transition-all flex flex-col sm:flex-row items-center gap-3.5">
+                        <div className="relative group shrink-0">
+                          {editImagePreview ? (
+                            <img
+                              src={editImagePreview}
+                              alt="Avatar preview"
+                              className="w-14 h-14 rounded-full object-cover border-2 border-orange-400 shadow-sm"
+                            />
+                          ) : (
+                            <div
+                              className="w-14 h-14 rounded-full flex items-center justify-center font-bold text-base text-white shadow-sm"
+                              style={{ backgroundColor: '#e8622a' }}
+                            >
+                              {((editFormData.first_name?.[0] || 'U') + (editFormData.last_name?.[0] || '')).toUpperCase()}
+                            </div>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => editFileInputRef.current?.click()}
+                            title="Change image"
+                            className="absolute inset-0 rounded-full bg-black/40 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                          >
+                            <Camera className="w-4 h-4 drop-shadow" />
+                          </button>
+                        </div>
+
+                        <div className="flex-1 text-center sm:text-left min-w-0">
+                          <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 mb-1">
+                            <button
+                              type="button"
+                              onClick={() => editFileInputRef.current?.click()}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl bg-white border border-slate-200 text-slate-700 hover:text-slate-900 hover:bg-slate-50 hover:border-slate-300 shadow-2xs transition"
+                            >
+                              <Upload className="w-3.5 h-3.5 text-[#e8622a]" />
+                              <span>{editImagePreview ? 'Change Image' : 'Upload Image'}</span>
+                            </button>
+
+                            {editImagePreview && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEditImageFile(null);
+                                  setEditImagePreview('');
+                                  setEditImageRemoved(true);
+                                  if (editFileInputRef.current) editFileInputRef.current.value = '';
+                                }}
+                                className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-xl text-red-600 hover:bg-red-50 border border-transparent hover:border-red-200 transition"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                                <span>Remove</span>
+                              </button>
+                            )}
+                          </div>
+
+                          <p className="text-[11px] text-slate-500 truncate">
+                            {editImageFile ? (
+                              <span className="font-medium text-emerald-600">
+                                Selected: {editImageFile.name} ({(editImageFile.size / 1024).toFixed(0)} KB)
+                              </span>
+                            ) : (
+                              'Click to browse image from your device.'
+                            )}
+                          </p>
+                        </div>
+                      </div>
                     </div>
 
                     {/* Bio */}

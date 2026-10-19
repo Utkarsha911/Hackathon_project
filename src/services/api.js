@@ -1,7 +1,20 @@
-/**
- * Comprehensive API client for the BIC Hackathon Platform.
- * Communicates with the FastAPI backend (http://localhost:8000/api/v1).
- */
+// In-memory response cache for GET requests
+const apiCache = new Map();
+// In-flight request deduplication map
+const inFlightRequests = new Map();
+const DEFAULT_CACHE_TTL = 10 * 60 * 1000; // 10 minutes default TTL
+
+export function clearApiCache(endpointPrefix = '') {
+  if (!endpointPrefix) {
+    apiCache.clear();
+  } else {
+    for (const key of apiCache.keys()) {
+      if (key.includes(endpointPrefix)) {
+        apiCache.delete(key);
+      }
+    }
+  }
+}
 
 export const API_BASE_URL =
   import.meta.env.VITE_API_URL ||
@@ -16,6 +29,21 @@ export function getMediaUrl(path) {
     return path;
   }
   return `${BACKEND_URL}${path.startsWith('/') ? path : `/${path}`}`;
+}
+
+export function buildQueryString(params = {}) {
+  if (typeof params === 'string') {
+    return params ? (params.startsWith('?') ? params : `?${params}`) : '';
+  }
+  if (!params || typeof params !== 'object') return '';
+  const searchParams = new URLSearchParams();
+  Object.entries(params).forEach(([k, v]) => {
+    if (v !== undefined && v !== null && v !== '') {
+      searchParams.append(k, v);
+    }
+  });
+  const str = searchParams.toString();
+  return str ? `?${str}` : '';
 }
 
 export function getAuthToken() {
@@ -58,9 +86,30 @@ export function clearRefreshToken() {
   localStorage.removeItem('bic_refresh_token');
 }
 
+export function getCurrentUser() {
+  try {
+    const raw = localStorage.getItem('bic_user') || localStorage.getItem('bic_admin_user');
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function setCurrentUser(user) {
+  if (user) {
+    localStorage.setItem('bic_user', JSON.stringify(user));
+  } else {
+    localStorage.removeItem('bic_user');
+  }
+}
+
+export function clearCurrentUser() {
+  localStorage.removeItem('bic_user');
+}
+
 export function getAdminUser() {
   try {
-    const raw = localStorage.getItem('bic_admin_user');
+    const raw = localStorage.getItem('bic_admin_user') || localStorage.getItem('bic_user');
     return raw ? JSON.parse(raw) : null;
   } catch {
     return null;
@@ -70,6 +119,7 @@ export function getAdminUser() {
 export function setAdminUser(user) {
   if (user) {
     localStorage.setItem('bic_admin_user', JSON.stringify(user));
+    localStorage.setItem('bic_user', JSON.stringify(user));
   } else {
     localStorage.removeItem('bic_admin_user');
   }
@@ -83,9 +133,14 @@ export function logout() {
   clearAuthToken();
   clearRefreshToken();
   clearAdminUser();
+  clearCurrentUser();
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new CustomEvent('bic_auth_logout'));
   }
+}
+
+export function isAuthenticated() {
+  return Boolean(getAuthToken() && (getCurrentUser() || getAdminUser()));
 }
 
 export function isAdminAuthenticated() {
@@ -167,111 +222,174 @@ function getOrStartTokenRefresh() {
 }
 
 /**
- * Core HTTP Request Wrapper with automatic token refresh and auto-logout
+ * Core HTTP Request Wrapper with in-memory caching, in-flight deduplication, token refresh, and auto-logout
  */
 async function request(endpoint, options = {}) {
-  const url = `${API_BASE_URL}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
-  const token = options.token || getAuthToken();
+  const method = (options.method || 'GET').toUpperCase();
+  const isGet = method === 'GET';
+  const forceRefresh = Boolean(options.forceRefresh || options._retry);
+  const cacheKey = `${method}:${endpoint}`;
 
-  const headers = {
-    ...options.headers,
+  // If a mutation occurs (POST, PUT, PATCH, DELETE), invalidate affected GET caches
+  if (!isGet) {
+    if (endpoint.includes('/users/groups')) {
+      clearApiCache('/users/groups');
+    } else if (endpoint.includes('/users/')) {
+      clearApiCache('/users/');
+    } else if (endpoint.includes('/teams')) {
+      clearApiCache('/teams');
+    } else if (endpoint.includes('/hackathons')) {
+      clearApiCache('/hackathons');
+    }
+  }
+
+  // Check GET cache first
+  if (isGet && !forceRefresh) {
+    const cached = apiCache.get(cacheKey);
+    if (cached && (Date.now() - cached.timestamp < (options.ttl || DEFAULT_CACHE_TTL))) {
+      return cached.data;
+    }
+    // Deduplicate in-flight concurrent requests for the exact same GET endpoint
+    if (inFlightRequests.has(cacheKey)) {
+      return inFlightRequests.get(cacheKey);
+    }
+  }
+
+  const executeRequest = async () => {
+    const url = `${API_BASE_URL}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
+    const token = options.token || getAuthToken();
+
+    const headers = {
+      ...options.headers,
+    };
+
+    if (!(options.body instanceof FormData)) {
+      headers['Content-Type'] = 'application/json';
+    }
+
+    // Attach Bearer token if available and not explicitly overridden
+    if (token && !headers['Authorization']) {
+      const bearer = typeof token === 'string' && token.startsWith('Bearer ') ? token : `Bearer ${token}`;
+      headers['Authorization'] = bearer;
+    }
+
+    const response = await fetch(url, {
+      ...options,
+      headers,
+    });
+    if (!response.ok) {
+      let errorDetail = response.statusText;
+      let errorJson = null;
+      try {
+        errorJson = await response.json();
+        if (errorJson) {
+          if (typeof errorJson === 'string') {
+            errorDetail = errorJson;
+          } else if (Array.isArray(errorJson.non_field_errors) && errorJson.non_field_errors.length > 0) {
+            errorDetail = errorJson.non_field_errors.join(' ');
+          } else if (typeof errorJson.non_field_errors === 'string') {
+            errorDetail = errorJson.non_field_errors;
+          } else if (errorJson.detail) {
+            errorDetail = typeof errorJson.detail === 'string' ? errorJson.detail : JSON.stringify(errorJson.detail);
+          } else if (errorJson.message) {
+            errorDetail = typeof errorJson.message === 'string' ? errorJson.message : JSON.stringify(errorJson.message);
+          } else if (errorJson.error) {
+            errorDetail = typeof errorJson.error === 'string' ? errorJson.error : JSON.stringify(errorJson.error);
+          } else if (typeof errorJson === 'object') {
+            const values = Object.entries(errorJson).map(([key, val]) => {
+              const fieldName = key.replace(/_/g, ' ');
+              const msg = Array.isArray(val) ? val.join(' ') : typeof val === 'string' ? val : JSON.stringify(val);
+              return `${fieldName}: ${msg}`;
+            });
+            if (values.length > 0) {
+              errorDetail = values.join('; ');
+            }
+          }
+        }
+      } catch {
+        // ignore json parse error
+      }
+
+      // Detect SimpleJWT expired token or invalid token responses
+      const isTokenNotValid =
+        (response.status === 401 || response.status === 403) &&
+        (
+          errorJson?.code === 'token_not_valid' ||
+          errorJson?.detail === 'Given token not valid for any token type' ||
+          (Array.isArray(errorJson?.messages) &&
+            errorJson.messages.some((m) => m?.message === 'Token is expired')) ||
+          (typeof errorDetail === 'string' &&
+            (errorDetail.toLowerCase().includes('token is expired') ||
+             errorDetail.toLowerCase().includes('token_not_valid') ||
+             errorDetail.toLowerCase().includes('given token not valid')))
+        );
+
+      const isAuthEndpoint =
+        endpoint.includes('/users/token/refresh') ||
+        endpoint.includes('/users/login') ||
+        endpoint.includes('/users/google') ||
+        endpoint.includes('/auth/login');
+
+      // If token expired and this is not already a retry or refresh call, attempt refresh
+      if ((isTokenNotValid || response.status === 401) && !options._retry && !isAuthEndpoint) {
+        const refreshToken = getRefreshToken();
+        if (!refreshToken) {
+          logout();
+          const error = new Error('Session expired. Please log in again.');
+          error.status = 401;
+          throw error;
+        }
+
+        try {
+          const newAccessToken = await getOrStartTokenRefresh();
+          const retryHeaders = {
+            ...headers,
+            Authorization: `Bearer ${newAccessToken}`,
+          };
+          return await request(endpoint, {
+            ...options,
+            headers: retryHeaders,
+            _retry: true,
+          });
+        } catch (refreshErr) {
+          const error = new Error('Session expired. Please log in again.');
+          error.status = 401;
+          throw error;
+        }
+      }
+
+      const error = new Error(typeof errorDetail === 'string' ? errorDetail : JSON.stringify(errorDetail));
+      error.status = response.status;
+      error.data = errorJson;
+      throw error;
+    }
+
+    if (response.status === 204) {
+      return null;
+    }
+
+    const data = await response.json();
+    if (isGet) {
+      apiCache.set(cacheKey, { data, timestamp: Date.now() });
+    }
+    return data;
   };
 
-  if (!(options.body instanceof FormData)) {
-    headers['Content-Type'] = 'application/json';
+  if (isGet && !forceRefresh) {
+    const p = executeRequest().finally(() => {
+      inFlightRequests.delete(cacheKey);
+    });
+    inFlightRequests.set(cacheKey, p);
+    return p;
   }
 
-  // Attach Bearer token if available and not explicitly overridden
-  if (token && !headers['Authorization']) {
-    const bearer = typeof token === 'string' && token.startsWith('Bearer ') ? token : `Bearer ${token}`;
-    headers['Authorization'] = bearer;
-  }
-
-  const response = await fetch(url, {
-    ...options,
-    headers,
-  });
-
-  if (!response.ok) {
-    let errorDetail = response.statusText;
-    let errorJson = null;
-    try {
-      errorJson = await response.json();
-      errorDetail = errorJson.detail || errorDetail;
-    } catch {
-      // ignore json parse error
-    }
-
-    // Detect SimpleJWT expired token or invalid token responses:
-    // {
-    //   "detail": "Given token not valid for any token type",
-    //   "code": "token_not_valid",
-    //   "messages": [{ "token_class": "AccessToken", "token_type": "access", "message": "Token is expired" }]
-    // }
-    const isTokenNotValid =
-      (response.status === 401 || response.status === 403) &&
-      (
-        errorJson?.code === 'token_not_valid' ||
-        errorJson?.detail === 'Given token not valid for any token type' ||
-        (Array.isArray(errorJson?.messages) &&
-          errorJson.messages.some((m) => m?.message === 'Token is expired')) ||
-        (typeof errorDetail === 'string' &&
-          (errorDetail.toLowerCase().includes('token is expired') ||
-           errorDetail.toLowerCase().includes('token_not_valid') ||
-           errorDetail.toLowerCase().includes('given token not valid')))
-      );
-
-    const isAuthEndpoint =
-      endpoint.includes('/users/token/refresh') ||
-      endpoint.includes('/users/login') ||
-      endpoint.includes('/auth/login');
-
-    // If token expired and this is not already a retry or refresh call, attempt refresh
-    if ((isTokenNotValid || response.status === 401) && !options._retry && !isAuthEndpoint) {
-      const refreshToken = getRefreshToken();
-      if (!refreshToken) {
-        // No refresh token available to renew session -> auto logout immediately
-        logout();
-        const error = new Error('Session expired. Please log in again.');
-        error.status = 401;
-        throw error;
-      }
-
-      try {
-        const newAccessToken = await getOrStartTokenRefresh();
-        const retryHeaders = {
-          ...headers,
-          Authorization: `Bearer ${newAccessToken}`,
-        };
-        return await request(endpoint, {
-          ...options,
-          headers: retryHeaders,
-          _retry: true,
-        });
-      } catch (refreshErr) {
-        // refreshAccessToken already executed logout()
-        const error = new Error('Session expired. Please log in again.');
-        error.status = 401;
-        throw error;
-      }
-    }
-
-    const error = new Error(typeof errorDetail === 'string' ? errorDetail : JSON.stringify(errorDetail));
-    error.status = response.status;
-    error.data = errorJson;
-    throw error;
-  }
-
-  if (response.status === 204) {
-    return null;
-  }
-
-  return response.json();
+  return executeRequest();
 }
 
 export const api = {
-  // Base Request
+  // Base Request & Cache Management
   request,
+  clearCache: clearApiCache,
 
   // --- Auth APIs ---
   auth: {
@@ -290,23 +408,134 @@ export const api = {
 
   // --- Hackathon APIs ---
   hackathons: {
-    getCurrentDetails: () => request('/hackathons/current/details'),
-    getAll: () => request('/hackathons/'),
-    getById: (id) => request(`/hackathons/${id}`),
-    create: (data) =>
+    getCurrentHackathon: (options = {}) => request('/hackathons/current-hackathon/', options),
+    getCurrent: (options = {}) => request('/hackathons/current-hackathon/', options),
+    getCurrentDetails: (options = {}) => request('/hackathons/current-hackathon/', options),
+    getAll: (params = {}, options = {}) => {
+      let query = '';
+      if (typeof params === 'object' && Object.keys(params).length > 0) {
+        const searchParams = new URLSearchParams();
+        Object.entries(params).forEach(([k, v]) => {
+          if (v !== undefined && v !== null && v !== '') {
+            searchParams.append(k, v);
+          }
+        });
+        const str = searchParams.toString();
+        if (str) query = `?${str}`;
+      }
+      return request(`/hackathons/${query}`, options);
+    },
+    getById: (id, options = {}) => request(`/hackathons/${id}`, options),
+    create: (data, options = {}) =>
       request('/hackathons/', {
         method: 'POST',
-        body: JSON.stringify(data),
+        body: data instanceof FormData ? data : JSON.stringify(data),
+        ...options,
       }),
-    update: (id, data) =>
+    update: (id, data, options = {}) =>
       request(`/hackathons/${id}`, {
         method: 'PUT',
-        body: JSON.stringify(data),
+        body: data instanceof FormData ? data : JSON.stringify(data),
+        ...options,
       }),
-    delete: (id) =>
+    patch: (id, data, options = {}) =>
       request(`/hackathons/${id}`, {
-        method: 'DELETE',
+        method: 'PATCH',
+        body: data instanceof FormData ? data : JSON.stringify(data),
+        ...options,
       }),
+    delete: (id, options = {}) =>
+      request(`/hackathons/${id}/`, {
+        method: 'DELETE',
+        ...options,
+      }),
+
+    // --- Nested Hackathon Sponsors APIs ---
+    sponsors: {
+      getAll: (params = {}, options = {}) => request(`/hackathons/sponsors/${buildQueryString(params)}`, options),
+      getById: (id, options = {}) => request(`/hackathons/sponsors/${id}/`, options),
+      create: (data, options = {}) =>
+        request('/hackathons/sponsors/', {
+          method: 'POST',
+          body: data instanceof FormData ? data : JSON.stringify(data),
+          ...options,
+        }),
+      update: (id, data, options = {}) =>
+        request(`/hackathons/sponsors/${id}/`, {
+          method: 'PUT',
+          body: data instanceof FormData ? data : JSON.stringify(data),
+          ...options,
+        }),
+      patch: (id, data, options = {}) =>
+        request(`/hackathons/sponsors/${id}/`, {
+          method: 'PATCH',
+          body: data instanceof FormData ? data : JSON.stringify(data),
+          ...options,
+        }),
+      delete: (id, options = {}) =>
+        request(`/hackathons/sponsors/${id}/`, {
+          method: 'DELETE',
+          ...options,
+        }),
+    },
+
+    // --- Sponsor Packages APIs ---
+    sponsorPackages: {
+      getAll: (params = {}, options = {}) => request(`/hackathons/sponsor-packages/${buildQueryString(params)}`, options),
+      getById: (id, options = {}) => request(`/hackathons/sponsor-packages/${id}/`, options),
+      create: (data, options = {}) =>
+        request('/hackathons/sponsor-packages/', {
+          method: 'POST',
+          body: JSON.stringify(data),
+          ...options,
+        }),
+      update: (id, data, options = {}) =>
+        request(`/hackathons/sponsor-packages/${id}/`, {
+          method: 'PUT',
+          body: JSON.stringify(data),
+          ...options,
+        }),
+      patch: (id, data, options = {}) =>
+        request(`/hackathons/sponsor-packages/${id}/`, {
+          method: 'PATCH',
+          body: JSON.stringify(data),
+          ...options,
+        }),
+      delete: (id, options = {}) =>
+        request(`/hackathons/sponsor-packages/${id}/`, {
+          method: 'DELETE',
+          ...options,
+        }),
+    },
+
+    // --- Sponsor Package Types APIs ---
+    sponsorPackageTypes: {
+      getAll: (params = {}, options = {}) => request(`/hackathons/sponsor-package-types/${buildQueryString(params)}`, options),
+      getById: (id, options = {}) => request(`/hackathons/sponsor-package-types/${id}/`, options),
+      create: (data, options = {}) =>
+        request('/hackathons/sponsor-package-types/', {
+          method: 'POST',
+          body: JSON.stringify(data),
+          ...options,
+        }),
+      update: (id, data, options = {}) =>
+        request(`/hackathons/sponsor-package-types/${id}/`, {
+          method: 'PUT',
+          body: JSON.stringify(data),
+          ...options,
+        }),
+      patch: (id, data, options = {}) =>
+        request(`/hackathons/sponsor-package-types/${id}/`, {
+          method: 'PATCH',
+          body: JSON.stringify(data),
+          ...options,
+        }),
+      delete: (id, options = {}) =>
+        request(`/hackathons/sponsor-package-types/${id}/`, {
+          method: 'DELETE',
+          ...options,
+        }),
+    },
   },
 
   // --- CRM APIs (FAQs, Prizes, Challenges, Terms, Contact) ---
@@ -347,24 +576,101 @@ export const api = {
     getContacts: () => request('/crm/contact-us'),
   },
 
-  // --- Sponsors & Sponsorships APIs ---
+  // --- Sponsors, Sponsor Packages, & Package Types APIs ---
   sponsors: {
-    getAll: () => request('/sponsors/'),
-    create: (data) =>
-      request('/sponsors/', {
+    getAll: (params = {}, options = {}) => request(`/hackathons/sponsors/${buildQueryString(params)}`, options),
+    getById: (id, options = {}) => request(`/hackathons/sponsors/${id}/`, options),
+    create: (data, options = {}) =>
+      request('/hackathons/sponsors/', {
+        method: 'POST',
+        body: data instanceof FormData ? data : JSON.stringify(data),
+        ...options,
+      }),
+    update: (id, data, options = {}) =>
+      request(`/hackathons/sponsors/${id}/`, {
+        method: 'PUT',
+        body: data instanceof FormData ? data : JSON.stringify(data),
+        ...options,
+      }),
+    patch: (id, data, options = {}) =>
+      request(`/hackathons/sponsors/${id}/`, {
+        method: 'PATCH',
+        body: data instanceof FormData ? data : JSON.stringify(data),
+        ...options,
+      }),
+    delete: (id, options = {}) =>
+      request(`/hackathons/sponsors/${id}/`, {
+        method: 'DELETE',
+        ...options,
+      }),
+
+    // Packages
+    getPackages: (params = {}, options = {}) => request(`/hackathons/sponsor-packages/${buildQueryString(params)}`, options),
+    getPackageById: (id, options = {}) => request(`/hackathons/sponsor-packages/${id}/`, options),
+    createPackage: (data, options = {}) =>
+      request('/hackathons/sponsor-packages/', {
         method: 'POST',
         body: JSON.stringify(data),
+        ...options,
       }),
-    getSponsorships: () => request('/sponsors/sponsorships/all'),
-    createSponsorship: (data) =>
-      request('/sponsors/sponsorships', {
-        method: 'POST',
-        body: JSON.stringify(data),
-      }),
-    updateSponsorship: (id, data) =>
-      request(`/sponsors/sponsorships/${id}`, {
+    updatePackage: (id, data, options = {}) =>
+      request(`/hackathons/sponsor-packages/${id}/`, {
         method: 'PUT',
         body: JSON.stringify(data),
+        ...options,
+      }),
+    patchPackage: (id, data, options = {}) =>
+      request(`/hackathons/sponsor-packages/${id}/`, {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+        ...options,
+      }),
+    deletePackage: (id, options = {}) =>
+      request(`/hackathons/sponsor-packages/${id}/`, {
+        method: 'DELETE',
+        ...options,
+      }),
+
+    // Package Types
+    getPackageTypes: (params = {}, options = {}) => request(`/hackathons/sponsor-package-types/${buildQueryString(params)}`, options),
+    getPackageTypeById: (id, options = {}) => request(`/hackathons/sponsor-package-types/${id}/`, options),
+    createPackageType: (data, options = {}) =>
+      request('/hackathons/sponsor-package-types/', {
+        method: 'POST',
+        body: JSON.stringify(data),
+        ...options,
+      }),
+    updatePackageType: (id, data, options = {}) =>
+      request(`/hackathons/sponsor-package-types/${id}/`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+        ...options,
+      }),
+    patchPackageType: (id, data, options = {}) =>
+      request(`/hackathons/sponsor-package-types/${id}/`, {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+        ...options,
+      }),
+    deletePackageType: (id, options = {}) =>
+      request(`/hackathons/sponsor-package-types/${id}/`, {
+        method: 'DELETE',
+        ...options,
+      }),
+
+    // Backward-compat aliases
+    getSponsorships: (params = {}, options = {}) => request(`/hackathons/sponsor-packages/${buildQueryString(params)}`, options),
+    createSponsorship: (data, options = {}) =>
+      request('/hackathons/sponsor-packages/', {
+        method: 'POST',
+        body: JSON.stringify(data),
+        ...options,
+      }),
+    updateSponsorship: (id, data, options = {}) =>
+      request(`/hackathons/sponsor-packages/${id}/`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+        ...options,
       }),
   },
 
@@ -385,8 +691,8 @@ export const api = {
 
   // --- Teams, Participants, Registrations, Check-Ins, Tables ---
   teams: {
-    getAll: () => request('/teams/'),
-    getById: (id) => request(`/teams/${id}`),
+    getAll: (options = {}) => request('/teams/', options),
+    getById: (id, options = {}) => request(`/teams/${id}`, options),
     create: (data) =>
       request('/teams/', {
         method: 'POST',
@@ -533,6 +839,99 @@ export const api = {
         setRefreshToken(refreshToken);
       }
 
+      const userData =
+        response?.user || {
+          email: response?.email || credentials?.email,
+          first_name: response?.first_name || (credentials?.email ? credentials.email.split('@')[0] : 'Admin'),
+          last_name: response?.last_name || 'User',
+          role: response?.role || 'Administrator',
+          groups: response?.groups || [0],
+          ...response,
+        };
+
+      setCurrentUser(userData);
+      setAdminUser(userData);
+
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('bic_user_updated', { detail: userData }));
+        window.dispatchEvent(new CustomEvent('bic_auth_login', { detail: { user: userData, response } }));
+      }
+
+      return response;
+    },
+    googleLogin: async (token) => {
+      // Handles token string or object payload { token: "string" }
+      const tokenString =
+        typeof token === 'string'
+          ? token.trim()
+          : token?.token || token?.credential || token?.id_token || '';
+
+      if (!tokenString) {
+        throw new Error('Google token is required.');
+      }
+
+      // Calls POST /api/v1/users/google/ with { "token": "string" }
+      const response = await request('/users/google/', {
+        method: 'POST',
+        body: JSON.stringify({ token: tokenString }),
+        _retry: true,
+      });
+
+      // Extract access and refresh tokens
+      const accessToken =
+        response?.tokens?.access ||
+        response?.access ||
+        response?.token ||
+        response?.access_token ||
+        response?.data?.access ||
+        response?.data?.token ||
+        (typeof response === 'string' ? response : null);
+
+      const refreshToken =
+        response?.tokens?.refresh ||
+        response?.refresh ||
+        response?.refresh_token ||
+        response?.data?.refresh;
+
+      if (accessToken) {
+        setAuthToken(accessToken);
+      }
+      if (refreshToken) {
+        setRefreshToken(refreshToken);
+      }
+
+      // Extract user info
+      const userData =
+        response?.user ||
+        response?.data?.user || {
+          email: response?.email,
+          first_name: response?.first_name || '',
+          last_name: response?.last_name || '',
+          role: response?.role || 'User',
+          ...response,
+        };
+
+      setCurrentUser(userData);
+
+      // Check if user has admin/staff privileges
+      const role = (userData.role || '').toLowerCase();
+      const isStaffOrAdmin =
+        userData.is_staff ||
+        userData.is_superuser ||
+        role.includes('admin') ||
+        role.includes('staff') ||
+        role.includes('organizer') ||
+        (Array.isArray(userData.groups) && (userData.groups.includes(0) || userData.groups.includes('admin')));
+
+      if (isStaffOrAdmin) {
+        setAdminUser(userData);
+      }
+
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('bic_user_updated', { detail: userData }));
+        window.dispatchEvent(new CustomEvent('bic_auth_login', { detail: { user: userData, response } }));
+      }
+
       return response;
     },
     refreshToken: (token) => {
@@ -548,14 +947,38 @@ export const api = {
         method: 'POST',
         body: JSON.stringify(userData),
       }),
-    listGroups: () => request('/users/groups/list_groups/'),
-    listPermissions: () => request('/users/groups/list_permissions/'),
+    listGroups: (options = {}) => request('/users/groups/list_groups/', options),
+    listPermissions: (options = {}) => request('/users/groups/list_permissions/', options),
     createGroup: (groupData) =>
       request('/users/groups/create_group/', {
         method: 'POST',
         body: JSON.stringify(groupData),
       }),
-    getAll: (params = {}) => {
+    updateGroup: async (id, groupData, options = {}) => {
+      const cleanId = typeof id === 'object' && id !== null ? id.id : id;
+      const method = options.method || 'PUT';
+      try {
+        return await request(`/users/groups/${cleanId}/update_group/`, {
+          method,
+          body: JSON.stringify(groupData),
+          ...options,
+        });
+      } catch (err) {
+        // Fallback between PUT and PATCH if backend requires one over the other
+        if (err?.status === 405) {
+          const fallbackMethod = method === 'PUT' ? 'PATCH' : 'PUT';
+          return await request(`/users/groups/${cleanId}/update_group/`, {
+            method: fallbackMethod,
+            body: JSON.stringify(groupData),
+            ...options,
+          });
+        }
+        throw err;
+      }
+    },
+    updateGroupPermissions: (id, groupData, options = {}) =>
+      api.users.updateGroup(id, groupData, options),
+    getAll: (params = {}, options = {}) => {
       let queryStr = '';
       if (typeof params === 'string') {
         queryStr = params ? `?search=${encodeURIComponent(params)}` : '';
@@ -567,28 +990,32 @@ export const api = {
         const str = queryParams.toString();
         queryStr = str ? `?${str}` : '';
       }
-      return request(`/users/${queryStr}`);
+      return request(`/users/${queryStr}`, options);
     },
-    getById: (id) => request(`/users/${id}/`),
-    getDetail: (id) => request(`/users/${id}/`),
-    create: (data) =>
-      request('/users/register/', {
+    getById: (id, options = {}) => request(`/users/${id}/`, options),
+    getDetail: (id, options = {}) => request(`/users/${id}/`, options),
+    create: (data, options = {}) => {
+      const isFormData = typeof FormData !== 'undefined' && data instanceof FormData;
+      return request('/users/register/', {
         method: 'POST',
-        body: JSON.stringify(data),
-      }),
+        body: isFormData ? data : JSON.stringify(data),
+        ...options,
+      });
+    },
     update: async (id, data, options = {}) => {
       const method = options.method || 'PATCH';
+      const isFormData = typeof FormData !== 'undefined' && data instanceof FormData;
       try {
         return await request(`/users/${id}/update/`, {
           method,
-          body: JSON.stringify(data),
+          body: isFormData ? data : JSON.stringify(data),
           ...options,
         });
       } catch (err) {
         if (err?.status === 404) {
           return await request(`/users/${id}/`, {
             method,
-            body: JSON.stringify(data),
+            body: isFormData ? data : JSON.stringify(data),
             ...options,
           });
         }
@@ -598,14 +1025,16 @@ export const api = {
     adminUpdate: (id, data, options = {}) => {
       return api.users.update(id, data, options);
     },
-    getProfile: () => request('/users/profile/'),
-    updateProfile: (data, options = {}) =>
-      request('/users/profile/', {
+    getProfile: (options = {}) => request('/users/profile/', options),
+    updateProfile: (data, options = {}) => {
+      const isFormData = typeof FormData !== 'undefined' && data instanceof FormData;
+      return request('/users/profile/', {
         method: options.method || 'PATCH',
-        body: JSON.stringify(data),
+        body: isFormData ? data : JSON.stringify(data),
         ...options,
-      }),
-    getGroups: () => request('/users/groups/list_groups/'),
+      });
+    },
+    getGroups: (options = {}) => request('/users/groups/list_groups/', options),
   },
 
   // --- Activity / Audit Logs ---

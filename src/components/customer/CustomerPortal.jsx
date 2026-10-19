@@ -11,44 +11,42 @@ import OrganizersSection from './OrganizersSection';
 import FaqSection from './FaqSection';
 import ContactSection from './ContactSection';
 import RegistrationModal from './RegistrationModal';
+import UserAuthModal from './UserAuthModal';
 import Footer from '../common/Footer';
 import Toast from '../common/Toast';
 import { useHackathon } from '../../context/HackathonContext';
-import { FileText, Shield, X, RefreshCw } from 'lucide-react';
+import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
+import { FileText, Shield, X } from 'lucide-react';
 
 export default function CustomerPortal() {
-  const { terms, isApiConnected, isLoadingApi, refreshData } = useHackathon();
+  const { terms, currentUser } = useHackathon();
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
+  const [isAuthOpen, setIsAuthOpen] = useState(false);
+  const [authReason, setAuthReason] = useState('login'); // 'login' | 'register'
   const [showTermsModal, setShowTermsModal] = useState(false);
+
+  // Disable background scrolling when terms modal is opened
+  useBodyScrollLock(showTermsModal);
+
+  // When clicking register team or register squad, first require Google login if not already logged in
+  const handleOpenRegister = () => {
+    if (!currentUser) {
+      setAuthReason('register');
+      setIsAuthOpen(true);
+    } else {
+      setIsRegisterOpen(true);
+    }
+  };
 
   return (
     <div className="min-h-screen flex flex-col bg-[#fafafa] text-slate-900">
 
       {/* Navbar */}
-      <CustomerNavbar onOpenRegister={() => setIsRegisterOpen(true)} />
-
-      {/* API Live Status Bar (Shows only if backend API is not yet responding) */}
-      {!isApiConnected && !isLoadingApi && (
-        <div className="bg-amber-50 border-b border-amber-200 px-4 sm:px-8 py-2.5 text-xs text-amber-800 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-amber-500" />
-            <span>
-              Awaiting backend sync at <code className="text-amber-900 font-mono font-medium">http://127.0.0.1:8000/api/v1/hackathons/current/details</code>
-            </span>
-          </div>
-          <button
-            onClick={refreshData}
-            className="px-3 py-1 rounded-lg bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 font-mono text-xs transition-colors flex items-center gap-1.5"
-          >
-            <RefreshCw className="w-3 h-3" />
-            <span>Retry Fetch</span>
-          </button>
-        </div>
-      )}
+      <CustomerNavbar onOpenRegister={handleOpenRegister} />
 
       {/* Page Sections */}
       <main className="flex-grow">
-        <HeroSection onOpenRegister={() => setIsRegisterOpen(true)} />
+        <HeroSection onOpenRegister={handleOpenRegister} />
         <ChallengesSection />
         <PrizesSection />
         <ScheduleSection />
@@ -78,6 +76,25 @@ export default function CustomerPortal() {
       <RegistrationModal
         isOpen={isRegisterOpen}
         onClose={() => setIsRegisterOpen(false)}
+      />
+
+      {/* User Auth (Google Login/Register) Modal */}
+      <UserAuthModal
+        isOpen={isAuthOpen}
+        reason={authReason}
+        onClose={() => setIsAuthOpen(false)}
+        onAuthSuccess={() => {
+          setIsAuthOpen(false);
+          if (authReason === 'register') {
+            setTimeout(() => {
+              setIsRegisterOpen(true);
+            }, 300);
+          }
+        }}
+        onOpenRegister={() => {
+          setIsAuthOpen(false);
+          setIsRegisterOpen(true);
+        }}
       />
 
       {/* Terms Modal */}

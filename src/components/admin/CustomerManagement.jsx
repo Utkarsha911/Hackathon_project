@@ -19,29 +19,31 @@ export default function CustomerManagement() {
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       {/* Header */}
-      <div>
-        <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">
-          Customer Directory
-        </h2>
-        <p className="text-xs sm:text-sm text-slate-500 mt-1">
-          Registered event customers, participants, and platform attendees
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">
+            Participant Directory
+          </h2>
+          <p className="text-xs sm:text-sm text-slate-500 mt-1">
+            Registered event participants and platform attendees
+          </p>
+        </div>
       </div>
 
       {/* Search */}
-      <div className="flex items-center gap-3">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
         <div className="relative flex-1 max-w-md">
           <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
             type="text"
-            placeholder="Search customers by name or email..."
+            placeholder="Search participants by name or email..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-sm text-slate-800 bg-white placeholder-slate-400 focus:outline-none focus:border-[#e8622a]"
           />
         </div>
-        <span className="text-xs text-slate-400">
-          Total Customers: <strong>{filtered.length}</strong>
+        <span className="text-xs text-slate-400 text-right sm:text-left">
+          Total Participants: <strong>{filtered.length}</strong>
         </span>
       </div>
 
@@ -51,7 +53,7 @@ export default function CustomerManagement() {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="border-b border-slate-200 bg-slate-50/70 text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                <th className="py-3.5 px-6">Customer</th>
+                <th className="py-3.5 px-6">Participant</th>
                 <th className="py-3.5 px-4">Email</th>
                 <th className="py-3.5 px-4">Contact</th>
                 <th className="py-3.5 px-4">Verification</th>
@@ -60,7 +62,7 @@ export default function CustomerManagement() {
             </thead>
             <tbody className="divide-y divide-slate-100 text-sm">
               {filtered.map((cust, idx) => {
-                const name = cust.full_name || `${cust.first_name || 'Customer'} ${cust.last_name || idx + 1}`;
+                const name = cust.full_name || `${cust.first_name || 'Participant'} ${cust.last_name || idx + 1}`;
                 const initials = `${name[0] || 'C'}`.toUpperCase();
                 return (
                   <tr key={cust.id || cust.email || idx} className="hover:bg-slate-50/80 transition-colors">

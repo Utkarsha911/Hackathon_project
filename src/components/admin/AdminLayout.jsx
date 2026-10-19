@@ -26,7 +26,6 @@ import {
   FolderTree,
   Shield,
   LayoutDashboard,
-  Flame,
   LogOut,
   Sparkles,
   Layers,
@@ -34,11 +33,18 @@ import {
   Menu,
   X,
   ArrowLeft,
-  Edit3
+  Edit3,
+  Trophy,
+  Building2,
+  Package,
+  PieChart
 } from 'lucide-react';
+import hackathonLogo from '../../assets/HACKATHON-LOGO.png';
 
 // Lazy loaded admin views
 const AdminLogin = lazy(() => import('./AdminLogin'));
+const HackathonManagement = lazy(() => import('./HackathonManagement'));
+const SponsorManagement = lazy(() => import('./SponsorManagement'));
 const UserManagement = lazy(() => import('./UserManagement'));
 const GroupManagement = lazy(() => import('./GroupManagement'));
 const TeamManagement = lazy(() => import('./TeamManagement'));
@@ -100,7 +106,7 @@ export default function AdminLayout() {
 
     const handleAuthLogout = () => {
       setCurrentUser(null);
-      navigate('/admin');
+      navigate('/admin-control-site');
     };
 
     window.addEventListener('bic_auth_logout', handleAuthLogout);
@@ -111,8 +117,50 @@ export default function AdminLayout() {
     };
   }, [navigate]);
 
-  // User Management Dropdown accordion state (default open as shown in user screenshot)
+  // Dropdown accordion states
+  const [hackathonMgmtOpen, setHackathonMgmtOpen] = useState(true);
+  const [sponsorMgmtOpen, setSponsorMgmtOpen] = useState(true);
   const [userMgmtOpen, setUserMgmtOpen] = useState(true);
+
+  // Group permission objects for non-staff / non-superuser users
+  const [userGroupObjects, setUserGroupObjects] = useState([]);
+
+  useEffect(() => {
+    const isStaffOrSuper = Boolean(
+      currentUser?.is_superuser === true ||
+      currentUser?.is_staff === true ||
+      (typeof currentUser?.role === 'string' &&
+        (currentUser.role.toLowerCase() === 'super admin' ||
+         currentUser.role.toLowerCase() === 'administrator' ||
+         currentUser.role.toLowerCase() === 'admin'))
+    );
+
+    // If not super/staff, resolve group permissions from list_groups API if needed
+    if (!isStaffOrSuper && currentUser?.groups && currentUser.groups.length > 0) {
+      const alreadyHasObjects = currentUser.groups.some(
+        (g) => typeof g === 'object' && (g.permissions_name || g.permissions)
+      );
+      if (alreadyHasObjects) {
+        setUserGroupObjects(currentUser.groups);
+      } else {
+        api.users
+          .listGroups()
+          .then((resp) => {
+            const allGroups = Array.isArray(resp)
+              ? resp
+              : resp?.results || resp?.data || [];
+            const userGids = new Set(
+              currentUser.groups.map((g) => (typeof g === 'object' ? g.id : g))
+            );
+            const matched = allGroups.filter((g) => userGids.has(g.id));
+            setUserGroupObjects(matched);
+          })
+          .catch((err) => {
+            console.warn('Could not fetch user group permissions:', err);
+          });
+      }
+    }
+  }, [currentUser]);
 
   const today = new Date().toLocaleDateString('en-US', {
     weekday: 'long',
@@ -124,7 +172,7 @@ export default function AdminLayout() {
   const handleLogout = () => {
     logout();
     setCurrentUser(null);
-    navigate('/admin');
+    navigate('/admin-control-site');
   };
 
   // If not authenticated, require Admin Login via /api/v1/users/login/
@@ -142,30 +190,99 @@ export default function AdminLayout() {
   }
 
   const pathname = location.pathname;
-  const isDashboardActive = pathname === '/admin' || pathname === '/admin/';
-  const isCustomersActive = pathname.startsWith('/admin/customers');
-  const isUsersActive = pathname.startsWith('/admin/users');
-  const isGroupsActive = pathname.startsWith('/admin/groups');
-  const isTeamsActive = pathname.startsWith('/admin/teams');
-  const isSystemConfigActive = pathname.startsWith('/admin/system-config');
-  const isLogsActive = pathname.startsWith('/admin/logs');
+  const currentTab = new URLSearchParams(location.search).get('tab') || 'sponsors';
+  const isDashboardActive = pathname === '/admin-control-site' || pathname === '/admin-control-site/';
+  const isHackathonsActive = pathname.startsWith('/admin-control-site/hackathons');
+  const isSponsorsActive = pathname.startsWith('/admin-control-site/sponsors');
+  const isCustomersActive = pathname.startsWith('/admin-control-site/participants') || pathname.startsWith('/admin-control-site/customers');
+  const isUsersActive = pathname.startsWith('/admin-control-site/users');
+  const isGroupsActive = pathname.startsWith('/admin-control-site/groups');
+  const isTeamsActive = pathname.startsWith('/admin-control-site/teams');
+  const isSystemConfigActive = pathname.startsWith('/admin-control-site/system-config');
+  const isLogsActive = pathname.startsWith('/admin-control-site/logs');
 
   const initials = `${currentUser?.first_name?.[0] || 'A'}${currentUser?.last_name?.[0] || 'D'}`.toUpperCase();
   const displayName = `${currentUser?.first_name || 'Admin'} ${currentUser?.last_name || 'User'}`;
   const profilePicUrl = currentUser?.profile_picture ? getMediaUrl(currentUser.profile_picture) : null;
 
   const userRole = (currentUser?.role || '').toLowerCase();
-  const isAdmin =
+  const isSuperOrStaff =
     userRole === 'admin' ||
     userRole === 'administrator' ||
     userRole === 'super admin' ||
     Boolean(currentUser?.is_superuser) ||
     Boolean(currentUser?.is_staff);
 
+  // Group permission evaluation:
+  // "show everything to 'is_staff': true, 'is_superuser': true, but only show the items which permission inside group is given inside groups permission"
+  const hasPermission = (scopes) => {
+    if (isSuperOrStaff) return true;
+
+    const scopeList = (Array.isArray(scopes) ? scopes : [scopes]).map((s) => s.toLowerCase());
+
+    // 1. Direct user permissions
+    const userPerms = currentUser?.permissions || currentUser?.user_permissions || [];
+    if (Array.isArray(userPerms)) {
+      for (const p of userPerms) {
+        const pStr = (typeof p === 'string' ? p : p?.codename || p?.name || '').toLowerCase();
+        if (scopeList.some((s) => pStr.includes(s))) return true;
+      }
+    }
+
+    // 2. Group permissions from user's groups
+    const groupsToCheck = [
+      ...(Array.isArray(userGroupObjects) ? userGroupObjects : []),
+      ...(Array.isArray(currentUser?.groups) ? currentUser.groups : [])
+    ];
+
+    for (const group of groupsToCheck) {
+      if (!group || typeof group !== 'object') continue;
+
+      if (group.permissions_name && typeof group.permissions_name === 'object') {
+        for (const [category, perms] of Object.entries(group.permissions_name)) {
+          const catLower = category.toLowerCase();
+          if (scopeList.some((s) => catLower.includes(s))) return true;
+          if (Array.isArray(perms)) {
+            for (const perm of perms) {
+              const pStr = (perm?.codename || perm?.name || '').toLowerCase();
+              if (scopeList.some((s) => pStr.includes(s))) return true;
+            }
+          }
+        }
+      }
+
+      if (Array.isArray(group.permissions)) {
+        for (const perm of group.permissions) {
+          if (typeof perm === 'string') {
+            const pStr = perm.toLowerCase();
+            if (scopeList.some((s) => pStr.includes(s))) return true;
+          } else if (typeof perm === 'object' && perm !== null) {
+            const pStr = (perm.codename || perm.name || '').toLowerCase();
+            if (scopeList.some((s) => pStr.includes(s))) return true;
+          }
+        }
+      }
+    }
+
+    return false;
+  };
+
+  const canAccessHackathons = hasPermission(['hackathon', 'schedule', 'event']);
+  const canAccessSponsors = hasPermission(['sponsor', 'sponsorship', 'package', 'hackathon']);
+  const canAccessParticipants = hasPermission(['participant', 'customer', 'user', 'registration']);
+  const canAccessUsers = hasPermission(['user', 'customuser']);
+  const canAccessGroups = hasPermission(['group', 'permission']);
+  const canAccessTeams = hasPermission(['team']);
+  const canAccessUserMgmt = canAccessParticipants || canAccessUsers || canAccessGroups || canAccessTeams;
+  const canAccessSystemConfig = hasPermission(['config', 'setting', 'system']);
+  const canAccessLogs = hasPermission(['activity', 'log', 'audit', 'comment']);
+
   // Header Title mapping
   let pageTitle = 'Admin Workspace';
-  if (isUsersActive) pageTitle = 'User Management';
-  else if (isCustomersActive) pageTitle = 'Customer Directory';
+  if (isHackathonsActive) pageTitle = 'Hackathon Management';
+  else if (isSponsorsActive) pageTitle = 'Sponsors & Packages';
+  else if (isUsersActive) pageTitle = 'User Management';
+  else if (isCustomersActive) pageTitle = 'Participant Directory';
   else if (isGroupsActive) pageTitle = 'Group Management';
   else if (isTeamsActive) pageTitle = 'Team Management';
   else if (isSystemConfigActive) pageTitle = 'System Configuration';
@@ -194,22 +311,13 @@ export default function AdminLayout() {
         >
           {/* Logo */}
           <div className="h-16 flex items-center justify-between px-6" style={{ borderBottom: '1px solid #e8e9ef' }}>
-            <div className="flex items-center gap-3">
-              <div
-                className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 shadow-sm"
-                style={{ backgroundColor: '#e8622a' }}
-              >
-                <Flame className="w-5 h-5 text-white" />
-              </div>
-              <div>
-                <div className="font-bold text-sm leading-tight tracking-tight" style={{ color: '#1a1a2e' }}>
-                  BIC Admin
-                </div>
-                <div className="text-[11px] font-medium" style={{ color: '#9a9ab0' }}>
-                  Control Center
-                </div>
-              </div>
-            </div>
+            <Link to="/admin-control-site" className="flex items-center gap-3 group">
+              <img
+                src={hackathonLogo}
+                alt="BIC Hackathon Admin"
+                className="h-8 w-auto object-contain transition-opacity group-hover:opacity-90"
+              />
+            </Link>
 
             <button
               onClick={() => setMobileMenuOpen(false)}
@@ -223,7 +331,7 @@ export default function AdminLayout() {
           <div className="flex-1 py-4 px-3 space-y-1 overflow-y-auto">
             {/* Admin Workspace / Dashboard */}
             <Link
-              to="/admin"
+              to="/admin-control-site"
               onClick={() => setMobileMenuOpen(false)}
               className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-normal transition-all mb-1.5 ${
                 isDashboardActive
@@ -240,8 +348,159 @@ export default function AdminLayout() {
               <span>Admin Workspace</span>
             </Link>
 
-            {/* User Management Dropdown Accordion (Admin Only) */}
-            {isAdmin && (
+            {/* Hackathon Management Dropdown Accordion */}
+            {canAccessHackathons && (
+              <div className="space-y-0.5 mb-1">
+                <button
+                  type="button"
+                  onClick={() => setHackathonMgmtOpen((prev) => !prev)}
+                  className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-slate-700 hover:bg-slate-100/80 hover:text-slate-900 transition-colors group cursor-pointer"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <Trophy className="w-4 h-4 text-slate-600 shrink-0" />
+                    <span className="text-xs font-normal text-slate-700">
+                      Hackathon Management
+                    </span>
+                  </div>
+                  {hackathonMgmtOpen ? (
+                    <ChevronUp className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                  ) : (
+                    <ChevronDown className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                  )}
+                </button>
+
+                {/* Collapsible Sub-Items */}
+                {hackathonMgmtOpen && (
+                  <div className="space-y-0.5 pl-3 ml-2.5 border-l border-slate-100 py-0.5">
+                    {/* Hackathons */}
+                    <Link
+                      to="/admin-control-site/hackathons"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-normal transition-all ${
+                        isHackathonsActive
+                          ? 'shadow-xs text-white'
+                          : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                      }`}
+                      style={
+                        isHackathonsActive
+                          ? { backgroundColor: '#ea580c', color: '#ffffff' }
+                          : {}
+                      }
+                    >
+                      <Trophy className="w-3.5 h-3.5 shrink-0" />
+                      <span>Hackathons</span>
+                    </Link>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Dedicated Sponsor Management Dropdown Accordion */}
+            {canAccessSponsors && (
+              <div className="space-y-0.5 mb-1">
+                <button
+                  type="button"
+                  onClick={() => setSponsorMgmtOpen((prev) => !prev)}
+                  className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-slate-700 hover:bg-slate-100/80 hover:text-slate-900 transition-colors group cursor-pointer"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <Building2 className="w-4 h-4 text-slate-600 shrink-0" />
+                    <span className="text-xs font-normal text-slate-700">
+                      Sponsor Management
+                    </span>
+                  </div>
+                  {sponsorMgmtOpen ? (
+                    <ChevronUp className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                  ) : (
+                    <ChevronDown className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                  )}
+                </button>
+
+                {/* Collapsible Sub-Items for Sponsors */}
+                {sponsorMgmtOpen && (
+                  <div className="space-y-0.5 pl-3 ml-2.5 border-l border-slate-100 py-0.5">
+                    {/* Sponsors Directory */}
+                    <Link
+                      to="/admin-control-site/sponsors?tab=sponsors"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-normal transition-all ${
+                        isSponsorsActive && currentTab === 'sponsors'
+                          ? 'shadow-xs text-white'
+                          : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                      }`}
+                      style={
+                        isSponsorsActive && currentTab === 'sponsors'
+                          ? { backgroundColor: '#ea580c', color: '#ffffff' }
+                          : {}
+                      }
+                    >
+                      <Building2 className="w-3.5 h-3.5 shrink-0" />
+                      <span>Sponsors Directory</span>
+                    </Link>
+
+                    {/* Sponsor Packages */}
+                    <Link
+                      to="/admin-control-site/sponsors?tab=packages"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-normal transition-all ${
+                        isSponsorsActive && currentTab === 'packages'
+                          ? 'shadow-xs text-white'
+                          : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                      }`}
+                      style={
+                        isSponsorsActive && currentTab === 'packages'
+                          ? { backgroundColor: '#ea580c', color: '#ffffff' }
+                          : {}
+                      }
+                    >
+                      <Package className="w-3.5 h-3.5 shrink-0" />
+                      <span>Sponsor Packages</span>
+                    </Link>
+
+                    {/* Package Types */}
+                    <Link
+                      to="/admin-control-site/sponsors?tab=types"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-normal transition-all ${
+                        isSponsorsActive && currentTab === 'types'
+                          ? 'shadow-xs text-white'
+                          : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                      }`}
+                      style={
+                        isSponsorsActive && currentTab === 'types'
+                          ? { backgroundColor: '#ea580c', color: '#ffffff' }
+                          : {}
+                      }
+                    >
+                      <Layers className="w-3.5 h-3.5 shrink-0" />
+                      <span>Package Types</span>
+                    </Link>
+
+                    {/* Sponsorship Breakdown */}
+                    <Link
+                      to="/admin-control-site/sponsors?tab=breakdown"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-normal transition-all ${
+                        isSponsorsActive && currentTab === 'breakdown'
+                          ? 'shadow-xs text-white'
+                          : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                      }`}
+                      style={
+                        isSponsorsActive && currentTab === 'breakdown'
+                          ? { backgroundColor: '#ea580c', color: '#ffffff' }
+                          : {}
+                      }
+                    >
+                      <PieChart className="w-3.5 h-3.5 shrink-0" />
+                      <span>Sponsorship Breakdown</span>
+                    </Link>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* User Management Dropdown Accordion */}
+            {canAccessUserMgmt && (
               <div className="space-y-0.5">
                 <button
                   type="button"
@@ -264,126 +523,140 @@ export default function AdminLayout() {
                 {/* Collapsible Sub-Items */}
                 {userMgmtOpen && (
                   <div className="space-y-0.5 pl-3 ml-2.5 border-l border-slate-100 py-0.5">
-                    {/* Customer */}
-                    <Link
-                      to="/admin/customers"
-                      onClick={() => setMobileMenuOpen(false)}
-                      className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-normal transition-all ${
-                        isCustomersActive
-                          ? 'shadow-xs text-white'
-                          : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-                      }`}
-                      style={
-                        isCustomersActive
-                          ? { backgroundColor: '#ea580c', color: '#ffffff' }
-                          : {}
-                      }
-                    >
-                      <Users className="w-3.5 h-3.5 shrink-0" />
-                      <span>Customer</span>
-                    </Link>
+                    {/* Participants */}
+                    {canAccessParticipants && (
+                      <Link
+                        to="/admin-control-site/participants"
+                        onClick={() => setMobileMenuOpen(false)}
+                        className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-normal transition-all ${
+                          isCustomersActive
+                            ? 'shadow-xs text-white'
+                            : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                        }`}
+                        style={
+                          isCustomersActive
+                            ? { backgroundColor: '#ea580c', color: '#ffffff' }
+                            : {}
+                        }
+                      >
+                        <Users className="w-3.5 h-3.5 shrink-0" />
+                        <span>Participants</span>
+                      </Link>
+                    )}
 
                     {/* User Management */}
-                    <Link
-                      to="/admin/users"
-                      onClick={() => setMobileMenuOpen(false)}
-                      className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-normal transition-all ${
-                        isUsersActive
-                          ? 'shadow-xs text-white'
-                          : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-                      }`}
-                      style={
-                        isUsersActive
-                          ? { backgroundColor: '#ea580c', color: '#ffffff' }
-                          : {}
-                      }
-                    >
-                      <UserCheck className="w-3.5 h-3.5 shrink-0" />
-                      <span>User Management</span>
-                    </Link>
+                    {canAccessUsers && (
+                      <Link
+                        to="/admin-control-site/users"
+                        onClick={() => setMobileMenuOpen(false)}
+                        className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-normal transition-all ${
+                          isUsersActive
+                            ? 'shadow-xs text-white'
+                            : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                        }`}
+                        style={
+                          isUsersActive
+                            ? { backgroundColor: '#ea580c', color: '#ffffff' }
+                            : {}
+                        }
+                      >
+                        <UserCheck className="w-3.5 h-3.5 shrink-0" />
+                        <span>User Management</span>
+                      </Link>
+                    )}
 
                     {/* Group */}
-                    <Link
-                      to="/admin/groups"
-                      onClick={() => setMobileMenuOpen(false)}
-                      className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-normal transition-all ${
-                        isGroupsActive
-                          ? 'shadow-xs text-white'
-                          : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-                      }`}
-                      style={
-                        isGroupsActive
-                          ? { backgroundColor: '#ea580c', color: '#ffffff' }
-                          : {}
-                      }
-                    >
-                      <Users className="w-3.5 h-3.5 shrink-0" />
-                      <span>Group</span>
-                    </Link>
+                    {canAccessGroups && (
+                      <Link
+                        to="/admin-control-site/groups"
+                        onClick={() => setMobileMenuOpen(false)}
+                        className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-normal transition-all ${
+                          isGroupsActive
+                            ? 'shadow-xs text-white'
+                            : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                        }`}
+                        style={
+                          isGroupsActive
+                            ? { backgroundColor: '#ea580c', color: '#ffffff' }
+                            : {}
+                        }
+                      >
+                        <Users className="w-3.5 h-3.5 shrink-0" />
+                        <span>Group</span>
+                      </Link>
+                    )}
 
                     {/* Team */}
-                    <Link
-                      to="/admin/teams"
-                      onClick={() => setMobileMenuOpen(false)}
-                      className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-normal transition-all ${
-                        isTeamsActive
-                          ? 'shadow-xs text-white'
-                          : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-                      }`}
-                      style={
-                        isTeamsActive
-                          ? { backgroundColor: '#ea580c', color: '#ffffff' }
-                          : {}
-                      }
-                    >
-                      <Users className="w-3.5 h-3.5 shrink-0" />
-                      <span>Team</span>
-                    </Link>
+                    {canAccessTeams && (
+                      <Link
+                        to="/admin-control-site/teams"
+                        onClick={() => setMobileMenuOpen(false)}
+                        className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-normal transition-all ${
+                          isTeamsActive
+                            ? 'shadow-xs text-white'
+                            : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                        }`}
+                        style={
+                          isTeamsActive
+                            ? { backgroundColor: '#ea580c', color: '#ffffff' }
+                            : {}
+                        }
+                      >
+                        <Users className="w-3.5 h-3.5 shrink-0" />
+                        <span>Team</span>
+                      </Link>
+                    )}
                   </div>
                 )}
               </div>
             )}
 
             {/* Bottom Menu Items: System Config & Log */}
-            <div className="pt-2 space-y-0.5 border-t border-slate-100 mt-2">
-              {/* System Config */}
-              <Link
-                to="/admin/system-config"
-                onClick={() => setMobileMenuOpen(false)}
-                className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-normal transition-all ${
-                  isSystemConfigActive
-                    ? 'shadow-xs text-white'
-                    : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-                }`}
-                style={
-                  isSystemConfigActive
-                    ? { backgroundColor: '#ea580c', color: '#ffffff' }
-                    : {}
-                }
-              >
-                <Settings className="w-4 h-4 shrink-0 text-slate-500" style={isSystemConfigActive ? { color: '#ffffff' } : {}} />
-                <span>System Config</span>
-              </Link>
+            {(canAccessSystemConfig || canAccessLogs) && (
+              <div className="pt-2 space-y-0.5 border-t border-slate-100 mt-2">
+                {/* System Config */}
+                {canAccessSystemConfig && (
+                  <Link
+                    to="/admin-control-site/system-config"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-normal transition-all ${
+                      isSystemConfigActive
+                        ? 'shadow-xs text-white'
+                        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                    }`}
+                    style={
+                      isSystemConfigActive
+                        ? { backgroundColor: '#ea580c', color: '#ffffff' }
+                        : {}
+                    }
+                  >
+                    <Settings className="w-4 h-4 shrink-0 text-slate-500" style={isSystemConfigActive ? { color: '#ffffff' } : {}} />
+                    <span>System Config</span>
+                  </Link>
+                )}
 
-              {/* Log */}
-              <Link
-                to="/admin/logs"
-                onClick={() => setMobileMenuOpen(false)}
-                className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-normal transition-all ${
-                  isLogsActive
-                    ? 'shadow-xs text-white'
-                    : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-                }`}
-                style={
-                  isLogsActive
-                    ? { backgroundColor: '#ea580c', color: '#ffffff' }
-                    : {}
-                }
-              >
-                <ClipboardList className="w-4 h-4 shrink-0 text-slate-500" style={isLogsActive ? { color: '#ffffff' } : {}} />
-                <span>Log</span>
-              </Link>
-            </div>
+                {/* Log */}
+                {canAccessLogs && (
+                  <Link
+                    to="/admin-control-site/logs"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-normal transition-all ${
+                      isLogsActive
+                        ? 'shadow-xs text-white'
+                        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                    }`}
+                    style={
+                      isLogsActive
+                        ? { backgroundColor: '#ea580c', color: '#ffffff' }
+                        : {}
+                    }
+                  >
+                    <ClipboardList className="w-4 h-4 shrink-0 text-slate-500" style={isLogsActive ? { color: '#ffffff' } : {}} />
+                    <span>Log</span>
+                  </Link>
+                )}
+              </div>
+            )}
           </div>
 
           {/* User Footer with Profile Picture & Edit Profile & Logout */}
@@ -442,47 +715,49 @@ export default function AdminLayout() {
         <div className="flex-1 flex flex-col min-w-0" style={{ backgroundColor: '#f5f6fa' }}>
           {/* Top Bar */}
           <header
-            className="h-16 px-6 sm:px-8 flex items-center justify-between shrink-0 sticky top-0 z-30"
+            className="h-16 px-3 sm:px-8 flex items-center justify-between shrink-0 sticky top-0 z-30"
             style={{ backgroundColor: '#ffffff', borderBottom: '1px solid #e8e9ef' }}
           >
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
               <button
                 onClick={() => setMobileMenuOpen(true)}
-                className="md:hidden p-2 rounded-lg text-slate-500 hover:bg-slate-100 transition"
+                className="md:hidden p-2 rounded-lg text-slate-500 hover:bg-slate-100 transition shrink-0"
+                aria-label="Open sidebar menu"
               >
                 <Menu className="w-5 h-5" />
               </button>
-              <div>
-                <h1 className="text-base sm:text-lg font-bold" style={{ color: '#1a1a2e' }}>
+              <div className="min-w-0">
+                <h1 className="text-sm sm:text-lg font-bold truncate" style={{ color: '#1a1a2e' }}>
                   {pageTitle}
                 </h1>
-                <p className="text-xs text-slate-400">
+                <p className="text-[11px] sm:text-xs text-slate-400 truncate">
                   {today}
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
               <button
                 onClick={() => setProfileModalOpen(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition border border-orange-200 bg-orange-50 text-[#c2410c] hover:bg-orange-100 shadow-xs"
+                className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition border border-orange-200 bg-orange-50 text-[#c2410c] hover:bg-orange-100 shadow-xs"
                 title="Edit Personal Profile (/api/v1/users/profile/)"
               >
                 <User className="w-3.5 h-3.5 text-[#e8622a]" />
-                <span>My Profile</span>
+                <span className="hidden sm:inline">My Profile</span>
               </button>
 
               <Link
                 to="/"
-                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 shadow-xs"
+                className="flex items-center gap-1.5 px-2.5 sm:px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 shadow-xs"
+                title="Return to Public Hackathon Website"
               >
                 <ArrowLeft className="w-3.5 h-3.5" />
-                <span>Public Site</span>
+                <span className="hidden sm:inline">Public Site</span>
               </Link>
 
               <button
                 onClick={handleLogout}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-red-600 hover:bg-red-50 border border-transparent hover:border-red-200 transition"
+                className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-semibold text-red-600 hover:bg-red-50 border border-transparent hover:border-red-200 transition"
                 title="Sign Out"
               >
                 <LogOut className="w-3.5 h-3.5" />
@@ -492,34 +767,73 @@ export default function AdminLayout() {
           </header>
 
           {/* Page Content */}
-          <main className="flex-1 p-6 sm:p-8 overflow-y-auto" style={{ backgroundColor: '#f5f6fa' }}>
+          <main className="flex-1 p-3.5 sm:p-6 lg:p-8 overflow-y-auto" style={{ backgroundColor: '#f5f6fa' }}>
             <ErrorBoundary>
               <Suspense fallback={<AdminViewLoader />}>
                 <Routes>
-                  {/* User Management (Admin Only) */}
+                  {/* Hackathon Management */}
+                  <Route
+                    path="hackathons"
+                    element={canAccessHackathons ? <HackathonManagement /> : <Navigate to="/admin-control-site" replace />}
+                  />
+                  <Route
+                    path="hackathons/*"
+                    element={canAccessHackathons ? <HackathonManagement /> : <Navigate to="/admin-control-site" replace />}
+                  />
+
+                  {/* Sponsors & Packages Management */}
+                  <Route
+                    path="sponsors"
+                    element={canAccessSponsors ? <SponsorManagement /> : <Navigate to="/admin-control-site" replace />}
+                  />
+                  <Route
+                    path="sponsors/*"
+                    element={canAccessSponsors ? <SponsorManagement /> : <Navigate to="/admin-control-site" replace />}
+                  />
+
+                  {/* User Management */}
                   <Route
                     path="users"
-                    element={isAdmin ? <UserManagement /> : <Navigate to="/admin" replace />}
+                    element={canAccessUsers ? <UserManagement /> : <Navigate to="/admin-control-site" replace />}
                   />
                   <Route
                     path="users/*"
-                    element={isAdmin ? <UserManagement /> : <Navigate to="/admin" replace />}
+                    element={canAccessUsers ? <UserManagement /> : <Navigate to="/admin-control-site" replace />}
                   />
 
-                  {/* Customer Directory */}
-                  <Route path="customers" element={<CustomerManagement />} />
+                  {/* Participant Directory */}
+                  <Route
+                    path="participants"
+                    element={canAccessParticipants ? <CustomerManagement /> : <Navigate to="/admin-control-site" replace />}
+                  />
+                  <Route
+                    path="customers"
+                    element={canAccessParticipants ? <CustomerManagement /> : <Navigate to="/admin-control-site" replace />}
+                  />
 
                   {/* Group Management */}
-                  <Route path="groups" element={<GroupManagement />} />
+                  <Route
+                    path="groups"
+                    element={canAccessGroups ? <GroupManagement /> : <Navigate to="/admin-control-site" replace />}
+                  />
 
                   {/* Team Management */}
-                  <Route path="teams" element={<TeamManagement />} />
+                  <Route
+                    path="teams"
+                    element={canAccessTeams ? <TeamManagement /> : <Navigate to="/admin-control-site" replace />}
+                  />
 
                   {/* System Config */}
-                  <Route path="system-config" element={<SystemConfig />} />
+                  <Route
+                    path="system-config"
+                    element={canAccessSystemConfig ? <SystemConfig /> : <Navigate to="/admin-control-site" replace />}
+                  />
 
                   {/* Log Viewer */}
-                  <Route path="logs" element={<LogViewer />} />
+                  <Route
+                    path="logs"
+                    element={canAccessLogs ? <LogViewer /> : <Navigate to="/admin-control-site" replace />}
+                  />
 
                   {/* Default Admin Workspace Overview */}
                   <Route
@@ -547,107 +861,157 @@ export default function AdminLayout() {
                             <code className="text-[#e8622a] font-mono text-xs bg-orange-50 px-1.5 py-0.5 rounded border border-orange-100">
                               /api/v1/users/login/
                             </code>
-                            . Access the full administration hierarchy using the navigation dropdown on the left.
+                            . Access administration tools using the navigation menu on the left.
                           </p>
 
                           <div className="flex flex-wrap items-center gap-3">
-                            {isAdmin && (
-                              <>
-                                <Link
-                                  to="/admin/users"
-                                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white shadow-md shadow-orange-500/20 hover:shadow-orange-500/30 transition-all"
-                                  style={{ backgroundColor: '#ea580c' }}
-                                >
-                                  <Users className="w-4 h-4" />
-                                  <span>Go to User Management</span>
-                                  <ChevronRight className="w-4 h-4" />
-                                </Link>
+                            {canAccessHackathons && (
+                              <Link
+                                to="/admin-control-site/hackathons"
+                                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white shadow-md shadow-orange-500/20 hover:shadow-orange-500/30 transition-all"
+                                style={{ backgroundColor: '#ea580c' }}
+                              >
+                                <Trophy className="w-4 h-4" />
+                                <span>Hackathons</span>
+                                <ChevronRight className="w-4 h-4" />
+                              </Link>
+                            )}
 
-                                <Link
-                                  to="/admin/groups"
-                                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition"
-                                >
-                                  <Users className="w-4 h-4 text-[#e8622a]" />
-                                  <span>View Groups</span>
-                                </Link>
+                            {canAccessUsers && (
+                              <Link
+                                to="/admin-control-site/users"
+                                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition"
+                              >
+                                <UserCheck className="w-4 h-4 text-[#e8622a]" />
+                                <span>User Management</span>
+                              </Link>
+                            )}
 
-                                <Link
-                                  to="/admin/teams"
-                                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition"
-                                >
-                                  <Users className="w-4 h-4 text-[#e8622a]" />
-                                  <span>View Teams</span>
-                                </Link>
-                              </>
+                            {canAccessGroups && (
+                              <Link
+                                to="/admin-control-site/groups"
+                                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition"
+                              >
+                                <Users className="w-4 h-4 text-[#e8622a]" />
+                                <span>View Groups</span>
+                              </Link>
+                            )}
+
+                            {canAccessTeams && (
+                              <Link
+                                to="/admin-control-site/teams"
+                                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition"
+                              >
+                                <Users className="w-4 h-4 text-[#e8622a]" />
+                                <span>View Teams</span>
+                              </Link>
                             )}
                           </div>
                         </div>
 
                         {/* Feature Summary Grid */}
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          {isAdmin && (
-                            <>
-                              <Link
-                                to="/admin/users"
-                                className="p-5 rounded-2xl bg-white border border-slate-200/80 hover:border-orange-300 hover:shadow-md transition-all group"
-                              >
-                                <div className="w-10 h-10 rounded-xl bg-orange-50 text-[#e8622a] flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
-                                  <UserCheck className="w-5 h-5" />
-                                </div>
-                                <h3 className="font-bold text-slate-900 text-sm group-hover:text-[#e8622a] transition-colors">
-                                  User Management & Registration
-                                </h3>
-                                <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-                                  Manage user accounts, role allocations, and security credentials.
-                                </p>
-                              </Link>
-
-                              <Link
-                                to="/admin/groups"
-                                className="p-5 rounded-2xl bg-white border border-slate-200/80 hover:border-orange-300 hover:shadow-md transition-all group"
-                              >
-                                <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
-                                  <FolderTree className="w-5 h-5" />
-                                </div>
-                                <h3 className="font-bold text-slate-900 text-sm group-hover:text-[#e8622a] transition-colors">
-                                  Group Permissions Catalog
-                                </h3>
-                                <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-                                  Live groups and categories directly from <code className="text-[11px] font-mono text-slate-700">/api/v1/users/groups/list_groups/</code>.
-                                </p>
-                              </Link>
-
-                              <Link
-                                to="/admin/teams"
-                                className="p-5 rounded-2xl bg-white border border-slate-200/80 hover:border-orange-300 hover:shadow-md transition-all group"
-                              >
-                                <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
-                                  <Users className="w-5 h-5" />
-                                </div>
-                                <h3 className="font-bold text-slate-900 text-sm group-hover:text-[#e8622a] transition-colors">
-                                  Team Submissions & Tracks
-                                </h3>
-                                <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-                                  Review participating teams, assigned projects, and GitHub repository links.
-                                </p>
-                              </Link>
-                            </>
+                          {canAccessHackathons && (
+                            <Link
+                              to="/admin-control-site/hackathons"
+                              className="p-5 rounded-2xl bg-white border border-slate-200/80 hover:border-orange-300 hover:shadow-md transition-all group"
+                            >
+                              <div className="w-10 h-10 rounded-xl bg-orange-50 text-[#e8622a] flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
+                                <Trophy className="w-5 h-5" />
+                              </div>
+                              <h3 className="font-bold text-slate-900 text-sm group-hover:text-[#e8622a] transition-colors">
+                                Hackathon Management
+                              </h3>
+                              <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                                Inspect editions, registration timelines, team sizes, and banner images via <code className="text-[11px] font-mono text-slate-700">/api/v1/hackathons/</code>.
+                              </p>
+                            </Link>
                           )}
 
-                          <Link
-                            to="/admin/system-config"
-                            className="p-5 rounded-2xl bg-white border border-slate-200/80 hover:border-orange-300 hover:shadow-md transition-all group"
-                          >
-                            <div className="w-10 h-10 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
-                              <Settings className="w-5 h-5" />
-                            </div>
-                            <h3 className="font-bold text-slate-900 text-sm group-hover:text-[#e8622a] transition-colors">
-                              System Configuration & Auth
-                            </h3>
-                            <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-                              Inspect active Bearer token and gateway API endpoints.
-                            </p>
-                          </Link>
+                          {canAccessSponsors && (
+                            <Link
+                              to="/admin-control-site/sponsors"
+                              className="p-5 rounded-2xl bg-white border border-slate-200/80 hover:border-orange-300 hover:shadow-md transition-all group"
+                            >
+                              <div className="w-10 h-10 rounded-xl bg-orange-50 text-[#ea580c] flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
+                                <Building2 className="w-5 h-5" />
+                              </div>
+                              <h3 className="font-bold text-slate-900 text-sm group-hover:text-[#ea580c] transition-colors">
+                                Sponsors & Package Tiers
+                              </h3>
+                              <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                                Manage corporate sponsors, packages, perks, and tier allocation breakdown.
+                              </p>
+                            </Link>
+                          )}
+
+                          {canAccessUsers && (
+                            <Link
+                              to="/admin-control-site/users"
+                              className="p-5 rounded-2xl bg-white border border-slate-200/80 hover:border-orange-300 hover:shadow-md transition-all group"
+                            >
+                              <div className="w-10 h-10 rounded-xl bg-orange-50 text-[#e8622a] flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
+                                <UserCheck className="w-5 h-5" />
+                              </div>
+                              <h3 className="font-bold text-slate-900 text-sm group-hover:text-[#e8622a] transition-colors">
+                                User Management & Registration
+                              </h3>
+                              <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                                Manage user accounts, role allocations, and security credentials.
+                              </p>
+                            </Link>
+                          )}
+
+                          {canAccessGroups && (
+                            <Link
+                              to="/admin-control-site/groups"
+                              className="p-5 rounded-2xl bg-white border border-slate-200/80 hover:border-orange-300 hover:shadow-md transition-all group"
+                            >
+                              <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
+                                <FolderTree className="w-5 h-5" />
+                              </div>
+                              <h3 className="font-bold text-slate-900 text-sm group-hover:text-[#e8622a] transition-colors">
+                                Group Permissions Catalog
+                              </h3>
+                              <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                                Live groups and categories directly from <code className="text-[11px] font-mono text-slate-700">/api/v1/users/groups/list_groups/</code>.
+                              </p>
+                            </Link>
+                          )}
+
+                          {canAccessTeams && (
+                            <Link
+                              to="/admin-control-site/teams"
+                              className="p-5 rounded-2xl bg-white border border-slate-200/80 hover:border-orange-300 hover:shadow-md transition-all group"
+                            >
+                              <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
+                                <Users className="w-5 h-5" />
+                              </div>
+                              <h3 className="font-bold text-slate-900 text-sm group-hover:text-[#e8622a] transition-colors">
+                                Team Submissions & Tracks
+                              </h3>
+                              <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                                Review participating teams, assigned projects, and GitHub repository links.
+                              </p>
+                            </Link>
+                          )}
+
+                          {canAccessSystemConfig && (
+                            <Link
+                              to="/admin-control-site/system-config"
+                              className="p-5 rounded-2xl bg-white border border-slate-200/80 hover:border-orange-300 hover:shadow-md transition-all group"
+                            >
+                              <div className="w-10 h-10 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
+                                <Settings className="w-5 h-5" />
+                              </div>
+                              <h3 className="font-bold text-slate-900 text-sm group-hover:text-[#e8622a] transition-colors">
+                                System Configuration & Auth
+                              </h3>
+                              <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                                Inspect active Bearer token and gateway API endpoints.
+                              </p>
+                            </Link>
+                          )}
                         </div>
                       </div>
                     }

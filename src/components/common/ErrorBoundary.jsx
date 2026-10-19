@@ -24,7 +24,7 @@ export default class ErrorBoundary extends React.Component {
   handleClearSession = () => {
     localStorage.removeItem('bic_auth_token');
     localStorage.removeItem('bic_admin_user');
-    window.location.href = '/admin';
+    window.location.href = '/admin-control-site';
   };
 
   render() {

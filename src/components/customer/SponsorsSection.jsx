@@ -1,5 +1,6 @@
 import React from 'react';
 import { useHackathon } from '../../context/HackathonContext';
+import { getMediaUrl } from '../../services/api';
 import { ExternalLink, MapPin } from 'lucide-react';
 
 export default function SponsorsSection() {
@@ -28,6 +29,8 @@ export default function SponsorsSection() {
         {/* Sponsors Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           {sponsors.map((sponsor) => {
+            const logoSrc = sponsor.logo ? getMediaUrl(sponsor.logo) : sponsor.logo_url;
+            const websiteUrl = sponsor.website_link || sponsor.website_url;
             const tierLabels = {
               title_sponsor: 'Title Sponsor',
               entitle_sponsor: 'Entitle Sponsor',
@@ -50,11 +53,11 @@ export default function SponsorsSection() {
                 <div>
                   <div className="flex items-start justify-between gap-4 mb-4">
                     <div className="flex items-center gap-3.5">
-                      {sponsor.logo_url ? (
+                      {logoSrc ? (
                         <img
-                          src={sponsor.logo_url}
+                          src={logoSrc}
                           alt={sponsor.name}
-                          className="w-12 h-12 rounded-xl object-cover bg-slate-50 border border-slate-200"
+                          className="w-12 h-12 rounded-xl object-contain bg-slate-50 border border-slate-200 p-1"
                           onError={(e) => {
                             e.currentTarget.style.display = 'none';
                             if (e.currentTarget.nextSibling) e.currentTarget.nextSibling.style.display = 'flex';
@@ -63,7 +66,7 @@ export default function SponsorsSection() {
                       ) : null}
                       <div
                         className="w-12 h-12 rounded-xl bg-slate-100 border border-slate-200 items-center justify-center text-coral-600 text-xl font-bold"
-                        style={{ display: sponsor.logo_url ? 'none' : 'flex' }}
+                        style={{ display: logoSrc ? 'none' : 'flex' }}
                       >
                         {sponsor.name?.[0] || 'S'}
                       </div>
@@ -87,9 +90,9 @@ export default function SponsorsSection() {
                       </div>
                     </div>
 
-                    {sponsor.website_url && (
+                    {websiteUrl && (
                       <a
-                        href={sponsor.website_url}
+                        href={websiteUrl}
                         target="_blank"
                         rel="noreferrer"
                         className="p-2 rounded-lg bg-slate-50 border border-slate-200 text-slate-500 hover:text-coral-600 hover:border-coral-300 transition-colors"

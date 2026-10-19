@@ -14,13 +14,16 @@ export default function SystemConfig() {
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
-      <div>
-        <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">
-          System Configuration
-        </h2>
-        <p className="text-xs sm:text-sm text-slate-500 mt-1">
-          Core backend endpoints, security credentials, and API environment parameters
-        </p>
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">
+            System Configuration
+          </h2>
+          <p className="text-xs sm:text-sm text-slate-500 mt-1">
+            Core backend endpoints, security credentials, and API environment parameters
+          </p>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -58,6 +61,16 @@ export default function SystemConfig() {
             </div>
 
             <div>
+              <label className="text-xs font-semibold text-slate-600">Google Login & Register Endpoint</label>
+              <input
+                type="text"
+                readOnly
+                value="/api/v1/users/google/"
+                className="w-full mt-1 px-3 py-2 text-xs font-mono rounded-xl bg-slate-50 border border-slate-200 text-slate-700"
+              />
+            </div>
+
+            <div>
               <label className="text-xs font-semibold text-slate-600">User Register Endpoint</label>
               <input
                 type="text"
@@ -73,6 +86,16 @@ export default function SystemConfig() {
                 type="text"
                 readOnly
                 value="/api/v1/users/groups/list_groups/"
+                className="w-full mt-1 px-3 py-2 text-xs font-mono rounded-xl bg-slate-50 border border-slate-200 text-slate-700"
+              />
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold text-slate-600">Update Group Permissions Endpoint</label>
+              <input
+                type="text"
+                readOnly
+                value="/api/v1/users/groups/{id}/update_group/"
                 className="w-full mt-1 px-3 py-2 text-xs font-mono rounded-xl bg-slate-50 border border-slate-200 text-slate-700"
               />
             </div>

@@ -1,6 +1,6 @@
 import React from 'react';
 import { useHackathon } from '../../context/HackathonContext';
-import { ShieldCheck, CheckCircle2, Award, Scale, BookOpen, AlertCircle, FileSpreadsheet } from 'lucide-react';
+import { UserCheck, CheckCircle2, Award, Scale, BookOpen, AlertCircle, FileSpreadsheet } from 'lucide-react';
 
 export default function RulesSection() {
   const { hackathon, isLoadingApi } = useHackathon();
@@ -91,7 +91,7 @@ export default function RulesSection() {
             {eligibility.length > 0 && (
               <div className="bg-slate-50 border border-slate-200/90 p-6 rounded-2xl shadow-sm">
                 <div className="flex items-center gap-2.5 mb-5 text-coral-600">
-                  <ShieldCheck className="w-5 h-5" />
+                  <UserCheck className="w-5 h-5" />
                   <h4 className="text-sm font-bold uppercase tracking-wider text-slate-900">Eligibility Criteria</h4>
                 </div>
                 <ul className="space-y-3.5">

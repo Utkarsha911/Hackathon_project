@@ -1,9 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useHackathon } from '../../context/HackathonContext';
-import { X, UserPlus, Shield, Flame } from 'lucide-react';
+import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
+import { X, UserPlus, Shield, UserCheck } from 'lucide-react';
+import { GoogleIcon } from '../common/GoogleAuthButton';
+import hackathonLogo from '../../assets/HACKATHON-LOGO.png';
 
 export default function RegistrationModal({ isOpen, onClose }) {
-  const { registerTeam, hackathon } = useHackathon();
+  const { registerTeam, hackathon, currentUser } = useHackathon();
 
   const [formData, setFormData] = useState({
     teamName: '',
@@ -20,6 +23,19 @@ export default function RegistrationModal({ isOpen, onClose }) {
     cvLink: '',
     githubLink: ''
   });
+
+  // Prefill leader information if user is logged in
+  useEffect(() => {
+    if (currentUser) {
+      setFormData(prev => ({
+        ...prev,
+        leaderName: prev.leaderName || (currentUser.first_name ? `${currentUser.first_name} ${currentUser.last_name || ''}`.trim() : ''),
+        leaderEmail: prev.leaderEmail || currentUser.email || ''
+      }));
+    }
+  }, [currentUser, isOpen]);
+
+  useBodyScrollLock(isOpen);
 
   if (!isOpen) return null;
 
@@ -45,10 +61,12 @@ export default function RegistrationModal({ isOpen, onClose }) {
 
           {/* Header */}
           <div className="mb-7">
-            <div className="flex items-center gap-2 mb-3">
-              <div className="w-8 h-8 rounded-full bg-coral-500 flex items-center justify-center shadow-sm">
-                <Flame className="w-4 h-4 text-white" />
-              </div>
+            <div className="flex items-center gap-3 mb-3">
+              <img
+                src={hackathonLogo}
+                alt="BIC Hackathon"
+                className="h-7 w-auto object-contain"
+              />
               <span className="text-xs font-mono font-bold uppercase tracking-widest text-coral-600">
                 Squad Enrollment
               </span>
@@ -61,6 +79,29 @@ export default function RegistrationModal({ isOpen, onClose }) {
               Public details are published to the leaderboard; medical & personal records are strictly private.
             </p>
           </div>
+
+          {currentUser ? (
+            <div className="mb-6 p-3 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-between gap-3 text-xs text-emerald-800">
+              <div className="flex items-center gap-2">
+                <UserCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>
+                  Authenticated via Google as <strong>{currentUser.email}</strong>. Leader fields have been auto-populated.
+                </span>
+              </div>
+              <span className="text-[10px] font-mono uppercase bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded border border-emerald-300 font-semibold shrink-0">
+                Google Verified
+              </span>
+            </div>
+          ) : (
+            <div className="mb-6 p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between gap-3 text-xs text-slate-600">
+              <div className="flex items-center gap-2">
+                <GoogleIcon className="w-3.5 h-3.5 shrink-0" />
+                <span>
+                  Signing in with Google helps auto-populate leader information and link squad records.
+                </span>
+              </div>
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-6">
 

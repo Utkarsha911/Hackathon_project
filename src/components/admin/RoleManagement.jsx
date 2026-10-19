@@ -30,8 +30,8 @@ const SYSTEM_ROLES = [
     scopes: ['Rubric Scoring', 'Project Review', 'Evaluation Feedback', 'Leaderboard Views']
   },
   {
-    id: 'customer',
-    name: 'Customer / Attendee',
+    id: 'participant',
+    name: 'Participant / Attendee',
     badgeColor: 'bg-blue-50 text-blue-700 border-blue-200',
     description: 'Registered portal participant with access to workshops, agenda, team workspace, and submissions.',
     usersCount: 64,
@@ -51,13 +51,15 @@ export default function RoleManagement() {
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       {/* Header */}
-      <div>
-        <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">
-          Role Management
-        </h2>
-        <p className="text-xs sm:text-sm text-slate-500 mt-1">
-          Review system roles, permission scopes, and allocated security tiers across the platform
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">
+            Role Management
+          </h2>
+          <p className="text-xs sm:text-sm text-slate-500 mt-1">
+            Review system roles, permission scopes, and allocated security tiers across the platform
+          </p>
+        </div>
       </div>
 
       {/* Search */}

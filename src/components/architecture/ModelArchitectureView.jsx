@@ -3,7 +3,7 @@ import { BACKEND_MODELS, MODEL_VISIBILITY, getNormalModels, getPrivateModels } f
 import { 
   FolderTree, 
   Layers, 
-  ShieldCheck, 
+  Lock, 
   Globe, 
   Database, 
   FileCode, 
@@ -60,7 +60,7 @@ export default function ModelArchitectureView() {
           {[
             { id: 'models', label: 'Models Categorization Matrix', icon: Layers },
             { id: 'structure', label: 'File & Folder Structure', icon: FolderTree },
-            { id: 'comparison', label: 'Normal vs Private Comparison', icon: ShieldCheck }
+            { id: 'comparison', label: 'Normal vs Private Comparison', icon: Lock }
           ].map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -129,7 +129,7 @@ export default function ModelArchitectureView() {
               <div className="flex items-center justify-between pb-4 border-b border-slate-800 mb-6">
                 <div className="flex items-center gap-2.5">
                   <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20 flex items-center justify-center">
-                    <ShieldCheck className="w-5 h-5" />
+                    <Lock className="w-5 h-5" />
                   </div>
                   <div>
                     <h3 className="text-xl font-bold text-white">Private Models</h3>

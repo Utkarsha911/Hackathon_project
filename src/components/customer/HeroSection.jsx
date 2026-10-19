@@ -1,6 +1,8 @@
 import React from 'react';
 import { useHackathon } from '../../context/HackathonContext';
-import { Calendar, MapPin, Trophy, ArrowRight, Flame } from 'lucide-react';
+import { getMediaUrl } from '../../services/api';
+import { Calendar, MapPin, Trophy, ArrowRight } from 'lucide-react';
+import hackathonLogo from '../../assets/HACKATHON-LOGO.png';
 
 export default function HeroSection({ onOpenRegister }) {
   const { hackathon, prizes, isLoadingApi } = useHackathon();
@@ -12,10 +14,13 @@ export default function HeroSection({ onOpenRegister }) {
 
   const formatDateRange = () => {
     if (!hackathon?.start_date || !hackathon?.end_date) {
-      return hackathon?.year ? `Nov 14 – 16, ${hackathon.year}` : 'Nov 14 – 16, 2026';
+      return hackathon?.year ? `Nov 14 – 16, ${hackathon.year.slice ? hackathon.year.slice(0, 4) : hackathon.year}` : 'Nov 14 – 16, 2026';
     }
     const s = new Date(hackathon.start_date);
     const e = new Date(hackathon.end_date);
+    if (isNaN(s.getTime()) || isNaN(e.getTime())) {
+      return hackathon?.year || 'Upcoming';
+    }
     const sMonth = s.toLocaleString('default', { month: 'short' });
     const eMonth = e.toLocaleString('default', { month: 'short' });
     if (sMonth === eMonth) {
@@ -53,9 +58,9 @@ export default function HeroSection({ onOpenRegister }) {
           <span className="w-2 h-2 rounded-full bg-coral-500" />
           <span>
             Registration:{' '}
-            {h.registration_enddate
-              ? `Closes ${new Date(h.registration_enddate).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}`
-              : `Closes Nov 05, ${h.year || 2026}`}
+            {(h.registration_end_date || h.registration_enddate)
+              ? `Closes ${new Date(h.registration_end_date || h.registration_enddate).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}`
+              : `Closes Nov 05, ${h.year?.slice ? h.year.slice(0, 4) : 2026}`}
           </span>
           <span className="text-slate-300">|</span>
           <span className="text-coral-600 font-semibold">{h.event_time || '48 Hours Non-Stop Sprint'}</span>
@@ -69,24 +74,20 @@ export default function HeroSection({ onOpenRegister }) {
           )}
         </div>
 
-        {/* BIC Crest / Flame + College Name */}
+        {/* Official Hackathon Logo */}
         <div className="flex items-center gap-3 mb-5">
-          <div className="w-12 h-12 rounded-full bg-coral-500 flex items-center justify-center shadow-lg shadow-coral-500/25">
-            <Flame className="w-7 h-7 text-white" />
-          </div>
-          <div>
-            <p className="text-xs font-mono font-bold uppercase tracking-widest text-coral-600">
-              Boston International College
-            </p>
-            <p className="text-[11px] text-slate-500 font-mono">Kathmandu, Nepal</p>
-          </div>
+          <img
+            src={hackathonLogo}
+            alt="BIC Hackathon"
+            className="h-11 sm:h-13 w-auto object-contain"
+          />
         </div>
 
         {/* Main Headline */}
         <h1 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-slate-900 max-w-4xl leading-[1.06]">
           {h.title || 'BIC InnovateX'} <br />
           <span className="text-coral-600">
-            {h.year || 2026}
+            {h.year ? (typeof h.year === 'string' && h.year.includes('-') ? h.year.split('-')[0] : h.year) : 2026}
           </span>
         </h1>
 
@@ -111,6 +112,26 @@ export default function HeroSection({ onOpenRegister }) {
           </p>
         )}
 
+        {/* Official Event Banner */}
+        {h.banner_image && (
+          <div className="mt-8 relative rounded-2xl overflow-hidden border border-slate-200/90 shadow-md max-w-4xl bg-slate-900 group">
+            <img
+              src={getMediaUrl(h.banner_image)}
+              alt={h.title || 'BIC Hackathon Banner'}
+              className="w-full h-44 sm:h-64 md:h-72 object-cover object-center transition-transform duration-500 group-hover:scale-[1.01]"
+              onError={(e) => {
+                e.target.parentElement.style.display = 'none';
+              }}
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent flex items-end p-4 sm:p-5">
+              <span className="text-white text-xs sm:text-sm font-semibold tracking-wide drop-shadow-sm flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-coral-500" />
+                {h.title} {h.version} • {h.venue || 'Boston International College'}
+              </span>
+            </div>
+          </div>
+        )}
+
         {/* Event Facts */}
         <div className="mt-8 flex flex-wrap items-center gap-3 text-xs font-mono text-slate-700">
           <div className="flex items-center gap-2 bg-white border border-slate-200 px-3.5 py-2 rounded-lg shadow-sm">
@@ -132,48 +153,50 @@ export default function HeroSection({ onOpenRegister }) {
         </div>
 
         {/* CTA Buttons */}
-        <div className="mt-10 flex flex-wrap items-center gap-3">
+        <div className="mt-10 flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-3">
           <button
             onClick={onOpenRegister}
-            className="btn-primary flex items-center gap-2"
+            className="btn-primary flex items-center justify-center gap-2 w-full sm:w-auto"
           >
             <span>Register Your Squad</span>
             <ArrowRight className="w-4 h-4" />
           </button>
           <a
             href="#tracks"
-            className="btn-secondary"
+            className="btn-secondary justify-center text-center w-full sm:w-auto"
           >
             View Problem Statements
           </a>
           <a
             href="#rules"
-            className="btn-secondary"
+            className="btn-secondary justify-center text-center w-full sm:w-auto"
           >
             Rules & Criteria
           </a>
         </div>
 
         {/* Stats Bar */}
-        <div className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-4 pt-10 border-t border-slate-200">
-          <div className="p-5 rounded-xl bg-white border border-slate-200 shadow-sm">
-            <div className="text-2xl font-bold text-slate-900 font-mono">48h</div>
+        <div className="mt-12 sm:mt-16 grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 pt-8 sm:pt-10 border-t border-slate-200">
+          <div className="p-3.5 sm:p-5 rounded-xl bg-white border border-slate-200 shadow-sm">
+            <div className="text-xl sm:text-2xl font-bold text-slate-900 font-mono">
+              {h.event_time ? (h.event_time.toLowerCase().includes('hour') ? h.event_time.replace(/[^0-9]/g, '') + 'h' : h.event_time) : '48h'}
+            </div>
             <div className="text-xs text-slate-500 mt-1">{h.event_time || 'Continuous Sprint'}</div>
           </div>
-          <div className="p-5 rounded-xl bg-white border border-slate-200 shadow-sm">
-            <div className="text-2xl font-bold text-coral-600 font-mono">
+          <div className="p-3.5 sm:p-5 rounded-xl bg-white border border-slate-200 shadow-sm">
+            <div className="text-xl sm:text-2xl font-bold text-coral-600 font-mono">
               NPR {totalPrizePool > 0 ? (totalPrizePool / 1000).toFixed(0) + 'k' : '565k'}
             </div>
             <div className="text-xs text-slate-500 mt-1">Total Prize Pool</div>
           </div>
-          <div className="p-5 rounded-xl bg-white border border-slate-200 shadow-sm">
-            <div className="text-2xl font-bold text-slate-900 font-mono">
-              {h.minimum_team_size || 2} – {h.max_team_size || 4}
+          <div className="p-3.5 sm:p-5 rounded-xl bg-white border border-slate-200 shadow-sm">
+            <div className="text-xl sm:text-2xl font-bold text-slate-900 font-mono">
+              {h.minimum_team_size || 1} – {h.maximum_team_size || h.max_team_size || 4}
             </div>
             <div className="text-xs text-slate-500 mt-1">Members per Squad</div>
           </div>
-          <div className="p-5 rounded-xl bg-white border border-slate-200 shadow-sm">
-            <div className="text-2xl font-bold text-slate-900 font-mono">100%</div>
+          <div className="p-3.5 sm:p-5 rounded-xl bg-white border border-slate-200 shadow-sm">
+            <div className="text-xl sm:text-2xl font-bold text-slate-900 font-mono">100%</div>
             <div className="text-xs text-slate-500 mt-1">Participant IP Retained</div>
           </div>
         </div>

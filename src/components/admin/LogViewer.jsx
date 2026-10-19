@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../services/api';
+import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
 import {
   ClipboardList,
   Search,
@@ -82,6 +83,9 @@ export default function LogViewer() {
   const [searchTerm, setSearchTerm] = useState('');
   const [actionFilter, setActionFilter] = useState('all');
   const [selectedActivity, setSelectedActivity] = useState(null);
+
+  // Disable background scrolling when activity detail modal is open
+  useBodyScrollLock(Boolean(selectedActivity));
 
   // Fetch activities from GET /api/v1/activities/
   const fetchActivities = async (page = 1) => {
@@ -181,13 +185,15 @@ export default function LogViewer() {
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       {/* Header */}
-      <div>
-        <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">
-          Activity & Audit Logs
-        </h2>
-        <p className="text-xs sm:text-sm text-slate-500 mt-1">
-          Historical events and user action records
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">
+            Activity & Audit Logs
+          </h2>
+          <p className="text-xs sm:text-sm text-slate-500 mt-1">
+            Historical events and user action records
+          </p>
+        </div>
       </div>
 
       {/* Filter and Search Bar */}
@@ -356,7 +362,7 @@ export default function LogViewer() {
         </div>
 
         {/* Pagination Controls */}
-        <div className="p-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+        <div className="p-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
           <div>
             Showing <strong>{filteredActivities.length}</strong> of <strong>{totalCount}</strong> logs
           </div>
@@ -389,8 +395,8 @@ export default function LogViewer() {
 
       {/* JSON Inspection Modal */}
       {selectedActivity && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-xs">
-          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-100 space-y-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-3 sm:p-4 backdrop-blur-xs">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-4 sm:p-6 shadow-2xl border border-slate-100 space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2.5">
                 <Code2 className="w-5 h-5 text-[#e8622a]" />

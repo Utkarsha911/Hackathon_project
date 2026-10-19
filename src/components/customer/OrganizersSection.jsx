@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useHackathon } from '../../context/HackathonContext';
 import api, { getMediaUrl } from '../../services/api';
-import { Mail, Phone, GraduationCap, Building2, ShieldCheck, UserCheck, RefreshCw, Award, MapPin } from 'lucide-react';
+import { Mail, Phone, GraduationCap, Building2, CheckCircle, UserCheck, RefreshCw, Award, MapPin } from 'lucide-react';
 
 export default function OrganizersSection() {
   const { organizers: contextOrganizers } = useHackathon();
@@ -93,16 +93,8 @@ export default function OrganizersSection() {
           </div>
 
           <div className="flex items-center gap-3 self-start md:self-end">
-            <button
-              onClick={() => fetchOrganizersFromApi()}
-              disabled={isLoading}
-              title="Refresh organizers list from API"
-              className="p-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 hover:text-slate-900 shadow-sm transition-all disabled:opacity-50"
-            >
-              <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin text-coral-600' : ''}`} />
-            </button>
             <div className="flex items-center gap-2 text-xs font-mono text-slate-600 bg-white border border-slate-200 px-4 py-2 rounded-xl shadow-sm">
-              <ShieldCheck className="w-4 h-4 text-coral-600" />
+              <CheckCircle className="w-4 h-4 text-coral-600" />
               <span>Verified Committee · {organizers.length} Leads Active</span>
             </div>
           </div>

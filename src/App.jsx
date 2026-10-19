@@ -25,8 +25,10 @@ export default function App() {
         {/* Customer-Facing Public Website on / */}
         <Route path="/" element={<CustomerPortal />} />
 
-        {/* Admin Panel on /admin and sub-routes */}
-        <Route path="/admin/*" element={<AdminLayout />} />
+        {/* Admin Panel on /admin-control-site and sub-routes */}
+        <Route path="/admin-control-site/*" element={<AdminLayout />} />
+        <Route path="/admin/*" element={<Navigate to="/admin-control-site" replace />} />
+        <Route path="/admin" element={<Navigate to="/admin-control-site" replace />} />
 
         {/* Fallback to home */}
         <Route path="*" element={<Navigate to="/" replace />} />

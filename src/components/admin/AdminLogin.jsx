@@ -1,37 +1,108 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api, setAuthToken, setRefreshToken, setAdminUser } from '../../services/api';
+import { useHackathon } from '../../context/HackathonContext';
 import {
-  Flame,
   Mail,
   Lock,
   Eye,
   EyeOff,
   ArrowLeft,
-  ShieldCheck,
-  AlertCircle,
-  CheckCircle2,
-  Sparkles,
-  Server
+  LogIn,
+  Sparkles
 } from 'lucide-react';
+import GoogleAuthButton from '../common/GoogleAuthButton';
+import hackathonLogo from '../../assets/HACKATHON-LOGO.png';
 
 export default function AdminLogin({ onLoginSuccess }) {
+  const { showToast } = useHackathon();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
-  const [successMessage, setSuccessMessage] = useState('');
   const [showOfflineOption, setShowOfflineOption] = useState(false);
+
+  const extractErrorMessage = (err) => {
+    // 1. Check err.data?.non_field_errors (standard Django REST Framework format: {"non_field_errors":["Invalid email or password."]})
+    const nonField = err?.data?.non_field_errors;
+    if (nonField) {
+      if (Array.isArray(nonField)) {
+        return nonField.join(' ');
+      }
+      return String(nonField);
+    }
+
+    // 2. Check err.data?.detail
+    if (err?.data?.detail) {
+      return typeof err.data.detail === 'string' ? err.data.detail : JSON.stringify(err.data.detail);
+    }
+
+    // 3. Check err.data?.message or err.data?.error
+    if (err?.data?.message) {
+      return String(err.data.message);
+    }
+    if (err?.data?.error) {
+      return typeof err.data.error === 'string' ? err.data.error : JSON.stringify(err.data.error);
+    }
+
+    // 4. Check other field errors in err.data (e.g. { email: ["Enter a valid email address."] })
+    if (err?.data && typeof err.data === 'object') {
+      const entries = Object.entries(err.data);
+      if (entries.length > 0) {
+        const firstEntry = entries[0][1];
+        if (Array.isArray(firstEntry) && firstEntry.length > 0) {
+          return firstEntry.join(' ');
+        }
+        if (typeof firstEntry === 'string') {
+          return firstEntry;
+        }
+      }
+    }
+
+    // 5. If err.message contains JSON with non_field_errors or other keys
+    if (typeof err?.message === 'string') {
+      if (err.message.includes('non_field_errors')) {
+        try {
+          const parsed = JSON.parse(err.message);
+          if (parsed?.non_field_errors) {
+            return Array.isArray(parsed.non_field_errors)
+              ? parsed.non_field_errors.join(' ')
+              : String(parsed.non_field_errors);
+          }
+        } catch {
+          const match = err.message.match(/"non_field_errors":\s*\[?"([^"\]]+)"/);
+          if (match && match[1]) return match[1];
+        }
+      }
+
+      const isNetworkError =
+        err.message.includes('Failed to fetch') ||
+        err.message.includes('NetworkError') ||
+        err.status === 0;
+
+      if (isNetworkError) {
+        return 'Could not connect to backend server. Ensure backend is running.';
+      }
+
+      if (
+        err.message !== 'Bad Request' &&
+        err.message !== 'Unauthorized' &&
+        err.message !== '[object Object]' &&
+        !err.message.startsWith('{')
+      ) {
+        return err.message;
+      }
+    }
+
+    return 'Invalid email or password.';
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setErrorMessage('');
-    setSuccessMessage('');
     setShowOfflineOption(false);
 
     if (!email.trim() || !password) {
-      setErrorMessage('Please enter both email and password.');
+      showToast('Please enter both email and password.', 'error');
       return;
     }
 
@@ -81,7 +152,7 @@ export default function AdminLogin({ onLoginSuccess }) {
       };
 
       setAdminUser(userData);
-      setSuccessMessage('Authentication successful! Loading Admin Panel...');
+      showToast('Authentication successful! Loading Admin Panel...', 'success');
 
       setTimeout(() => {
         if (onLoginSuccess) {
@@ -96,13 +167,11 @@ export default function AdminLogin({ onLoginSuccess }) {
         err.status === 0;
 
       if (isNetworkError) {
-        setErrorMessage(
-          'Could not connect to backend at http://127.0.0.1:8000/api/v1/users/login/. Ensure the backend server is running.'
-        );
         setShowOfflineOption(true);
-      } else {
-        setErrorMessage(err.message || 'Login failed. Please verify your credentials.');
       }
+
+      const errorText = extractErrorMessage(err);
+      showToast(errorText, 'error');
     } finally {
       setLoading(false);
     }
@@ -119,9 +188,19 @@ export default function AdminLogin({ onLoginSuccess }) {
     };
     setAuthToken('demo_admin_jwt_session_token_xyz');
     setAdminUser(demoUser);
+    showToast('Logged in with Demo Session Mode', 'info');
     if (onLoginSuccess) {
       onLoginSuccess(demoUser);
     }
+  };
+
+  const handleGoogleSuccess = (userData) => {
+    showToast(`Google Authentication successful! Welcome, ${userData?.first_name || userData?.email || 'Admin'}.`, 'success');
+    setTimeout(() => {
+      if (onLoginSuccess) {
+        onLoginSuccess(userData);
+      }
+    }, 600);
   };
 
   return (
@@ -139,82 +218,36 @@ export default function AdminLogin({ onLoginSuccess }) {
         style={{ background: 'radial-gradient(circle, #3b82f6 0%, #93c5fd 100%)' }}
       />
 
-      {/* Top Bar Back Link */}
-      <div className="w-full max-w-md mb-6 flex justify-between items-center">
+      {/* Return to Public Site Button */}
+      <div className="w-full max-w-md flex justify-start mb-4 sm:absolute sm:top-6 sm:left-6 sm:mb-0 z-20">
         <Link
           to="/"
-          className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition shadow-sm"
+          className="inline-flex items-center gap-2 text-xs font-semibold px-3.5 py-2 rounded-xl border border-slate-200 bg-white/95 backdrop-blur-md text-slate-700 hover:text-slate-900 hover:bg-white transition-all shadow-xs"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
           <span>Return to Public Site</span>
         </Link>
-        <div className="flex items-center gap-1 text-[11px] font-mono text-slate-600 font-medium">
-          <Server className="w-3 h-3 text-[#e8622a]" />
-          <span>/api/v1/users/login/</span>
-        </div>
       </div>
 
       {/* Login Card */}
-      <div className="w-full max-w-md bg-white rounded-2xl border border-slate-200/80 shadow-xl shadow-slate-200/50 p-8 sm:p-10 relative z-10">
-        {/* Brand Icon & Heading */}
+      <div className="w-full max-w-md bg-white rounded-2xl border border-slate-200/80 shadow-xl shadow-slate-200/50 p-6 sm:p-10 relative z-10">
+        {/* Heading */}
         <div className="text-center mb-8">
-          <div
-            className="w-14 h-14 mx-auto rounded-2xl flex items-center justify-center shadow-lg shadow-orange-500/20 mb-4 transition-transform hover:scale-105"
-            style={{ backgroundColor: '#e8622a' }}
-          >
-            <Flame className="w-8 h-8 text-white" />
-          </div>
-          <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold tracking-wider uppercase mb-2 bg-orange-50 text-[#e8622a] border border-orange-200/60">
-            <ShieldCheck className="w-3 h-3" />
-            <span>Admin Authentication</span>
-          </div>
+          <img
+            src={hackathonLogo}
+            alt="BIC Hackathon"
+            className="h-10 w-auto mx-auto mb-4 object-contain"
+          />
           <h2 className="text-2xl font-bold text-slate-900 tracking-tight">
-            Sign in to BIC Admin
+            Sign in to Hackathon Admin
           </h2>
-          <p className="text-xs text-slate-500 mt-1">
-            Enter your admin email and password to access the control panel
-          </p>
         </div>
-
-        {/* Error Notification */}
-        {errorMessage && (
-          <div className="mb-6 p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-start gap-2.5 animate-fade-in">
-            <AlertCircle className="w-4 h-4 shrink-0 text-red-600 mt-0.5" />
-            <div className="flex-1">
-              <p className="font-semibold">Authentication Error</p>
-              <p className="mt-0.5 text-red-600 leading-relaxed">{errorMessage}</p>
-              {showOfflineOption && (
-                <div className="mt-3 pt-2 border-t border-red-200/70">
-                  <p className="text-[11px] text-red-600 mb-2">
-                    Testing offline or before backend is launched?
-                  </p>
-                  <button
-                    type="button"
-                    onClick={handleOfflineDemoLogin}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-semibold transition shadow-sm"
-                  >
-                    <Sparkles className="w-3.5 h-3.5" />
-                    <span>Proceed in Demo Session Mode</span>
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Success Notification */}
-        {successMessage && (
-          <div className="mb-6 p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center gap-2.5 animate-fade-in">
-            <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
-            <span className="font-medium">{successMessage}</span>
-          </div>
-        )}
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-              Admin Email Address
+              Email Address
             </label>
             <div className="relative">
               <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -268,22 +301,46 @@ export default function AdminLogin({ onLoginSuccess }) {
                 </>
               ) : (
                 <>
-                  <ShieldCheck className="w-4 h-4" />
-                  <span>Access Admin Panel</span>
+                  <LogIn className="w-4 h-4" />
+                  <span>Login</span>
                 </>
               )}
             </button>
           </div>
         </form>
 
-        {/* API Endpoint Note */}
-        <div className="mt-6 pt-5 border-t border-slate-100 text-center">
-          <p className="text-[11px] text-slate-400 leading-relaxed">
-            POST payload connects to{' '}
-            <code className="text-[#e8622a] font-mono bg-orange-50 px-1 py-0.5 rounded text-[10px]">
-              /api/v1/users/login/
-            </code>
-          </p>
+        {/* Optional demo link when backend is offline */}
+        {showOfflineOption && (
+          <div className="mt-4 pt-3 border-t border-slate-100 text-center animate-fade-in">
+            <button
+              type="button"
+              onClick={handleOfflineDemoLogin}
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-[#e8622a] transition"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-[#e8622a]" />
+              <span>Backend server offline? Enter via Demo Mode</span>
+            </button>
+          </div>
+        )}
+
+        {/* Divider */}
+        <div className="my-6 flex items-center gap-3">
+          <div className="flex-1 h-px bg-slate-200" />
+          <span className="text-[11px] font-mono text-slate-600 uppercase tracking-wider font-semibold">
+            Or Continue With Google
+          </span>
+          <div className="flex-1 h-px bg-slate-200" />
+        </div>
+
+        {/* Google Authentication for Admin */}
+        <div>
+          <GoogleAuthButton
+            mode="admin"
+            text="Sign in with Google Admin"
+            showDirectTokenInput={false}
+            onSuccess={handleGoogleSuccess}
+            onError={(err, msg) => showToast(msg || extractErrorMessage(err), 'error')}
+          />
         </div>
       </div>
     </div>
