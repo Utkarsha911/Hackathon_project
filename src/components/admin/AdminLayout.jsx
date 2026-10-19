@@ -42,7 +42,8 @@ import {
   CalendarClock,
   Calendar,
   Award,
-  HelpCircle
+  HelpCircle,
+  Mail
 } from 'lucide-react';
 import hackathonLogo from '../../assets/HACKATHON-LOGO.png';
 
@@ -254,12 +255,14 @@ export default function AdminLayout() {
   const isHackathonTeamsActive = (isHackathonsActive && hackathonTab === 'teams') || pathname === '/admin-control-site/teams';
   const isHackathonPrizesActive = isHackathonsActive && (hackathonTab === 'prizes' || hackathonTab === 'prizes-faqs');
   const isHackathonFaqsActive = isHackathonsActive && hackathonTab === 'faqs';
+  const isHackathonContactsActive = isHackathonsActive && hackathonTab === 'contacts';
   const isHackathonsListActive =
     isHackathonsActive &&
     hackathonTab !== 'organizers' &&
     hackathonTab !== 'teams' &&
     !isHackathonPrizesActive &&
-    !isHackathonFaqsActive;
+    !isHackathonFaqsActive &&
+    !isHackathonContactsActive;
   const isSponsorsActive = pathname.startsWith('/admin-control-site/sponsors');
   const isSchedulesActive = pathname.startsWith('/admin-control-site/schedules');
   const isCustomersActive = pathname.startsWith('/admin-control-site/participants') || pathname.startsWith('/admin-control-site/customers');
@@ -367,6 +370,7 @@ export default function AdminLayout() {
   if (isHackathonOrganizersActive) pageTitle = 'Hackathon Organizers';
   else if (isHackathonPrizesActive) pageTitle = 'Prize Management';
   else if (isHackathonFaqsActive) pageTitle = 'FAQ Management';
+  else if (isHackathonContactsActive) pageTitle = 'Contact Inquiries';
   else if (isHackathonsActive) pageTitle = 'Hackathon Management';
   else if (isSponsorsActive) pageTitle = 'Sponsors & Packages';
   else if (isSchedulesActive) pageTitle = 'Schedule Management';
@@ -555,6 +559,25 @@ export default function AdminLayout() {
                     >
                       <HelpCircle className="w-3.5 h-3.5 shrink-0" />
                       <span>FAQs</span>
+                    </Link>
+
+                    {/* Hackathon Contacts */}
+                    <Link
+                      to="/admin-control-site/hackathons?tab=contacts"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-normal transition-all ${
+                        isHackathonContactsActive
+                          ? 'shadow-xs text-white'
+                          : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                      }`}
+                      style={
+                        isHackathonContactsActive
+                          ? { backgroundColor: '#ea580c', color: '#ffffff' }
+                          : {}
+                      }
+                    >
+                      <Mail className="w-3.5 h-3.5 shrink-0" />
+                      <span>Contacts</span>
                     </Link>
                   </div>
                 )}

@@ -9,7 +9,8 @@ import api, {
   getCurrentUser,
   setCurrentUser,
   clearCurrentUser,
-  logout
+  logout,
+  formatThrottleMessage
 } from '../services/api';
 
 // Private Admin Fallback Datasets (for standalone admin tools if backend is offline)
@@ -435,30 +436,46 @@ export function HackathonProvider({ children }) {
 
   // Customer: Submit contact inquiry
   const submitContactInquiry = async (inquiry) => {
-    const newInquiry = {
-      id: `cnt-${Date.now().toString().slice(-4)}`,
-      is_active: true,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      hackathon_id: hackathon.id,
-      ...inquiry
+    const payload = {
+      name: inquiry.name?.trim(),
+      email: inquiry.email?.trim(),
+      message: inquiry.subject?.trim()
+        ? `[${inquiry.subject.trim()}] ${inquiry.message?.trim()}`
+        : inquiry.message?.trim()
     };
 
-    setContactUsList(prev => [newInquiry, ...prev]);
-
     try {
-      await api.crm.submitContact({
-        hackathon_id: hackathon.id,
-        name: inquiry.name,
-        email: inquiry.email,
-        subject: inquiry.subject,
-        message: inquiry.message
-      });
+      const res = await api.crm.submitContact(payload);
+      const newInquiry = {
+        id: res?.id || `cnt-${Date.now().toString().slice(-4)}`,
+        status: res?.status || 'new',
+        created_at: res?.created_at || new Date().toISOString(),
+        updated_at: res?.updated_at || new Date().toISOString(),
+        ...payload
+      };
+      setContactUsList(prev => [newInquiry, ...prev]);
+      showToast('Your message has been received by our hackathon organizers.', 'success');
+      return { success: true, data: res };
     } catch (err) {
-      console.warn('Backend contact sync noted; local store saved:', err);
-    }
+      const isThrottled =
+        err?.status === 429 ||
+        (typeof err?.message === 'string' && err.message.toLowerCase().includes('throttled')) ||
+        (typeof err?.data?.detail === 'string' && err.data.detail.toLowerCase().includes('throttled'));
 
-    showToast('Your message has been received by our hackathon organizers.');
+      if (isThrottled) {
+        const rawDetail = err?.data?.detail || err?.message || '';
+        const userMsg = formatThrottleMessage(rawDetail);
+        showToast(userMsg, 'error');
+        const throttleErr = new Error(userMsg);
+        throttleErr.isThrottled = true;
+        throttleErr.raw = err;
+        throw throttleErr;
+      }
+
+      const errMsg = err?.message || 'Failed to submit contact message. Please try again.';
+      showToast(errMsg, 'error');
+      throw err;
+    }
   };
 
   // Admin: Approve/Reject Team Registration

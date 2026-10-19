@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useHackathon } from '../../context/HackathonContext';
-import { MessageSquare, Send, Mail, MapPin, Phone } from 'lucide-react';
+import { MessageSquare, Send, Mail, MapPin, Phone, Clock, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 
 export default function ContactSection() {
   const { submitContactInquiry, hackathon } = useHackathon();
@@ -10,12 +10,31 @@ export default function ContactSection() {
     subject: '',
     message: ''
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitStatus, setSubmitStatus] = useState('idle'); // 'idle' | 'success' | 'throttled' | 'error'
+  const [statusMessage, setStatusMessage] = useState('');
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.name || !formData.email || !formData.subject || !formData.message) return;
-    submitContactInquiry(formData);
-    setFormData({ name: '', email: '', subject: '', message: '' });
+    if (!formData.name || !formData.email || !formData.message) return;
+
+    setIsSubmitting(true);
+    try {
+      await submitContactInquiry(formData);
+      setSubmitStatus('success');
+      setStatusMessage('Your inquiry has been successfully transmitted to the organizing committee. We will reach out to you via your email address soon.');
+      setFormData({ name: '', email: '', subject: '', message: '' });
+    } catch (err) {
+      if (err?.isThrottled) {
+        setSubmitStatus('throttled');
+        setStatusMessage(err.message);
+      } else {
+        setSubmitStatus('error');
+        setStatusMessage(err?.message || 'Failed to transmit message. Please try again or reach out to operations@bichackathon.org.');
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -81,14 +100,54 @@ export default function ContactSection() {
               </div>
             </div>
 
-            <div className="mt-8 pt-5 border-t border-slate-100 text-[11px] text-slate-400 font-mono">
-              BIC Model: ContactUs (crm.py)
+            <div className="mt-8 pt-5 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+              <span>Response time: Usually within 24 hours</span>
+              <span className="font-mono text-[11px] text-slate-400">BIC CRM Desk</span>
             </div>
           </div>
 
           {/* Contact Form */}
           <div className="lg:col-span-3 bg-white border border-slate-200/90 p-8 rounded-2xl shadow-sm">
             <form onSubmit={handleSubmit} className="space-y-5">
+              {/* Throttled Notice */}
+              {submitStatus === 'throttled' && (
+                <div className="p-4 rounded-xl bg-amber-50 border border-amber-200/90 text-amber-900 text-xs sm:text-sm flex items-start gap-3 shadow-xs">
+                  <Clock className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                  <div className="space-y-1">
+                    <p className="font-bold text-amber-950">Daily Inquiry Limit Reached</p>
+                    <p className="leading-relaxed text-amber-800">{statusMessage}</p>
+                    <p className="text-xs text-amber-700 pt-1">
+                      Need urgent assistance? Reach our desk directly at{' '}
+                      <a href="mailto:operations@bichackathon.org" className="underline font-semibold text-amber-900 hover:text-amber-950">
+                        operations@bichackathon.org
+                      </a>
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Success Notice */}
+              {submitStatus === 'success' && (
+                <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200/90 text-emerald-900 text-xs sm:text-sm flex items-start gap-3 shadow-xs">
+                  <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+                  <div className="space-y-1">
+                    <p className="font-bold text-emerald-950">Message Transmitted Successfully</p>
+                    <p className="leading-relaxed text-emerald-800">{statusMessage}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Generic Error Notice */}
+              {submitStatus === 'error' && (
+                <div className="p-4 rounded-xl bg-rose-50 border border-rose-200/90 text-rose-900 text-xs sm:text-sm flex items-start gap-3 shadow-xs">
+                  <AlertCircle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+                  <div className="space-y-1">
+                    <p className="font-bold text-rose-950">Submission Failed</p>
+                    <p className="leading-relaxed text-rose-800">{statusMessage}</p>
+                  </div>
+                </div>
+              )}
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <div>
                   <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-2">
@@ -121,11 +180,10 @@ export default function ContactSection() {
 
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-2">
-                  Subject Line
+                  Subject Line <span className="text-slate-400 font-normal">(Optional)</span>
                 </label>
                 <input
                   type="text"
-                  required
                   placeholder="e.g. Lab equipment request / Mentor pass"
                   value={formData.subject}
                   onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
@@ -149,10 +207,27 @@ export default function ContactSection() {
 
               <button
                 type="submit"
-                className="btn-primary w-full py-3.5 justify-center gap-2 text-sm font-bold"
+                disabled={isSubmitting || submitStatus === 'throttled'}
+                className={`btn-primary w-full py-3.5 justify-center gap-2 text-sm font-bold ${
+                  submitStatus === 'throttled' ? 'opacity-60 cursor-not-allowed bg-slate-400 hover:bg-slate-400' : ''
+                }`}
               >
-                <Send className="w-4 h-4" />
-                <span>Transmit Message to Committee</span>
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Transmitting Inquiry...</span>
+                  </>
+                ) : submitStatus === 'throttled' ? (
+                  <>
+                    <Clock className="w-4 h-4" />
+                    <span>Daily Limit Reached</span>
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-4 h-4" />
+                    <span>Transmit Message to Committee</span>
+                  </>
+                )}
               </button>
             </form>
           </div>

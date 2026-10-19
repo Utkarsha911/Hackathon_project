@@ -35,6 +35,7 @@ import {
 import TeamManagement from './TeamManagement';
 import PrizeManagement from './PrizeManagement';
 import FaqManagement from './FaqManagement';
+import ContactManagement from './ContactManagement';
 
 // Module-level cache so tab switching within the admin panel is instant
 let cachedHackathonsPayload = null;
@@ -961,6 +962,8 @@ export default function HackathonManagement() {
         <PrizeManagement />
       ) : activeTab === 'faqs' ? (
         <FaqManagement />
+      ) : activeTab === 'contacts' ? (
+        <ContactManagement />
       ) : (
         <>
           {/* Header with Title and Create Button */}

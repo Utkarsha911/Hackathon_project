@@ -46,6 +46,34 @@ export function buildQueryString(params = {}) {
   return str ? `?${str}` : '';
 }
 
+export function formatThrottleMessage(errorOrMsg) {
+  const msg =
+    typeof errorOrMsg === 'string'
+      ? errorOrMsg
+      : errorOrMsg?.data?.detail || errorOrMsg?.detail || errorOrMsg?.message || '';
+
+  const match = msg.match(/available in (\d+)\s*seconds/i);
+  if (match) {
+    const totalSeconds = parseInt(match[1], 10);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.ceil((totalSeconds % 3600) / 60);
+    let timeStr = '';
+    if (hours > 0) {
+      timeStr = `${hours} hour${hours > 1 ? 's' : ''}`;
+      if (minutes > 0) timeStr += ` and ${minutes} min`;
+    } else {
+      timeStr = `${minutes} minute${minutes > 1 ? 's' : ''}`;
+    }
+    return `You have already sent an inquiry today. Please wait ${timeStr} before sending another message, or email operations@bichackathon.org directly.`;
+  }
+
+  if (msg.toLowerCase().includes('throttled')) {
+    return 'You have already sent an inquiry today. Please wait before submitting another message, or email operations@bichackathon.org directly.';
+  }
+
+  return msg || 'Request was throttled. Please try again later.';
+}
+
 export function getAuthToken() {
   return localStorage.getItem('bic_auth_token');
 }
@@ -160,7 +188,8 @@ function applyAdminHackathonFilter(endpoint) {
     cleanPath.startsWith('/hackathons/current') ||
     cleanPath.startsWith('/users/') ||
     cleanPath.startsWith('/system/') ||
-    cleanPath.startsWith('/logs/')
+    cleanPath.startsWith('/logs/') ||
+    cleanPath.startsWith('/hackathons-crm/contacts')
   ) {
     return endpoint;
   }
@@ -775,6 +804,37 @@ export const api = {
       }),
   },
 
+  // --- Hackathons CRM: Contacts ---
+  contacts: {
+    getAll: (params = {}, options = {}) =>
+      request(`/hackathons-crm/contacts/${buildQueryString(params)}`, options),
+    getById: (id, options = {}) =>
+      request(`/hackathons-crm/contacts/${id}/`, options),
+    create: (data, options = {}) =>
+      request('/hackathons-crm/contacts/', {
+        method: 'POST',
+        body: JSON.stringify(data),
+        ...options,
+      }),
+    update: (id, data, options = {}) =>
+      request(`/hackathons-crm/contacts/${id}/`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+        ...options,
+      }),
+    patch: (id, data, options = {}) =>
+      request(`/hackathons-crm/contacts/${id}/`, {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+        ...options,
+      }),
+    delete: (id, options = {}) =>
+      request(`/hackathons-crm/contacts/${id}/`, {
+        method: 'DELETE',
+        ...options,
+      }),
+  },
+
   // --- CRM APIs (FAQs, Prizes, Challenges, Terms, Contact) ---
   crm: {
     getFaqs: (params = {}, options = {}) =>
@@ -809,12 +869,14 @@ export const api = {
         body: JSON.stringify(data),
       }),
 
-    submitContact: (data) =>
-      request('/crm/contact-us', {
+    submitContact: (data, options = {}) =>
+      request('/hackathons-crm/contacts/', {
         method: 'POST',
         body: JSON.stringify(data),
+        ...options,
       }),
-    getContacts: () => request('/crm/contact-us'),
+    getContacts: (params = {}, options = {}) =>
+      request(`/hackathons-crm/contacts/${buildQueryString(params)}`, options),
   },
 
   // --- Sponsors, Sponsor Packages, & Package Types APIs ---
