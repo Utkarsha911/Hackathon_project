@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { api, getMediaUrl, getSelectedAdminHackathon } from '../../services/api';
+import { api, getMediaUrl, getSelectedAdminHackathon, setSelectedAdminHackathon } from '../../services/api';
 import { useHackathon } from '../../context/HackathonContext';
 import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
 import {
@@ -81,6 +81,7 @@ const EMPTY_FORM = {
   theme: '',
   rules: '',
   status: 'draft',
+  is_current: true,
   registration_start_date: getTodayDate(),
   registration_end_date: getTodayDate(),
   minimum_team_size: 1,
@@ -201,6 +202,15 @@ export default function HackathonManagement() {
       setHackathons(list);
       setStats(computedStats);
       setTotalCount(payload.count);
+
+      // Validate selected admin hackathon against live list (clear stale IDs from previous databases)
+      const stored = getSelectedAdminHackathon();
+      const currentH = list.find((h) => h.is_current === true);
+      const exists = list.some((h) => h.id === stored);
+      if (stored && !exists) {
+        const nextId = currentH?.id || list[0]?.id || '';
+        setSelectedAdminHackathon(nextId);
+      }
     } catch (err) {
       console.warn('Failed to fetch hackathons from /api/v1/hackathons/:', err);
       showToast(err?.message || 'Failed to load hackathons.', 'error');
@@ -220,11 +230,11 @@ export default function HackathonManagement() {
     if (availableUsers.length > 0) return;
     setLoadingUsers(true);
     try {
-      const res = await api.users.getAll({ page_size: 200 });
+      const res = await api.users.getOrganizers({ page_size: 200 });
       const list = Array.isArray(res) ? res : res?.results || [];
       setAvailableUsers(list);
     } catch (err) {
-      console.warn('Failed to load users for selector:', err);
+      console.warn('Failed to load users for selector from /api/v1/users/organizers/:', err);
     } finally {
       setLoadingUsers(false);
     }
@@ -459,6 +469,7 @@ export default function HackathonManagement() {
       theme: hackathon.theme || '',
       rules: hackathon.rules || '',
       status: hackathon.status || 'draft',
+      is_current: hackathon.is_current !== undefined ? hackathon.is_current : true,
       registration_start_date: ensureDateFormat(hackathon.registration_start_date, ''),
       registration_end_date: ensureDateFormat(hackathon.registration_end_date, ''),
       minimum_team_size: hackathon.minimum_team_size ?? 1,
@@ -509,6 +520,7 @@ export default function HackathonManagement() {
       if (createForm.theme) formData.append('theme', createForm.theme.trim());
       if (createForm.rules) formData.append('rules', createForm.rules.trim());
       if (createForm.status) formData.append('status', createForm.status);
+      formData.append('is_current', createForm.is_current !== false ? 'true' : 'false');
       formData.append('minimum_team_size', Number(createForm.minimum_team_size) || 1);
       formData.append('maximum_team_size', Number(createForm.maximum_team_size) || 4);
 
@@ -572,6 +584,9 @@ export default function HackathonManagement() {
       if (editForm.theme) formData.append('theme', editForm.theme.trim());
       if (editForm.rules) formData.append('rules', editForm.rules.trim());
       if (editForm.status) formData.append('status', editForm.status);
+      if (editForm.is_current !== undefined) {
+        formData.append('is_current', editForm.is_current ? 'true' : 'false');
+      }
       formData.append('minimum_team_size', Number(editForm.minimum_team_size) || 1);
       formData.append('maximum_team_size', Number(editForm.maximum_team_size) || 4);
 
@@ -1629,6 +1644,23 @@ export default function HackathonManagement() {
                     className="w-full px-3 py-2 rounded-xl border border-slate-200 text-slate-800 bg-slate-50 focus:bg-white focus:outline-none focus:border-[#e8622a]"
                   />
                 </div>
+
+                {/* Set as Current Edition toggle */}
+                <div className="flex items-center gap-3 pt-2 sm:col-span-2">
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={createForm.is_current !== false}
+                      onChange={(e) => setCreateForm({ ...createForm, is_current: e.target.checked })}
+                      className="sr-only peer"
+                    />
+                    <div className="w-10 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#ea580c]"></div>
+                  </label>
+                  <div>
+                    <span className="text-xs font-semibold text-slate-800">Set as Current Hackathon Edition (`is_current: true`)</span>
+                    <p className="text-[11px] text-slate-500">Marks this edition as active for the public customer site</p>
+                  </div>
+                </div>
               </div>
 
               {/* Banner Image Upload */}
@@ -1886,6 +1918,23 @@ export default function HackathonManagement() {
                     onChange={(e) => setEditForm({ ...editForm, year: e.target.value })}
                     className="w-full px-3 py-2 rounded-xl border border-slate-200 text-slate-800 bg-slate-50 focus:bg-white focus:outline-none focus:border-[#e8622a]"
                   />
+                </div>
+
+                {/* Set as Current Edition toggle */}
+                <div className="flex items-center gap-3 pt-2 sm:col-span-2">
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={editForm.is_current !== false}
+                      onChange={(e) => setEditForm({ ...editForm, is_current: e.target.checked })}
+                      className="sr-only peer"
+                    />
+                    <div className="w-10 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#ea580c]"></div>
+                  </label>
+                  <div>
+                    <span className="text-xs font-semibold text-slate-800">Set as Current Hackathon Edition (`is_current: true`)</span>
+                    <p className="text-[11px] text-slate-500">Marks this edition as active for the public customer site</p>
+                  </div>
                 </div>
               </div>
 

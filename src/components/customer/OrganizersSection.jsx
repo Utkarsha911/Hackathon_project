@@ -1,59 +1,10 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useMemo } from 'react';
 import { useHackathon } from '../../context/HackathonContext';
-import api, { getMediaUrl } from '../../services/api';
+import { getMediaUrl } from '../../services/api';
 import { CheckCircle, Users } from 'lucide-react';
 
 export default function OrganizersSection() {
-  const { organizers: contextOrganizers } = useHackathon();
-  const [organizers, setOrganizers] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  const fetchOrganizersFromApi = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      if (contextOrganizers && contextOrganizers.length > 0) {
-        setOrganizers(contextOrganizers);
-        setIsLoading(false);
-        return;
-      }
-      const res = api.hackathons?.organizers?.getAll
-        ? await api.hackathons.organizers.getAll()
-        : await api.organizers.getAll();
-
-      const items = Array.isArray(res)
-        ? res
-        : Array.isArray(res?.results)
-        ? res.results
-        : Array.isArray(res?.items)
-        ? res.items
-        : [];
-
-      if (items.length > 0) {
-        setOrganizers(items);
-      } else if (contextOrganizers && contextOrganizers.length > 0) {
-        setOrganizers(contextOrganizers);
-      } else {
-        setOrganizers([]);
-      }
-    } catch (err) {
-      console.warn('Organizers fetch failed, checking context:', err);
-      if (contextOrganizers && contextOrganizers.length > 0) {
-        setOrganizers(contextOrganizers);
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  }, [contextOrganizers]);
-
-  useEffect(() => {
-    fetchOrganizersFromApi();
-  }, [fetchOrganizersFromApi]);
-
-  useEffect(() => {
-    if (contextOrganizers && contextOrganizers.length > 0) {
-      setOrganizers(contextOrganizers);
-    }
-  }, [contextOrganizers]);
+  const { organizers = [], isLoadingApi } = useHackathon();
 
   const sortedOrganizers = useMemo(() => {
     return [...organizers].sort((a, b) => {
@@ -63,6 +14,10 @@ export default function OrganizersSection() {
       return (a.id || '').localeCompare(b.id || '');
     });
   }, [organizers]);
+
+  if (sortedOrganizers.length === 0 && !isLoadingApi) {
+    return null;
+  }
 
   return (
     <section id="organizers" className="py-24 bg-[#fafafa] border-b border-gray-200/80 relative">
@@ -88,7 +43,7 @@ export default function OrganizersSection() {
         </div>
 
         {/* Loading Skeletons */}
-        {isLoading && sortedOrganizers.length === 0 && (
+        {isLoadingApi && sortedOrganizers.length === 0 && (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {[1, 2, 3, 4].map((i) => (
               <div

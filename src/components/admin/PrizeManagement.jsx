@@ -62,8 +62,8 @@ export default function PrizeManagement() {
         const list = Array.isArray(res)
           ? res
           : Array.isArray(res?.results)
-          ? res.results
-          : res?.data || [];
+            ? res.results
+            : res?.data || [];
         setHackathonsList(list);
       })
       .catch((err) => {
@@ -84,8 +84,8 @@ export default function PrizeManagement() {
         const list = Array.isArray(res)
           ? res
           : Array.isArray(res?.results)
-          ? res.results
-          : [];
+            ? res.results
+            : [];
         setPrizes(list);
         if (res?.stats) {
           setStats(res.stats);
@@ -267,9 +267,7 @@ export default function PrizeManagement() {
             <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
               Total Prizes
             </span>
-            <div className="w-9 h-9 rounded-xl bg-orange-50 flex items-center justify-center text-[#ea580c]">
-              <Trophy className="w-4 h-4" />
-            </div>
+
           </div>
           <div className="mt-3">
             <div className="text-2xl font-bold text-slate-900 font-mono">
@@ -298,25 +296,7 @@ export default function PrizeManagement() {
         </div>
 
         {/* Active API Status */}
-        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-xs">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-              Backend Endpoint
-            </span>
-            <div className="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600">
-              <Award className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="mt-3">
-            <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-700">
-              <span className="w-2 h-2 rounded-full bg-emerald-500" />
-              <span>Prizes API Live</span>
-            </div>
-            <p className="text-[11px] font-mono text-slate-400 mt-1 truncate">
-              /api/v1/hackathons-crm/prizes/
-            </p>
-          </div>
-        </div>
+
       </div>
 
       {/* 3. Search Bar */}
@@ -460,9 +440,6 @@ export default function PrizeManagement() {
                   <h3 className="text-base font-bold text-slate-900">
                     {editingPrize ? 'Edit Prize' : 'Create New Prize'}
                   </h3>
-                  <p className="text-xs text-slate-500">
-                    Endpoint: <code className="font-mono text-slate-600">/api/v1/hackathons-crm/prizes/</code>
-                  </p>
                 </div>
               </div>
               <button

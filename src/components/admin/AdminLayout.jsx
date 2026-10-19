@@ -106,20 +106,20 @@ export default function AdminLayout() {
           setAdminHackathons(list);
 
           const stored = getSelectedAdminHackathon();
-          if (!stored || stored === 'all') {
-            const currentH = list.find((h) => h.is_current === true);
-            if (currentH?.id) {
-              setSelectedHackathonId(currentH.id);
-              setSelectedAdminHackathon(currentH.id);
-            } else if (list.length > 0 && !stored) {
-              setSelectedHackathonId(list[0].id);
-              setSelectedAdminHackathon(list[0].id);
-            }
+          const found = list.find((h) => h.id === stored);
+          const currentH = list.find((h) => h.is_current === true);
+
+          if (stored && stored !== 'all' && found) {
+            setSelectedHackathonId(found.id);
+          } else if (currentH?.id) {
+            setSelectedHackathonId(currentH.id);
+            setSelectedAdminHackathon(currentH.id);
+          } else if (list.length > 0) {
+            setSelectedHackathonId(list[0].id);
+            setSelectedAdminHackathon(list[0].id);
           } else {
-            const found = list.find((h) => h.id === stored);
-            if (found) {
-              setSelectedHackathonId(found.id);
-            }
+            setSelectedHackathonId('');
+            setSelectedAdminHackathon('');
           }
         })
         .catch((err) => {

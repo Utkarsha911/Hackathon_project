@@ -1,18 +1,18 @@
 import React from 'react';
 import { useHackathon } from '../../context/HackathonContext';
 import { getMediaUrl } from '../../services/api';
-import { Calendar, MapPin, Trophy, ArrowRight } from 'lucide-react';
+import { Calendar, MapPin, Trophy, ArrowRight, NepaliRupee } from 'lucide-react';
 import hackathonLogo from '../../assets/HACKATHON-LOGO.png';
 
 export default function HeroSection({ onOpenRegister }) {
-  const { hackathon, prizes, isLoadingApi } = useHackathon();
+  const { hackathon, prizes = [], isLoadingApi } = useHackathon();
 
   const totalPrizePool =
-    Number(hackathon?.total_prize) ||
-    prizes.reduce(
-      (acc, curr) => acc + (Number(curr.prize_money) || 0),
-      0
-    );
+    hackathon?.total_prize !== undefined && hackathon?.total_prize !== null
+      ? Number(hackathon.total_prize) || 0
+      : (prizes.length > 0
+          ? prizes.reduce((acc, curr) => acc + (Number(curr.prize_money) || 0), 0)
+          : 0);
 
   const formatDateRange = () => {
     if (!hackathon?.start_date || !hackathon?.end_date) {
@@ -147,9 +147,15 @@ export default function HeroSection({ onOpenRegister }) {
             </div>
           )}
           {totalPrizePool > 0 && (
-            <div className="flex items-center gap-2 bg-white border border-slate-200 px-3.5 py-2 rounded-lg shadow-sm">
-              <Trophy className="w-3.5 h-3.5 text-coral-600" />
-              <span>Prize Pool: NPR {totalPrizePool.toLocaleString()}</span>
+            <div className="flex items-center gap-1.5 bg-white border border-slate-200 px-3.5 py-2 rounded-lg shadow-sm">
+              <Trophy className="w-3.5 h-3.5 text-coral-600 shrink-0" />
+              <span className="inline-flex items-center gap-1 text-xs sm:text-sm font-medium text-slate-700">
+                <span>Prize Pool:</span>
+                <span className="inline-flex items-center font-bold text-slate-900">
+                  <NepaliRupee className="w-3.5 h-3.5 stroke-[2.5] -mr-0.5 inline-block shrink-0" />
+                  {totalPrizePool.toLocaleString()}
+                </span>
+              </span>
             </div>
           )}
         </div>
@@ -164,10 +170,10 @@ export default function HeroSection({ onOpenRegister }) {
             <ArrowRight className="w-4 h-4" />
           </button>
           <a
-            href="#tracks"
+            href="#schedule"
             className="btn-secondary justify-center text-center w-full sm:w-auto"
           >
-            View Problem Statements
+            Event Schedule
           </a>
           <a
             href="#rules"
@@ -186,8 +192,15 @@ export default function HeroSection({ onOpenRegister }) {
             <div className="text-xs text-slate-500 mt-1">{h.event_time || 'Continuous Sprint'}</div>
           </div>
           <div className="p-3.5 sm:p-5 rounded-xl bg-white border border-slate-200 shadow-sm">
-            <div className="text-xl sm:text-2xl font-bold text-coral-600 font-mono">
-              NPR {totalPrizePool > 0 ? (totalPrizePool >= 1000 ? (totalPrizePool / 1000).toFixed(0) + 'k' : totalPrizePool.toLocaleString()) : '30k'}
+            <div className="text-xl sm:text-2xl font-bold text-coral-600 font-mono inline-flex items-center">
+              {totalPrizePool > 0 ? (
+                <>
+                  <NepaliRupee className="w-5 sm:w-6 h-5 sm:h-6 stroke-[2.5] -mr-0.5 inline-block shrink-0" />
+                  {totalPrizePool >= 1000 ? (totalPrizePool / 1000).toFixed(0) + 'k' : totalPrizePool.toLocaleString()}
+                </>
+              ) : (
+                'TBA'
+              )}
             </div>
             <div className="text-xs text-slate-500 mt-1">Total Prize Pool</div>
           </div>

@@ -211,7 +211,7 @@ export function HackathonProvider({ children }) {
           hasEmbeddedRelations = true;
         }
 
-        if (Array.isArray(currentDetails.organizers) && currentDetails.organizers.length > 0) {
+        if (Array.isArray(currentDetails.organizers)) {
           setOrganizers(currentDetails.organizers);
           hasEmbeddedRelations = true;
         }
@@ -371,29 +371,8 @@ export function HackathonProvider({ children }) {
         }
       }
 
-      // Organizers, Departments & Users
+      // Users sync (if available)
       const unwrapList = (data) => (Array.isArray(data) ? data : (Array.isArray(data?.items) ? data.items : null));
-
-      const deptsRes = await api.organizers.getDepartments().catch(() => null);
-      const parsedDepts = unwrapList(deptsRes);
-      if (parsedDepts && parsedDepts.length > 0) {
-        setDepartments(parsedDepts);
-        connected = true;
-      }
-
-      const orgsRes = await api.organizers.getAll().catch(() => null);
-      const parsedOrgs = unwrapList(orgsRes);
-      if (parsedOrgs && parsedOrgs.length > 0) {
-        setOrganizers(parsedOrgs);
-        connected = true;
-      }
-
-      const tasksRes = await api.organizers.getTasks().catch(() => null);
-      const parsedTasks = unwrapList(tasksRes);
-      if (parsedTasks && parsedTasks.length > 0) {
-        setOrgTasks(parsedTasks);
-        connected = true;
-      }
 
       const usersRes = await api.users.getAll().catch(() => null);
       const parsedUsers = unwrapList(usersRes);

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useHackathon } from '../../context/HackathonContext';
 import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
 import {
@@ -17,7 +18,56 @@ import {
 } from 'lucide-react';
 import hackathonLogo from '../../assets/HACKATHON-LOGO.png';
 
+function formatTeamRegistrationError(err) {
+  if (!err) return 'Failed to register team. Please try again.';
+
+  const rawMessage = typeof err === 'string' ? err : (err.message || '');
+  const detail = typeof err.data?.detail === 'string'
+    ? err.data.detail
+    : (typeof err.detail === 'string' ? err.detail : '');
+  const dataString = typeof err.data === 'object' ? JSON.stringify(err.data) : '';
+  const combined = `${rawMessage} ${detail} ${dataString}`.toLowerCase();
+
+  // 1. Team lead already registered for this hackathon
+  if (
+    combined.includes('teams_team_lead_id_hackathon_id') ||
+    combined.includes('team_lead_id, hackathon_id') ||
+    (combined.includes('team_lead') && combined.includes('already exists'))
+  ) {
+    return 'You have already registered a team for this hackathon edition. Each participant can only lead one squad.';
+  }
+
+  // 2. Team name duplicate for this hackathon
+  if (
+    combined.includes('teams_name_hackathon_id') ||
+    (combined.includes('name') && combined.includes('already exists'))
+  ) {
+    return 'A squad with this name already exists for this hackathon. Please choose a different team name.';
+  }
+
+  // 3. Coordinator phone / email uniqueness
+  if (combined.includes('coordinator_email') && combined.includes('already exists')) {
+    return 'A team coordinator with this email is already registered for this hackathon.';
+  }
+
+  // 4. Any other unique constraint
+  if (combined.includes('unique constraint') && combined.includes('already exists')) {
+    return 'A team registration with these unique details already exists for this hackathon.';
+  }
+
+  // 5. Clean user-friendly message fallback (avoiding "Internal Server Error" or raw SQL)
+  if (err.data?.message && typeof err.data.message === 'string' && !err.data.message.toLowerCase().includes('unexpected error') && !err.data.message.toLowerCase().includes('internal server error')) {
+    return err.data.message;
+  }
+  if (rawMessage && !rawMessage.toLowerCase().includes('unexpected error') && !rawMessage.toLowerCase().includes('internal server error') && !rawMessage.toLowerCase().includes('duplicate key')) {
+    return rawMessage;
+  }
+
+  return 'Unable to register team. You may already have a squad registered for this edition or the squad name is taken.';
+}
+
 export default function RegistrationModal({ isOpen, onClose }) {
+  const navigate = useNavigate();
   const { registerTeam, hackathon, currentUser } = useHackathon();
 
   const minTeamSize = hackathon?.minimum_team_size || 1;
@@ -100,10 +150,8 @@ export default function RegistrationModal({ isOpen, onClose }) {
       }, 1200);
     } catch (err) {
       console.error('Team registration error:', err);
-      const message =
-        err?.message ||
-        (typeof err === 'string' ? err : 'Failed to register team. Please verify the information and try again.');
-      setErrorMessage(message);
+      const friendlyMessage = formatTeamRegistrationError(err);
+      setErrorMessage(friendlyMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -144,26 +192,27 @@ export default function RegistrationModal({ isOpen, onClose }) {
             </p>
           </div>
 
-          {/* Authenticated User Status */}
-          {currentUser && (
-            <div className="mb-6 p-3 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-between gap-3 text-xs text-emerald-800">
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span>
-                  Registering as Team Lead: <strong>{currentUser.email}</strong>
-                </span>
-              </div>
-              <span className="text-[10px] font-mono uppercase bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded border border-emerald-300 font-semibold shrink-0">
-                Verified Account
-              </span>
-            </div>
-          )}
-
           {/* Alert Messages */}
           {errorMessage && (
-            <div className="mb-6 p-3.5 rounded-xl bg-red-50 border border-red-200 flex items-start gap-2.5 text-xs text-red-700">
+            <div className="mb-6 p-4 rounded-xl bg-red-50 border border-red-200/90 flex items-start gap-3 text-xs text-red-800 shadow-xs">
               <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
-              <div className="flex-1 font-medium">{errorMessage}</div>
+              <div className="flex-1">
+                <div className="font-bold text-red-900 text-xs mb-0.5">Registration Notice</div>
+                <div className="text-red-700 leading-relaxed">{errorMessage}</div>
+                {errorMessage.includes('already registered') && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClose();
+                      navigate('/profile');
+                    }}
+                    className="mt-2.5 inline-flex items-center gap-1.5 font-bold text-[#ea580c] hover:text-[#c2410c] hover:underline cursor-pointer transition-colors"
+                  >
+                    <span>View your registered squad in your Profile</span>
+                    <span aria-hidden="true">&rarr;</span>
+                  </button>
+                )}
+              </div>
             </div>
           )}
 

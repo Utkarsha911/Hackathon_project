@@ -172,10 +172,6 @@ function applyAdminHackathonFilter(endpoint) {
     params.set('hackathon', activeHackathon);
     changed = true;
   }
-  if (!params.has('hackathon_id')) {
-    params.set('hackathon_id', activeHackathon);
-    changed = true;
-  }
   if (changed) {
     return `${base}?${params.toString()}`;
   }
@@ -482,21 +478,30 @@ export const api = {
       }
       return request(`/hackathons/${query}`, options);
     },
-    getById: (id, options = {}) => request(`/hackathons/${id}`, options),
-    create: (data, options = {}) =>
-      request('/hackathons/', {
+    getById: (id, options = {}) => request(`/hackathons/${id}/`, options),
+    create: (data, options = {}) => {
+      let bodyData = data;
+      if (data instanceof FormData) {
+        if (!data.has('is_current')) {
+          data.append('is_current', 'true');
+        }
+      } else if (data && typeof data === 'object') {
+        bodyData = { is_current: true, ...data };
+      }
+      return request('/hackathons/', {
         method: 'POST',
-        body: data instanceof FormData ? data : JSON.stringify(data),
+        body: bodyData instanceof FormData ? bodyData : JSON.stringify(bodyData),
         ...options,
-      }),
+      });
+    },
     update: (id, data, options = {}) =>
-      request(`/hackathons/${id}`, {
+      request(`/hackathons/${id}/`, {
         method: 'PUT',
         body: data instanceof FormData ? data : JSON.stringify(data),
         ...options,
       }),
     patch: (id, data, options = {}) =>
-      request(`/hackathons/${id}`, {
+      request(`/hackathons/${id}/`, {
         method: 'PATCH',
         body: data instanceof FormData ? data : JSON.stringify(data),
         ...options,
@@ -1006,7 +1011,7 @@ export const api = {
         body: JSON.stringify(data),
       }),
     updateRegistration: (id, data) =>
-      request(`/teams/registrations/${id}`, {
+      request(`/teams/registrations/${id}/`, {
         method: 'PUT',
         body: JSON.stringify(data),
       }),

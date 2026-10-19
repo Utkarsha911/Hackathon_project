@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import CustomerNavbar from './CustomerNavbar';
 import HeroSection from './HeroSection';
-import ChallengesSection from './ChallengesSection';
 import PrizesSection from './PrizesSection';
 import ScheduleSection from './ScheduleSection';
 import RulesSection from './RulesSection';
@@ -59,7 +58,6 @@ export default function CustomerPortal() {
       {/* Page Sections */}
       <main className="flex-grow">
         <HeroSection onOpenRegister={handleOpenRegister} />
-        <ChallengesSection />
         <PrizesSection />
         <ScheduleSection />
         <RulesSection />

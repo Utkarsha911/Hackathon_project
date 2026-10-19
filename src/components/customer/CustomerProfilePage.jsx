@@ -51,10 +51,10 @@ export default function CustomerProfilePage() {
       const list = Array.isArray(res)
         ? res
         : Array.isArray(res?.results)
-        ? res.results
-        : Array.isArray(res?.data)
-        ? res.data
-        : [];
+          ? res.results
+          : Array.isArray(res?.data)
+            ? res.data
+            : [];
       setRegisteredTeams(list);
     } catch (err) {
       console.error('Failed to fetch user teams from /api/v1/hackathons/teams/:', err);
@@ -159,120 +159,96 @@ export default function CustomerProfilePage() {
           /* Authenticated User Profile View */
           <div className="space-y-8">
             {/* Header Profile Hero Card */}
-            <div className="relative bg-white rounded-3xl border border-slate-200/90 shadow-sm overflow-hidden">
-              {/* Subtle accent background banner */}
-              <div className="h-28 sm:h-36 bg-gradient-to-r from-slate-900 via-[#1c1917] to-slate-900 relative">
-                <div className="absolute inset-0 opacity-15 bg-[radial-gradient(#ea580c_1px,transparent_1px)] [background-size:16px_16px]" />
-                <div className="absolute top-4 right-4 sm:top-6 sm:right-6 flex items-center gap-2">
+            <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-8">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 pb-6 border-b border-slate-100">
+                {/* Avatar & Name */}
+                <div className="flex items-center gap-4">
+                  {currentUser.profile_picture ? (
+                    <img
+                      src={getMediaUrl(currentUser.profile_picture)}
+                      alt={fullName}
+                      className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl object-cover border border-slate-200 shadow-xs shrink-0"
+                    />
+                  ) : (
+                    <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-tr from-[#ea580c] to-amber-500 text-white flex items-center justify-center text-2xl sm:text-3xl font-extrabold shadow-xs shrink-0">
+                      {userInitial}
+                    </div>
+                  )}
+
+                  <div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
+                        {fullName}
+                      </h1>
+
+                    </div>
+                    <p className="text-xs sm:text-sm font-mono text-slate-500 mt-1">
+                      {currentUser.email}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Actions: Register New Team & Sign Out */}
+                <div className="flex items-center gap-3 shrink-0 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={() => setIsRegisterOpen(true)}
+                    className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl font-semibold text-xs sm:text-sm bg-[#ea580c] hover:bg-orange-600 text-white shadow-xs transition active:scale-95 cursor-pointer"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>Register New Team</span>
+                  </button>
+
                   <button
                     type="button"
                     onClick={handleSignOut}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-white/10 hover:bg-red-500/20 text-white hover:text-red-300 backdrop-blur-xs border border-white/20 transition cursor-pointer"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold bg-slate-100 hover:bg-red-50 text-slate-700 hover:text-red-600 border border-slate-200 transition cursor-pointer"
                   >
-                    <LogOut className="w-3.5 h-3.5" />
+                    <LogOut className="w-4 h-4" />
                     <span>Sign Out</span>
                   </button>
                 </div>
               </div>
 
-              {/* Profile Details Container */}
-              <div className="px-6 sm:px-10 pb-8 pt-0">
-                <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 -mt-12 sm:-mt-16 mb-6">
-                  {/* Avatar & Name */}
-                  <div className="flex flex-col sm:flex-row sm:items-end gap-4">
-                    {currentUser.profile_picture ? (
-                      <img
-                        src={getMediaUrl(currentUser.profile_picture)}
-                        alt={fullName}
-                        className="w-24 h-24 sm:w-28 sm:h-28 rounded-full object-cover border-4 border-white shadow-md bg-white shrink-0"
-                      />
-                    ) : (
-                      <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-gradient-to-tr from-[#ea580c] to-amber-500 text-white flex items-center justify-center text-3xl font-extrabold border-4 border-white shadow-md shrink-0">
-                        {userInitial}
-                      </div>
-                    )}
-
-                    <div className="mb-1">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-                          {fullName}
-                        </h1>
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                          <span>Verified Hacker</span>
-                        </span>
-                      </div>
-                      <p className="text-xs sm:text-sm font-mono text-slate-500 mt-0.5">
-                        {currentUser.email}
-                      </p>
-                    </div>
+              {/* Info Cards Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 pt-4 border-t border-slate-100 text-xs">
+                <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-orange-100/60 text-[#ea580c] flex items-center justify-center shrink-0">
+                    <Mail className="w-4 h-4" />
                   </div>
-
-                  {/* Enroll Squad Button */}
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setIsRegisterOpen(true)}
-                      className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl font-semibold text-xs sm:text-sm bg-[#ea580c] hover:bg-orange-600 text-white shadow-xs transition active:scale-95 cursor-pointer"
-                    >
-                      <Plus className="w-4 h-4" />
-                      <span>Register New Team</span>
-                    </button>
+                  <div className="truncate">
+                    <span className="text-[10px] uppercase font-mono text-slate-400 block">Email</span>
+                    <span className="font-semibold text-slate-800 truncate block">{currentUser.email}</span>
                   </div>
                 </div>
 
-                {/* Info Cards Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 pt-4 border-t border-slate-100 text-xs">
-                  <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-orange-100/60 text-[#ea580c] flex items-center justify-center shrink-0">
-                      <Mail className="w-4 h-4" />
-                    </div>
-                    <div className="truncate">
-                      <span className="text-[10px] uppercase font-mono text-slate-400 block">Email</span>
-                      <span className="font-semibold text-slate-800 truncate block">{currentUser.email}</span>
-                    </div>
+                <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-orange-100/60 text-[#ea580c] flex items-center justify-center shrink-0">
+                    <Phone className="w-4 h-4" />
                   </div>
-
-                  <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-orange-100/60 text-[#ea580c] flex items-center justify-center shrink-0">
-                      <Phone className="w-4 h-4" />
-                    </div>
-                    <div className="truncate">
-                      <span className="text-[10px] uppercase font-mono text-slate-400 block">Phone</span>
-                      <span className="font-semibold text-slate-800 truncate block">
-                        {currentUser.phone_number || 'Not provided'}
-                      </span>
-                    </div>
+                  <div className="truncate">
+                    <span className="text-[10px] uppercase font-mono text-slate-400 block">Phone</span>
+                    <span className="font-semibold text-slate-800 truncate block">
+                      {currentUser.phone_number || 'Not provided'}
+                    </span>
                   </div>
+                </div>
 
-                  <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-orange-100/60 text-[#ea580c] flex items-center justify-center shrink-0">
-                      <Building2 className="w-4 h-4" />
-                    </div>
-                    <div className="truncate">
-                      <span className="text-[10px] uppercase font-mono text-slate-400 block">Institution</span>
-                      <span className="font-semibold text-slate-800 truncate block">
-                        {currentUser.college || 'Independent Entry'}
-                      </span>
-                    </div>
+                <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-orange-100/60 text-[#ea580c] flex items-center justify-center shrink-0">
+                    <Calendar className="w-4 h-4" />
                   </div>
-
-                  <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-orange-100/60 text-[#ea580c] flex items-center justify-center shrink-0">
-                      <Calendar className="w-4 h-4" />
-                    </div>
-                    <div className="truncate">
-                      <span className="text-[10px] uppercase font-mono text-slate-400 block">Joined</span>
-                      <span className="font-semibold text-slate-800 truncate block">
-                        {memberSince
-                          ? new Date(memberSince).toLocaleDateString([], {
-                              month: 'short',
-                              day: 'numeric',
-                              year: 'numeric'
-                            })
-                          : 'Recent'}
-                      </span>
-                    </div>
+                  <div className="truncate">
+                    <span className="text-[10px] uppercase font-mono text-slate-400 block">Joined</span>
+                    <span className="font-semibold text-slate-800 truncate block">
+                      {memberSince
+                        ? new Date(memberSince).toLocaleDateString([], {
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric'
+                        })
+                        : 'Recent'}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -283,13 +259,11 @@ export default function CustomerProfilePage() {
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
                 <div>
                   <div className="flex items-center gap-2">
-                    <Award className="w-5 h-5 text-[#ea580c]" />
                     <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
                       My Registered Teams & Hackathons
                     </h2>
                   </div>
                   <p className="text-xs sm:text-sm text-slate-500 mt-1">
-                    Squads you have registered via <code className="font-mono text-slate-600">/api/v1/hackathons/teams/</code>.
                   </p>
                 </div>
 
@@ -362,15 +336,14 @@ export default function CustomerProfilePage() {
 
                             {/* Status Badge */}
                             <span
-                              className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold capitalize shrink-0 ${
-                                isApproved
-                                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                                  : isDisqualified
+                              className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold capitalize shrink-0 ${isApproved
+                                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                : isDisqualified
                                   ? 'bg-rose-50 text-rose-700 border border-rose-200'
                                   : isRejected
-                                  ? 'bg-red-50 text-red-700 border border-red-200'
-                                  : 'bg-amber-50 text-amber-700 border border-amber-200'
-                              }`}
+                                    ? 'bg-red-50 text-red-700 border border-red-200'
+                                    : 'bg-amber-50 text-amber-700 border border-amber-200'
+                                }`}
                             >
                               {isApproved ? (
                                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
