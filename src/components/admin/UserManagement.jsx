@@ -34,6 +34,7 @@ import {
   Award
 } from 'lucide-react';
 import sampleUsers from '../../data/json/users.json';
+import DepartmentManagement from './DepartmentManagement';
 
 // Module-level in-memory cache to ensure data loads once and NEVER re-fetches
 // until the user explicitly clicks the Refresh button or reloads the webpage.
@@ -879,7 +880,9 @@ export default function UserManagement() {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto w-full text-slate-900">
-      {activeTab === 'organizers' ? (
+      {activeTab === 'departments' ? (
+        <DepartmentManagement />
+      ) : activeTab === 'organizers' ? (
         <>
           {/* Organizers Header */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">

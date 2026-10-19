@@ -43,7 +43,9 @@ import {
   Calendar,
   Award,
   HelpCircle,
-  Mail
+  Mail,
+  Clock,
+  CheckCircle2
 } from 'lucide-react';
 import hackathonLogo from '../../assets/HACKATHON-LOGO.png';
 
@@ -56,6 +58,7 @@ const UserManagement = lazy(() => import('./UserManagement'));
 const GroupManagement = lazy(() => import('./GroupManagement'));
 const TeamManagement = lazy(() => import('./TeamManagement'));
 const CustomerManagement = lazy(() => import('./CustomerManagement'));
+const OrganizerTaskManagement = lazy(() => import('./OrganizerTaskManagement'));
 const SystemConfig = lazy(() => import('./SystemConfig'));
 const LogViewer = lazy(() => import('./LogViewer'));
 
@@ -177,6 +180,7 @@ export default function AdminLayout() {
   const [sponsorMgmtOpen, setSponsorMgmtOpen] = useState(true);
   const [scheduleMgmtOpen, setScheduleMgmtOpen] = useState(true);
   const [userMgmtOpen, setUserMgmtOpen] = useState(true);
+  const [organizerTasksOpen, setOrganizerTasksOpen] = useState(true);
 
   // Group permission objects for non-staff / non-superuser users
   const [userGroupObjects, setUserGroupObjects] = useState([]);
@@ -267,8 +271,10 @@ export default function AdminLayout() {
   const isSchedulesActive = pathname.startsWith('/admin-control-site/schedules');
   const isCustomersActive = pathname.startsWith('/admin-control-site/participants') || pathname.startsWith('/admin-control-site/customers');
   const isUsersActive = pathname.startsWith('/admin-control-site/users');
+  const isDepartmentsActive = isUsersActive && userTab === 'departments';
   const isOrganizersActive = isUsersActive && userTab === 'organizers';
-  const isUsersListActive = isUsersActive && userTab !== 'organizers';
+  const isUsersListActive = isUsersActive && userTab !== 'organizers' && userTab !== 'departments';
+  const isOrganizerTasksActive = pathname.startsWith('/admin-control-site/organizer-tasks') || pathname.startsWith('/admin-control-site/tasks');
   const isGroupsActive = pathname.startsWith('/admin-control-site/groups');
   const isTeamsActive = isHackathonTeamsActive;
   const isSystemConfigActive = pathname.startsWith('/admin-control-site/system-config');
@@ -347,6 +353,7 @@ export default function AdminLayout() {
   const canAccessOrganizers = hasPermission(['organizer', 'user', 'customuser']);
   const canAccessGroups = hasPermission(['group', 'permission']);
   const canAccessTeams = hasPermission(['team', 'hackathon']);
+  const canAccessOrganizerTasks = hasPermission(['task', 'organizer', 'hackathon']);
   const canAccessUserMgmt = canAccessParticipants || canAccessUsers || canAccessOrganizers || canAccessGroups;
   const canAccessSystemConfig = hasPermission(['config', 'setting', 'system']);
   const canAccessLogs = hasPermission(['activity', 'log', 'audit', 'comment']);
@@ -374,7 +381,9 @@ export default function AdminLayout() {
   else if (isHackathonsActive) pageTitle = 'Hackathon Management';
   else if (isSponsorsActive) pageTitle = 'Sponsors & Packages';
   else if (isSchedulesActive) pageTitle = 'Schedule Management';
+  else if (isDepartmentsActive) pageTitle = 'Department Management';
   else if (isOrganizersActive) pageTitle = 'Organizers Management';
+  else if (isOrganizerTasksActive) pageTitle = 'Organizer Tasks';
   else if (isUsersActive) pageTitle = 'User Management';
   else if (isCustomersActive) pageTitle = 'Participant Directory';
   else if (isGroupsActive) pageTitle = 'Group Management';
@@ -821,6 +830,27 @@ export default function AdminLayout() {
                       </Link>
                     )}
 
+                    {/* Departments */}
+                    {canAccessUserMgmt && (
+                      <Link
+                        to="/admin-control-site/users?tab=departments"
+                        onClick={() => setMobileMenuOpen(false)}
+                        className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-normal transition-all ${
+                          isDepartmentsActive
+                            ? 'shadow-xs text-white'
+                            : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                        }`}
+                        style={
+                          isDepartmentsActive
+                            ? { backgroundColor: '#ea580c', color: '#ffffff' }
+                            : {}
+                        }
+                      >
+                        <Building2 className="w-3.5 h-3.5 shrink-0" />
+                        <span>Departments</span>
+                      </Link>
+                    )}
+
                     {/* Group */}
                     {canAccessGroups && (
                       <Link
@@ -841,6 +871,88 @@ export default function AdminLayout() {
                         <span>Group</span>
                       </Link>
                     )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Dedicated Organizer Tasks Dropdown Accordion */}
+            {canAccessOrganizerTasks && (
+              <div className="space-y-0.5 mb-1">
+                <button
+                  type="button"
+                  onClick={() => setOrganizerTasksOpen((prev) => !prev)}
+                  className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-slate-700 hover:bg-slate-100/80 hover:text-slate-900 transition-colors group cursor-pointer"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <ClipboardList className="w-4 h-4 text-slate-600 shrink-0" />
+                    <span className="text-xs font-normal text-slate-700">
+                      Organizer Tasks
+                    </span>
+                  </div>
+                  {organizerTasksOpen ? (
+                    <ChevronUp className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                  ) : (
+                    <ChevronDown className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                  )}
+                </button>
+
+                {/* Collapsible Sub-Items for Organizer Tasks */}
+                {organizerTasksOpen && (
+                  <div className="space-y-0.5 pl-3 ml-2.5 border-l border-slate-100 py-0.5">
+                    <Link
+                      to="/admin-control-site/organizer-tasks"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-normal transition-all ${
+                        isOrganizerTasksActive && (!location.search || !location.search.includes('status='))
+                          ? 'shadow-xs text-white'
+                          : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                      }`}
+                      style={
+                        isOrganizerTasksActive && (!location.search || !location.search.includes('status='))
+                          ? { backgroundColor: '#ea580c', color: '#ffffff' }
+                          : {}
+                      }
+                    >
+                      <ClipboardList className="w-3.5 h-3.5 shrink-0" />
+                      <span>All Tasks</span>
+                    </Link>
+
+                    <Link
+                      to="/admin-control-site/organizer-tasks?status=pending"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-normal transition-all ${
+                        isOrganizerTasksActive && location.search.includes('status=pending')
+                          ? 'shadow-xs text-white'
+                          : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                      }`}
+                      style={
+                        isOrganizerTasksActive && location.search.includes('status=pending')
+                          ? { backgroundColor: '#ea580c', color: '#ffffff' }
+                          : {}
+                      }
+                    >
+                      <Clock className="w-3.5 h-3.5 shrink-0" />
+                      <span>Pending Tasks</span>
+                    </Link>
+
+                    <Link
+                      to="/admin-control-site/organizer-tasks?status=completed"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-normal transition-all ${
+                        isOrganizerTasksActive && location.search.includes('status=completed')
+                          ? 'shadow-xs text-white'
+                          : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                      }`}
+                      style={
+                        isOrganizerTasksActive && location.search.includes('status=completed')
+                          ? { backgroundColor: '#ea580c', color: '#ffffff' }
+                          : {}
+                      }
+                    >
+                      <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                      <span>Completed Tasks</span>
+                    </Link>
                   </div>
                 )}
               </div>
@@ -1082,6 +1194,20 @@ export default function AdminLayout() {
                   <Route
                     path="teams"
                     element={<Navigate to="/admin-control-site/hackathons?tab=teams" replace />}
+                  />
+
+                  {/* Organizer Tasks */}
+                  <Route
+                    path="organizer-tasks"
+                    element={canAccessOrganizerTasks ? <OrganizerTaskManagement /> : <Navigate to="/admin-control-site" replace />}
+                  />
+                  <Route
+                    path="organizer-tasks/*"
+                    element={canAccessOrganizerTasks ? <OrganizerTaskManagement /> : <Navigate to="/admin-control-site" replace />}
+                  />
+                  <Route
+                    path="tasks"
+                    element={<Navigate to="/admin-control-site/organizer-tasks" replace />}
                   />
 
                   {/* System Config */}

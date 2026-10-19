@@ -696,6 +696,68 @@ export const api = {
         }),
     },
 
+    // --- Hackathon Departments APIs (/hackathons/department/) ---
+    departments: {
+      getAll: (params = {}, options = {}) =>
+        request(`/hackathons/department/${buildQueryString(params)}`, options),
+      getById: (id, options = {}) =>
+        request(`/hackathons/department/${id}/`, options),
+      create: (data, options = {}) =>
+        request('/hackathons/department/', {
+          method: 'POST',
+          body: JSON.stringify(data),
+          ...options,
+        }),
+      update: (id, data, options = {}) =>
+        request(`/hackathons/department/${id}/`, {
+          method: 'PUT',
+          body: JSON.stringify(data),
+          ...options,
+        }),
+      patch: (id, data, options = {}) =>
+        request(`/hackathons/department/${id}/`, {
+          method: 'PATCH',
+          body: JSON.stringify(data),
+          ...options,
+        }),
+      delete: (id, options = {}) =>
+        request(`/hackathons/department/${id}/`, {
+          method: 'DELETE',
+          ...options,
+        }),
+    },
+
+    // --- Hackathon Organizer Tasks APIs (/hackathons/organizer-tasks/) ---
+    organizerTasks: {
+      getAll: (params = {}, options = {}) =>
+        request(`/hackathons/organizer-tasks/${buildQueryString(params)}`, options),
+      getById: (id, options = {}) =>
+        request(`/hackathons/organizer-tasks/${id}/`, options),
+      create: (data, options = {}) =>
+        request('/hackathons/organizer-tasks/', {
+          method: 'POST',
+          body: JSON.stringify(data),
+          ...options,
+        }),
+      update: (id, data, options = {}) =>
+        request(`/hackathons/organizer-tasks/${id}/`, {
+          method: 'PUT',
+          body: JSON.stringify(data),
+          ...options,
+        }),
+      patch: (id, data, options = {}) =>
+        request(`/hackathons/organizer-tasks/${id}/`, {
+          method: 'PATCH',
+          body: JSON.stringify(data),
+          ...options,
+        }),
+      delete: (id, options = {}) =>
+        request(`/hackathons/organizer-tasks/${id}/`, {
+          method: 'DELETE',
+          ...options,
+        }),
+    },
+
     // --- Hackathon Teams APIs (/hackathons/teams/) ---
     teams: {
       getAll: (params = {}, options = {}) =>
@@ -1094,58 +1156,123 @@ export const api = {
   },
 
   // --- Organizers, Departments & Tasks ---
+  // --- Departments APIs (/hackathons/department/) ---
+  departments: {
+    getAll: (params = {}, options = {}) =>
+      request(`/hackathons/department/${buildQueryString(params)}`, options),
+    getById: (id, options = {}) =>
+      request(`/hackathons/department/${id}/`, options),
+    create: (data, options = {}) =>
+      request('/hackathons/department/', {
+        method: 'POST',
+        body: JSON.stringify(data),
+        ...options,
+      }),
+    update: (id, data, options = {}) =>
+      request(`/hackathons/department/${id}/`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+        ...options,
+      }),
+    patch: (id, data, options = {}) =>
+      request(`/hackathons/department/${id}/`, {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+        ...options,
+      }),
+    delete: (id, options = {}) =>
+      request(`/hackathons/department/${id}/`, {
+        method: 'DELETE',
+        ...options,
+      }),
+  },
+
+  // --- Organizer Tasks APIs (/hackathons/organizer-tasks/) ---
+  organizerTasks: {
+    getAll: (params = {}, options = {}) =>
+      request(`/hackathons/organizer-tasks/${buildQueryString(params)}`, options),
+    getById: (id, options = {}) =>
+      request(`/hackathons/organizer-tasks/${id}/`, options),
+    create: (data, options = {}) =>
+      request('/hackathons/organizer-tasks/', {
+        method: 'POST',
+        body: JSON.stringify(data),
+        ...options,
+      }),
+    update: (id, data, options = {}) =>
+      request(`/hackathons/organizer-tasks/${id}/`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+        ...options,
+      }),
+    patch: (id, data, options = {}) =>
+      request(`/hackathons/organizer-tasks/${id}/`, {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+        ...options,
+      }),
+    delete: (id, options = {}) =>
+      request(`/hackathons/organizer-tasks/${id}/`, {
+        method: 'DELETE',
+        ...options,
+      }),
+  },
+
+  // --- Organizers, Departments & Tasks Legacy compatibility ---
   organizers: {
-    getDepartments: () => request('/organizers/departments'),
+    getDepartments: (params = {}) => request(`/hackathons/department/${buildQueryString(params)}`),
     createDepartment: (data) =>
-      request('/organizers/departments', {
+      request('/hackathons/department/', {
         method: 'POST',
         body: JSON.stringify(data),
       }),
 
     getAll: (hackathonId) => {
       const q = hackathonId ? `?hackathon_id=${encodeURIComponent(hackathonId)}` : '';
-      return request(`/organizers/${q}`);
+      return request(`/hackathons/organizers/${q}`);
     },
-    getById: (id) => request(`/organizers/${id}`),
+    getById: (id) => request(`/hackathons/organizers/${id}/`),
     create: (data) =>
-      request('/organizers/', {
+      request('/hackathons/organizers/', {
         method: 'POST',
         body: JSON.stringify(data),
       }),
     update: (id, data) =>
-      request(`/organizers/${id}`, {
+      request(`/hackathons/organizers/${id}/`, {
         method: 'PUT',
         body: JSON.stringify(data),
       }),
     delete: (id) =>
-      request(`/organizers/${id}`, {
+      request(`/hackathons/organizers/${id}/`, {
         method: 'DELETE',
       }),
     uploadImage: (id, file) => {
       const formData = new FormData();
       formData.append('file', file);
-      return request(`/organizers/${id}/image`, {
+      return request(`/hackathons/organizers/${id}/image`, {
         method: 'POST',
         body: formData,
       });
     },
 
-    getTasks: (params = {}) => {
-      const query = new URLSearchParams(params).toString();
-      return request(`/organizers/tasks/all${query ? `?${query}` : ''}`);
-    },
+    getTasks: (params = {}) => request(`/hackathons/organizer-tasks/${buildQueryString(params)}`),
     createTask: (data) =>
-      request('/organizers/tasks', {
+      request('/hackathons/organizer-tasks/', {
         method: 'POST',
         body: JSON.stringify(data),
       }),
     updateTask: (id, data) =>
-      request(`/organizers/tasks/${id}`, {
+      request(`/hackathons/organizer-tasks/${id}/`, {
         method: 'PUT',
         body: JSON.stringify(data),
       }),
+    patchTask: (id, data) =>
+      request(`/hackathons/organizer-tasks/${id}/`, {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+      }),
     deleteTask: (id) =>
-      request(`/organizers/tasks/${id}`, {
+      request(`/hackathons/organizer-tasks/${id}/`, {
         method: 'DELETE',
       }),
   },
