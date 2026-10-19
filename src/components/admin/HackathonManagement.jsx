@@ -32,6 +32,9 @@ import {
   Shield,
   Hash
 } from 'lucide-react';
+import TeamManagement from './TeamManagement';
+import PrizeManagement from './PrizeManagement';
+import FaqManagement from './FaqManagement';
 
 // Module-level cache so tab switching within the admin panel is instant
 let cachedHackathonsPayload = null;
@@ -631,7 +634,9 @@ export default function HackathonManagement() {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
-      {activeTab === 'organizers' ? (
+      {activeTab === 'teams' ? (
+        <TeamManagement />
+      ) : activeTab === 'organizers' ? (
         <div className="space-y-6">
           {/* Header with Title and Add Organizer Button (Rule 1) */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -937,6 +942,10 @@ export default function HackathonManagement() {
             </div>
           )}
         </div>
+      ) : activeTab === 'prizes' ? (
+        <PrizeManagement />
+      ) : activeTab === 'faqs' ? (
+        <FaqManagement />
       ) : (
         <>
           {/* Header with Title and Create Button */}

@@ -661,22 +661,133 @@ export const api = {
           ...options,
         }),
     },
+
+    // --- Hackathon Teams APIs (/hackathons/teams/) ---
+    teams: {
+      getAll: (params = {}, options = {}) =>
+        request(`/hackathons/teams/${buildQueryString(params)}`, options),
+      getById: (id, options = {}) =>
+        request(`/hackathons/teams/${id}/`, options),
+      create: (data, options = {}) =>
+        request('/hackathons/teams/', {
+          method: 'POST',
+          body: JSON.stringify(data),
+          ...options,
+        }),
+    },
+
+    // --- Admin Hackathon Teams APIs (/hackathons/admin/teams/) ---
+    adminTeams: {
+      getAll: (params = {}, options = {}) =>
+        request(`/hackathons/admin/teams/${buildQueryString(params)}`, options),
+      getById: (id, options = {}) =>
+        request(`/hackathons/admin/teams/${id}/`, options),
+      create: (data, options = {}) =>
+        request('/hackathons/admin/teams/', {
+          method: 'POST',
+          body: JSON.stringify(data),
+          ...options,
+        }),
+      update: (id, data, options = {}) =>
+        request(`/hackathons/admin/teams/${id}/`, {
+          method: 'PUT',
+          body: JSON.stringify(data),
+          ...options,
+        }),
+      patch: (id, data, options = {}) =>
+        request(`/hackathons/admin/teams/${id}/`, {
+          method: 'PATCH',
+          body: JSON.stringify(data),
+          ...options,
+        }),
+      delete: (id, options = {}) =>
+        request(`/hackathons/admin/teams/${id}/`, {
+          method: 'DELETE',
+          ...options,
+        }),
+    },
+  },
+
+  // --- Hackathons CRM: FAQs ---
+  faqs: {
+    getAll: (params = {}, options = {}) =>
+      request(`/hackathons-crm/faqs/${buildQueryString(params)}`, options),
+    getById: (id, options = {}) =>
+      request(`/hackathons-crm/faqs/${id}/`, options),
+    create: (data, options = {}) =>
+      request('/hackathons-crm/faqs/', {
+        method: 'POST',
+        body: JSON.stringify(data),
+        ...options,
+      }),
+    update: (id, data, options = {}) =>
+      request(`/hackathons-crm/faqs/${id}/`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+        ...options,
+      }),
+    patch: (id, data, options = {}) =>
+      request(`/hackathons-crm/faqs/${id}/`, {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+        ...options,
+      }),
+    delete: (id, options = {}) =>
+      request(`/hackathons-crm/faqs/${id}/`, {
+        method: 'DELETE',
+        ...options,
+      }),
+  },
+
+  // --- Hackathons CRM: Prizes ---
+  prizes: {
+    getAll: (params = {}, options = {}) =>
+      request(`/hackathons-crm/prizes/${buildQueryString(params)}`, options),
+    getById: (id, options = {}) =>
+      request(`/hackathons-crm/prizes/${id}/`, options),
+    create: (data, options = {}) =>
+      request('/hackathons-crm/prizes/', {
+        method: 'POST',
+        body: JSON.stringify(data),
+        ...options,
+      }),
+    update: (id, data, options = {}) =>
+      request(`/hackathons-crm/prizes/${id}/`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+        ...options,
+      }),
+    patch: (id, data, options = {}) =>
+      request(`/hackathons-crm/prizes/${id}/`, {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+        ...options,
+      }),
+    delete: (id, options = {}) =>
+      request(`/hackathons-crm/prizes/${id}/`, {
+        method: 'DELETE',
+        ...options,
+      }),
   },
 
   // --- CRM APIs (FAQs, Prizes, Challenges, Terms, Contact) ---
   crm: {
-    getFaqs: () => request('/crm/faqs'),
-    createFaq: (data) =>
-      request('/crm/faqs', {
+    getFaqs: (params = {}, options = {}) =>
+      request(`/hackathons-crm/faqs/${buildQueryString(params)}`, options),
+    createFaq: (data, options = {}) =>
+      request('/hackathons-crm/faqs/', {
         method: 'POST',
         body: JSON.stringify(data),
+        ...options,
       }),
 
-    getPrizes: () => request('/crm/prizes'),
-    createPrize: (data) =>
-      request('/crm/prizes', {
+    getPrizes: (params = {}, options = {}) =>
+      request(`/hackathons-crm/prizes/${buildQueryString(params)}`, options),
+    createPrize: (data, options = {}) =>
+      request('/hackathons-crm/prizes/', {
         method: 'POST',
         body: JSON.stringify(data),
+        ...options,
       }),
 
     getChallenges: () => request('/crm/challenges'),
@@ -853,17 +964,32 @@ export const api = {
 
   // --- Teams, Participants, Registrations, Check-Ins, Tables ---
   teams: {
-    getAll: (options = {}) => request('/teams/', options),
-    getById: (id, options = {}) => request(`/teams/${id}`, options),
-    create: (data) =>
-      request('/teams/', {
+    getAll: (params = {}, options = {}) =>
+      request(`/hackathons/admin/teams/${buildQueryString(params)}`, options),
+    getById: (id, options = {}) =>
+      request(`/hackathons/admin/teams/${id}/`, options),
+    create: (data, options = {}) =>
+      request('/hackathons/teams/', {
         method: 'POST',
         body: JSON.stringify(data),
+        ...options,
       }),
-    update: (id, data) =>
-      request(`/teams/${id}`, {
+    update: (id, data, options = {}) =>
+      request(`/hackathons/admin/teams/${id}/`, {
         method: 'PUT',
         body: JSON.stringify(data),
+        ...options,
+      }),
+    patch: (id, data, options = {}) =>
+      request(`/hackathons/admin/teams/${id}/`, {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+        ...options,
+      }),
+    delete: (id, options = {}) =>
+      request(`/hackathons/admin/teams/${id}/`, {
+        method: 'DELETE',
+        ...options,
       }),
 
     getParticipants: () => request('/teams/participants/all'),

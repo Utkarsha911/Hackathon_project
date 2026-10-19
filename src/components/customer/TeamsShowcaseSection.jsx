@@ -25,7 +25,11 @@ export default function TeamsShowcaseSection() {
         {teams.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {teams.map((team) => {
-              const isApproved = team.status === 'approved';
+              const status = (team.status || 'submitted').toLowerCase();
+              const isApproved = status === 'approved';
+              const isDisqualified = status === 'disqualified';
+              const isRejected = status === 'rejected';
+
               return (
                 <div
                   key={team.id}
@@ -37,9 +41,13 @@ export default function TeamsShowcaseSection() {
                       <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase ${
                         isApproved
                           ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                          : isDisqualified
+                          ? 'bg-rose-50 text-rose-700 border border-rose-200'
+                          : isRejected
+                          ? 'bg-red-50 text-red-700 border border-red-200'
                           : 'bg-slate-100 text-slate-600 border border-slate-200'
                       }`}>
-                        {team.status}
+                        {team.status || 'submitted'}
                       </span>
                     </div>
 
@@ -47,7 +55,7 @@ export default function TeamsShowcaseSection() {
 
                     <div className="flex items-center gap-1.5 text-xs text-slate-500 mt-1">
                       <Building2 className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                      <span className="truncate">{team.college_org || 'Independent Squad'}</span>
+                      <span className="truncate">{team.college_name || team.college_org || 'Independent Squad'}</span>
                     </div>
 
                     {team.project_title && (

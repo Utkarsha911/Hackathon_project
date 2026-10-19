@@ -7,10 +7,12 @@ import hackathonLogo from '../../assets/HACKATHON-LOGO.png';
 export default function HeroSection({ onOpenRegister }) {
   const { hackathon, prizes, isLoadingApi } = useHackathon();
 
-  const totalPrizePool = prizes.reduce(
-    (acc, curr) => acc + (Number(curr.prize_money) || 0),
-    0
-  );
+  const totalPrizePool =
+    Number(hackathon?.total_prize) ||
+    prizes.reduce(
+      (acc, curr) => acc + (Number(curr.prize_money) || 0),
+      0
+    );
 
   const formatDateRange = () => {
     if (!hackathon?.start_date || !hackathon?.end_date) {
@@ -185,7 +187,7 @@ export default function HeroSection({ onOpenRegister }) {
           </div>
           <div className="p-3.5 sm:p-5 rounded-xl bg-white border border-slate-200 shadow-sm">
             <div className="text-xl sm:text-2xl font-bold text-coral-600 font-mono">
-              NPR {totalPrizePool > 0 ? (totalPrizePool / 1000).toFixed(0) + 'k' : '565k'}
+              NPR {totalPrizePool > 0 ? (totalPrizePool >= 1000 ? (totalPrizePool / 1000).toFixed(0) + 'k' : totalPrizePool.toLocaleString()) : '30k'}
             </div>
             <div className="text-xs text-slate-500 mt-1">Total Prize Pool</div>
           </div>

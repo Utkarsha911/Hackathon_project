@@ -164,7 +164,7 @@ export function HackathonProvider({ children }) {
         setHackathon(prev => ({ ...prev, ...currentDetails }));
         connected = true;
 
-        if (Array.isArray(currentDetails.prizes) && currentDetails.prizes.length > 0) {
+        if (Array.isArray(currentDetails.prizes)) {
           setPrizes(currentDetails.prizes);
           hasEmbeddedRelations = true;
         }
@@ -206,7 +206,7 @@ export function HackathonProvider({ children }) {
           hasEmbeddedRelations = true;
         }
 
-        if (Array.isArray(currentDetails.faqs) && currentDetails.faqs.length > 0) {
+        if (Array.isArray(currentDetails.faqs)) {
           setFaqs(currentDetails.faqs);
           hasEmbeddedRelations = true;
         }
@@ -268,8 +268,13 @@ export function HackathonProvider({ children }) {
       if (!hasEmbeddedRelations) {
 
         const prizesRes = await api.crm.getPrizes().catch(() => null);
-        if (Array.isArray(prizesRes) && prizesRes.length > 0) {
-          setPrizes(prizesRes);
+        const prizesList = Array.isArray(prizesRes)
+          ? prizesRes
+          : Array.isArray(prizesRes?.results)
+          ? prizesRes.results
+          : [];
+        if (prizesList.length > 0) {
+          setPrizes(prizesList);
           connected = true;
         }
 
@@ -280,8 +285,13 @@ export function HackathonProvider({ children }) {
         }
 
         const faqsRes = await api.crm.getFaqs().catch(() => null);
-        if (Array.isArray(faqsRes) && faqsRes.length > 0) {
-          setFaqs(faqsRes);
+        const faqsList = Array.isArray(faqsRes)
+          ? faqsRes
+          : Array.isArray(faqsRes?.results)
+          ? faqsRes.results
+          : [];
+        if (faqsList.length > 0) {
+          setFaqs(faqsList);
           connected = true;
         }
 
@@ -332,8 +342,13 @@ export function HackathonProvider({ children }) {
         }
 
         const teamsRes = await api.teams.getAll().catch(() => null);
-        if (Array.isArray(teamsRes) && teamsRes.length > 0) {
-          setTeams(teamsRes);
+        const teamsList = Array.isArray(teamsRes)
+          ? teamsRes
+          : Array.isArray(teamsRes?.results)
+          ? teamsRes.results
+          : [];
+        if (teamsList.length > 0) {
+          setTeams(teamsList);
           connected = true;
         }
 
@@ -413,101 +428,30 @@ export function HackathonProvider({ children }) {
 
   // Customer: Register new squad
   const registerTeam = async (teamFormData) => {
-    const newTeamId = `team-${Date.now().toString().slice(-4)}`;
-    const newUserId = `usr-${Date.now().toString().slice(-4)}`;
-    const nowIso = new Date().toISOString();
-
-    const newTeam = {
-      id: newTeamId,
-      is_active: true,
-      created_at: nowIso,
-      updated_at: nowIso,
-      name: teamFormData.teamName,
-      college_org: teamFormData.college,
-      hackathon_id: hackathon.id,
-      status: 'pending',
-      github_repo_link: teamFormData.githubRepo || null,
-      project_title: teamFormData.projectTitle || 'Untitled Prototype',
-      track: teamFormData.track || 'Autonomous AI & HealthTech'
-    };
-
-    // Sensitive User Account
-    const newUser = {
-      id: newUserId,
-      is_active: true,
-      created_at: nowIso,
-      updated_at: nowIso,
-      username: teamFormData.leaderEmail ? teamFormData.leaderEmail.split('@')[0] : `user_${Date.now()}`,
-      email: teamFormData.leaderEmail,
-      first_name: teamFormData.leaderName ? teamFormData.leaderName.split(' ')[0] : 'Leader',
-      last_name: teamFormData.leaderName && teamFormData.leaderName.split(' ').length > 1 ? teamFormData.leaderName.split(' ')[1] : '',
-      phone_number: teamFormData.phone,
-      college: teamFormData.college,
-      role: 'user'
-    };
-
-    // Private Participant details (diet, medical, resume)
-    const newParticipant = {
-      id: `par-${Date.now().toString().slice(-4)}`,
-      is_active: true,
-      created_at: nowIso,
-      updated_at: nowIso,
-      hackathon_id: hackathon.id,
-      user_id: newUserId,
-      team_id: newTeamId,
-      cv: teamFormData.cvLink || null,
-      food_preference: teamFormData.foodPreference || 'Standard',
-      tshirt_size: teamFormData.tshirtSize || 'L',
-      medications: teamFormData.medications || 'None declared',
-      extra_details: teamFormData.extraDetails || null,
-      github_link: teamFormData.githubLink || null
-    };
-
-    // Private Registration Review Ticket
-    const newRegistration = {
-      id: `reg-${Date.now().toString().slice(-4)}`,
-      is_active: true,
-      created_at: nowIso,
-      updated_at: nowIso,
-      team_id: newTeamId,
-      hackathon_id: hackathon.id,
-      status: 'pending'
-    };
-
-    // Private TeamMember mapping
-    const newTeamMember = {
-      id: `tmb-${Date.now().toString().slice(-4)}`,
-      is_active: true,
-      created_at: nowIso,
-      updated_at: nowIso,
-      team_id: newTeamId,
-      user_id: newUserId,
-      status: 'active',
-      role: 'leader'
-    };
-
-    // Optimistic local update
-    setTeams(prev => [newTeam, ...prev]);
-    setUsers(prev => [newUser, ...prev]);
-    setParticipants(prev => [newParticipant, ...prev]);
-    setRegistrations(prev => [newRegistration, ...prev]);
-    setTeamMembers(prev => [newTeamMember, ...prev]);
-
-    // Send to Backend API if available
-    try {
-      await api.teams.create({
-        name: newTeam.name,
-        college_org: newTeam.college_org,
-        hackathon_id: newTeam.hackathon_id,
-        status: newTeam.status,
-        github_repo_link: newTeam.github_repo_link
-      });
-    } catch (err) {
-      console.warn('Backend team registration sync noted; local store saved:', err);
+    let collegeWebsite = teamFormData.college_website?.trim() || '';
+    if (collegeWebsite && !/^https?:\/\//i.test(collegeWebsite)) {
+      collegeWebsite = `https://${collegeWebsite}`;
     }
 
-    showToast(`Team "${teamFormData.teamName}" registered successfully! Awaiting admin review.`);
-    return newTeam;
+    const payload = {
+      name: (teamFormData.name || teamFormData.teamName || '').trim(),
+      college_name: (teamFormData.college_name || teamFormData.college || '').trim(),
+      affilated_university: (teamFormData.affilated_university || '').trim(),
+      college_address: (teamFormData.college_address || '').trim(),
+      college_website: collegeWebsite || '',
+      coordinator_phone: (teamFormData.coordinator_phone || teamFormData.phone || '').trim(),
+      coordinator_email: (teamFormData.coordinator_email || teamFormData.leaderEmail || '').trim(),
+      no_of_members: Number(teamFormData.no_of_members) || 1
+    };
+
+    const createdTeam = await api.hackathons.teams.create(payload);
+
+    if (createdTeam && createdTeam.id) {
+      setTeams((prev) => [createdTeam, ...(prev || [])]);
+    }
+
+    showToast(`Team "${payload.name}" registered successfully! Awaiting review.`, 'success');
+    return createdTeam;
   };
 
   // Customer: Submit contact inquiry

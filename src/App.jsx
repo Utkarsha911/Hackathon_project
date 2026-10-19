@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 
 // Lazy loaded page components
 const CustomerPortal = lazy(() => import('./components/customer/CustomerPortal'));
+const CustomerProfilePage = lazy(() => import('./components/customer/CustomerProfilePage'));
 const AdminLayout = lazy(() => import('./components/admin/AdminLayout'));
 
 function LoadingFallback() {
@@ -24,6 +25,10 @@ export default function App() {
       <Routes>
         {/* Customer-Facing Public Website on / */}
         <Route path="/" element={<CustomerPortal />} />
+
+        {/* Customer Profile & Teams Page */}
+        <Route path="/profile" element={<CustomerProfilePage />} />
+        <Route path="/customer-profile" element={<Navigate to="/profile" replace />} />
 
         {/* Admin Panel on /admin-control-site and sub-routes */}
         <Route path="/admin-control-site/*" element={<AdminLayout />} />

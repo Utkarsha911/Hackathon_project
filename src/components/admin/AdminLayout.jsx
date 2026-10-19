@@ -41,7 +41,8 @@ import {
   PieChart,
   CalendarClock,
   Calendar,
-  Award
+  Award,
+  HelpCircle
 } from 'lucide-react';
 import hackathonLogo from '../../assets/HACKATHON-LOGO.png';
 
@@ -250,7 +251,15 @@ export default function AdminLayout() {
   const isDashboardActive = pathname === '/admin-control-site' || pathname === '/admin-control-site/';
   const isHackathonsActive = pathname.startsWith('/admin-control-site/hackathons');
   const isHackathonOrganizersActive = isHackathonsActive && hackathonTab === 'organizers';
-  const isHackathonsListActive = isHackathonsActive && hackathonTab !== 'organizers';
+  const isHackathonTeamsActive = (isHackathonsActive && hackathonTab === 'teams') || pathname === '/admin-control-site/teams';
+  const isHackathonPrizesActive = isHackathonsActive && (hackathonTab === 'prizes' || hackathonTab === 'prizes-faqs');
+  const isHackathonFaqsActive = isHackathonsActive && hackathonTab === 'faqs';
+  const isHackathonsListActive =
+    isHackathonsActive &&
+    hackathonTab !== 'organizers' &&
+    hackathonTab !== 'teams' &&
+    !isHackathonPrizesActive &&
+    !isHackathonFaqsActive;
   const isSponsorsActive = pathname.startsWith('/admin-control-site/sponsors');
   const isSchedulesActive = pathname.startsWith('/admin-control-site/schedules');
   const isCustomersActive = pathname.startsWith('/admin-control-site/participants') || pathname.startsWith('/admin-control-site/customers');
@@ -258,7 +267,7 @@ export default function AdminLayout() {
   const isOrganizersActive = isUsersActive && userTab === 'organizers';
   const isUsersListActive = isUsersActive && userTab !== 'organizers';
   const isGroupsActive = pathname.startsWith('/admin-control-site/groups');
-  const isTeamsActive = pathname.startsWith('/admin-control-site/teams');
+  const isTeamsActive = isHackathonTeamsActive;
   const isSystemConfigActive = pathname.startsWith('/admin-control-site/system-config');
   const isLogsActive = pathname.startsWith('/admin-control-site/logs');
 
@@ -334,8 +343,8 @@ export default function AdminLayout() {
   const canAccessUsers = hasPermission(['user', 'customuser']);
   const canAccessOrganizers = hasPermission(['organizer', 'user', 'customuser']);
   const canAccessGroups = hasPermission(['group', 'permission']);
-  const canAccessTeams = hasPermission(['team']);
-  const canAccessUserMgmt = canAccessParticipants || canAccessUsers || canAccessOrganizers || canAccessGroups || canAccessTeams;
+  const canAccessTeams = hasPermission(['team', 'hackathon']);
+  const canAccessUserMgmt = canAccessParticipants || canAccessUsers || canAccessOrganizers || canAccessGroups;
   const canAccessSystemConfig = hasPermission(['config', 'setting', 'system']);
   const canAccessLogs = hasPermission(['activity', 'log', 'audit', 'comment']);
 
@@ -356,6 +365,8 @@ export default function AdminLayout() {
   // Header Title mapping
   let pageTitle = 'Admin Workspace';
   if (isHackathonOrganizersActive) pageTitle = 'Hackathon Organizers';
+  else if (isHackathonPrizesActive) pageTitle = 'Prize Management';
+  else if (isHackathonFaqsActive) pageTitle = 'FAQ Management';
   else if (isHackathonsActive) pageTitle = 'Hackathon Management';
   else if (isSponsorsActive) pageTitle = 'Sponsors & Packages';
   else if (isSchedulesActive) pageTitle = 'Schedule Management';
@@ -487,6 +498,63 @@ export default function AdminLayout() {
                     >
                       <Award className="w-3.5 h-3.5 shrink-0" />
                       <span>Organizers</span>
+                    </Link>
+
+                    {/* Hackathon Teams */}
+                    <Link
+                      to="/admin-control-site/hackathons?tab=teams"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-normal transition-all ${
+                        isHackathonTeamsActive
+                          ? 'shadow-xs text-white'
+                          : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                      }`}
+                      style={
+                        isHackathonTeamsActive
+                          ? { backgroundColor: '#ea580c', color: '#ffffff' }
+                          : {}
+                      }
+                    >
+                      <Users className="w-3.5 h-3.5 shrink-0" />
+                      <span>Teams</span>
+                    </Link>
+
+                    {/* Hackathon Prizes */}
+                    <Link
+                      to="/admin-control-site/hackathons?tab=prizes"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-normal transition-all ${
+                        isHackathonPrizesActive
+                          ? 'shadow-xs text-white'
+                          : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                      }`}
+                      style={
+                        isHackathonPrizesActive
+                          ? { backgroundColor: '#ea580c', color: '#ffffff' }
+                          : {}
+                      }
+                    >
+                      <Trophy className="w-3.5 h-3.5 shrink-0" />
+                      <span>Prizes</span>
+                    </Link>
+
+                    {/* Hackathon FAQs */}
+                    <Link
+                      to="/admin-control-site/hackathons?tab=faqs"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-normal transition-all ${
+                        isHackathonFaqsActive
+                          ? 'shadow-xs text-white'
+                          : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                      }`}
+                      style={
+                        isHackathonFaqsActive
+                          ? { backgroundColor: '#ea580c', color: '#ffffff' }
+                          : {}
+                      }
+                    >
+                      <HelpCircle className="w-3.5 h-3.5 shrink-0" />
+                      <span>FAQs</span>
                     </Link>
                   </div>
                 )}
@@ -750,27 +818,6 @@ export default function AdminLayout() {
                         <span>Group</span>
                       </Link>
                     )}
-
-                    {/* Team */}
-                    {canAccessTeams && (
-                      <Link
-                        to="/admin-control-site/teams"
-                        onClick={() => setMobileMenuOpen(false)}
-                        className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-normal transition-all ${
-                          isTeamsActive
-                            ? 'shadow-xs text-white'
-                            : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-                        }`}
-                        style={
-                          isTeamsActive
-                            ? { backgroundColor: '#ea580c', color: '#ffffff' }
-                            : {}
-                        }
-                      >
-                        <Users className="w-3.5 h-3.5 shrink-0" />
-                        <span>Team</span>
-                      </Link>
-                    )}
                   </div>
                 )}
               </div>
@@ -1011,7 +1058,7 @@ export default function AdminLayout() {
                   {/* Team Management */}
                   <Route
                     path="teams"
-                    element={canAccessTeams ? <TeamManagement /> : <Navigate to="/admin-control-site" replace />}
+                    element={<Navigate to="/admin-control-site/hackathons?tab=teams" replace />}
                   />
 
                   {/* System Config */}
@@ -1090,7 +1137,7 @@ export default function AdminLayout() {
 
                             {canAccessTeams && (
                               <Link
-                                to="/admin-control-site/teams"
+                                to="/admin-control-site/hackathons?tab=teams"
                                 className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition"
                               >
                                 <Users className="w-4 h-4 text-[#e8622a]" />
@@ -1172,7 +1219,7 @@ export default function AdminLayout() {
 
                           {canAccessTeams && (
                             <Link
-                              to="/admin-control-site/teams"
+                              to="/admin-control-site/hackathons?tab=teams"
                               className="p-5 rounded-2xl bg-white border border-slate-200/80 hover:border-orange-300 hover:shadow-md transition-all group"
                             >
                               <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">

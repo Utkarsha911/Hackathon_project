@@ -1,10 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowUpRight, ChevronDown, User, LogOut, Menu, X, Shield } from 'lucide-react';
+import { ArrowUpRight, ChevronDown, User, LogOut, Menu, X, Shield, Award } from 'lucide-react';
 import { useHackathon } from '../../context/HackathonContext';
+import { getMediaUrl } from '../../services/api';
 import hackathonLogo from '../../assets/HACKATHON-LOGO.png';
 
-export default function CustomerNavbar({ onOpenRegister }) {
+export default function CustomerNavbar({ onOpenRegister, onOpenLogin, onOpenProfile }) {
   const { hackathon, currentUser, logoutUser } = useHackathon();
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -106,7 +107,7 @@ export default function CustomerNavbar({ onOpenRegister }) {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
 
           {/* Brand */}
-          <a href="#" className="flex items-center gap-2.5 group">
+          <Link to="/" className="flex items-center gap-2.5 group">
             <img
               src={hackathonLogo}
               alt={hackathon?.title || 'BIC Hackathon'}
@@ -131,7 +132,7 @@ export default function CustomerNavbar({ onOpenRegister }) {
                 )}
               </div>
             )}
-          </a>
+          </Link>
 
           {/* Desktop Nav Links */}
           <nav className="hidden lg:flex items-center gap-1 text-[13px] font-medium text-slate-600">
@@ -165,72 +166,93 @@ export default function CustomerNavbar({ onOpenRegister }) {
           >
             Contact
           </a>
+          {currentUser && (
+            <Link
+              to="/profile"
+              className="px-3 py-1.5 rounded-lg text-[#ea580c] hover:bg-orange-50 font-semibold transition-colors flex items-center gap-1.5"
+            >
+              <User className="w-3.5 h-3.5" />
+              <span>Profile</span>
+            </Link>
+          )}
         </nav>
 
         {/* CTA & User Authentication */}
         <div className="flex items-center gap-2 sm:gap-2.5">
-          {currentUser && (
-            /* Logged In User Profile Pill & Dropdown */
+          {currentUser ? (
+            /* Logged In User Rounded Circle Profile & Dropdown */
             <div className="relative" ref={dropdownRef}>
               <button
+                type="button"
                 onClick={() => setUserDropdownOpen(!userDropdownOpen)}
-                className="flex items-center gap-1.5 sm:gap-2 py-1.5 px-2 sm:px-2.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 transition shadow-xs"
+                className="relative flex items-center justify-center rounded-full p-0.5 border-2 border-orange-200 hover:border-[#ea580c] transition-all hover:scale-105 active:scale-95 focus:outline-none shadow-xs group cursor-pointer"
+                aria-label="User account and profile menu"
+                title={`${displayName} - View Profile`}
               >
-                <div className="w-6 h-6 rounded-full bg-coral-500 text-white flex items-center justify-center text-xs font-bold shadow-xs">
-                  {userInitial}
-                </div>
-                <span className="text-xs font-semibold text-slate-800 max-w-[100px] sm:max-w-[110px] truncate hidden sm:inline-block">
-                  {displayName}
-                </span>
-                <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                {currentUser.profile_picture ? (
+                  <img
+                    src={getMediaUrl(currentUser.profile_picture)}
+                    alt={displayName}
+                    className="w-8 h-8 sm:w-9 sm:h-9 rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-gradient-to-tr from-[#ea580c] to-amber-500 text-white flex items-center justify-center text-xs sm:text-sm font-bold shadow-xs">
+                    {userInitial}
+                  </div>
+                )}
               </button>
 
               {userDropdownOpen && (
-                <div className="absolute right-0 mt-2 w-56 rounded-2xl bg-white border border-slate-200 shadow-xl p-2 z-50 animate-fade-in">
-                  <div className="px-3 py-2 border-b border-slate-100">
-                    <p className="text-xs font-bold text-slate-900 truncate">{displayName}</p>
-                    <p className="text-[11px] font-mono text-slate-400 truncate">{currentUser.email}</p>
-                    <div className="mt-1 flex items-center gap-1.5">
-                      <span className="text-[9px] font-mono uppercase px-1.5 py-0.5 rounded bg-coral-50 text-coral-700 font-bold border border-coral-200">
-                        {currentUser.role || 'Participant'}
+                <div className="absolute right-0 mt-2 w-64 rounded-2xl bg-white border border-slate-200 shadow-xl p-2 z-50 animate-fade-in">
+                  {/* Clickable Profile Summary Header linking to /profile */}
+                  <Link
+                    to="/profile"
+                    onClick={() => setUserDropdownOpen(false)}
+                    className="block px-3 py-2.5 border-b border-slate-100 hover:bg-orange-50/60 rounded-xl transition group"
+                  >
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs font-bold text-slate-900 truncate group-hover:text-[#ea580c]">
+                        {displayName}
+                      </p>
+                      <span className="text-[10px] text-[#ea580c] font-medium flex items-center gap-0.5">
+                        Profile →
                       </span>
-                      {isStaffOrAdmin && (
-                        <span className="text-[9px] font-mono uppercase px-1.5 py-0.5 rounded bg-purple-50 text-purple-700 font-bold border border-purple-200">
-                          Staff
-                        </span>
-                      )}
                     </div>
-                  </div>
+                    <p className="text-[11px] font-mono text-slate-400 truncate mt-0.5">{currentUser.email}</p>
+                  </Link>
 
                   <div className="py-1">
-                    {isStaffOrAdmin && (
-                      <Link
-                        to="/admin-control-site"
-                        onClick={() => setUserDropdownOpen(false)}
-                        className="w-full text-left px-3 py-2 text-xs text-orange-700 hover:bg-orange-50 rounded-xl flex items-center gap-2 transition font-medium"
-                      >
-                        <Shield className="w-3.5 h-3.5 text-[#e8622a]" />
-                        <span>Admin Workspace</span>
-                      </Link>
-                    )}
+                    {/* View Profile & Registered Teams action */}
+                    <Link
+                      to="/profile"
+                      onClick={() => setUserDropdownOpen(false)}
+                      className="w-full text-left px-3 py-2 text-xs text-slate-800 hover:bg-orange-50 hover:text-[#ea580c] rounded-xl flex items-center gap-2 transition font-medium"
+                    >
+                      <User className="w-3.5 h-3.5 text-[#ea580c]" />
+                      <span>My Profile & Registered Teams</span>
+                    </Link>
+
+
 
                     <button
+                      type="button"
                       onClick={() => {
                         setUserDropdownOpen(false);
                         onOpenRegister();
                       }}
-                      className="w-full text-left px-3 py-2 text-xs text-slate-700 hover:bg-slate-50 rounded-xl flex items-center gap-2 transition"
+                      className="w-full text-left px-3 py-2 text-xs text-slate-700 hover:bg-slate-50 rounded-xl flex items-center gap-2 transition cursor-pointer"
                     >
-                      <User className="w-3.5 h-3.5 text-slate-400" />
-                      <span>Register Squad</span>
+                      <Award className="w-3.5 h-3.5 text-slate-400" />
+                      <span>Enroll New Squad</span>
                     </button>
 
                     <button
+                      type="button"
                       onClick={() => {
                         setUserDropdownOpen(false);
                         logoutUser();
                       }}
-                      className="w-full text-left px-3 py-2 text-xs text-red-600 hover:bg-red-50 rounded-xl flex items-center gap-2 transition mt-1 border-t border-slate-100"
+                      className="w-full text-left px-3 py-2 text-xs text-red-600 hover:bg-red-50 rounded-xl flex items-center gap-2 transition mt-1 border-t border-slate-100 cursor-pointer"
                     >
                       <LogOut className="w-3.5 h-3.5" />
                       <span>Sign Out</span>
@@ -239,6 +261,16 @@ export default function CustomerNavbar({ onOpenRegister }) {
                 </div>
               )}
             </div>
+          ) : (
+            /* Sign In Button for unauthenticated visitors */
+            <button
+              type="button"
+              onClick={onOpenLogin}
+              className="hidden sm:inline-flex items-center gap-1.5 text-xs font-semibold text-slate-700 hover:text-[#ea580c] hover:bg-slate-100/80 px-3 py-2 rounded-xl transition cursor-pointer"
+            >
+              <User className="w-3.5 h-3.5" />
+              <span>Sign In</span>
+            </button>
           )}
 
           {/* Register Squad CTA */}
@@ -326,15 +358,43 @@ export default function CustomerNavbar({ onOpenRegister }) {
               Contact Committee
             </a>
 
-            {isStaffOrAdmin && (
-              <Link
-                to="/admin-control-site"
-                onClick={handleMobileNavClick}
-                className="px-3 py-2 rounded-xl bg-orange-50 text-orange-700 hover:bg-orange-100 transition font-semibold flex items-center gap-2 mt-2"
+            {currentUser ? (
+              <>
+                <Link
+                  to="/profile"
+                  onClick={handleMobileNavClick}
+                  className="w-full text-left px-3 py-2 rounded-xl bg-orange-50 text-[#ea580c] hover:bg-orange-100 transition font-semibold flex items-center gap-2 mt-2"
+                >
+                  <User className="w-4 h-4 text-[#ea580c]" />
+                  <span>My Profile & Registered Teams</span>
+                </Link>
+
+
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleMobileNavClick();
+                    logoutUser();
+                  }}
+                  className="w-full text-left px-3 py-2 rounded-xl text-red-600 hover:bg-red-50 transition font-medium flex items-center gap-2"
+                >
+                  <LogOut className="w-4 h-4 text-red-500" />
+                  <span>Sign Out</span>
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  handleMobileNavClick();
+                  if (onOpenLogin) onOpenLogin();
+                }}
+                className="w-full text-left px-3 py-2 rounded-xl bg-slate-100 text-slate-800 hover:bg-slate-200 transition font-semibold flex items-center gap-2 mt-2"
               >
-                <Shield className="w-4 h-4 text-[#e8622a]" />
-                <span>Admin Workspace</span>
-              </Link>
+                <User className="w-4 h-4 text-slate-600" />
+                <span>Sign In / Register</span>
+              </button>
             )}
           </nav>
         </div>

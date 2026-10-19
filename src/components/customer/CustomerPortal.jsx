@@ -1,16 +1,17 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import CustomerNavbar from './CustomerNavbar';
 import HeroSection from './HeroSection';
 import ChallengesSection from './ChallengesSection';
 import PrizesSection from './PrizesSection';
 import ScheduleSection from './ScheduleSection';
 import RulesSection from './RulesSection';
-import TeamsShowcaseSection from './TeamsShowcaseSection';
 import SponsorsSection from './SponsorsSection';
 import OrganizersSection from './OrganizersSection';
 import FaqSection from './FaqSection';
 import ContactSection from './ContactSection';
 import RegistrationModal from './RegistrationModal';
+import CustomerProfileModal from './CustomerProfileModal';
 import UserAuthModal from './UserAuthModal';
 import Footer from '../common/Footer';
 import Toast from '../common/Toast';
@@ -19,8 +20,10 @@ import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
 import { FileText, Shield, X } from 'lucide-react';
 
 export default function CustomerPortal() {
+  const navigate = useNavigate();
   const { terms, currentUser } = useHackathon();
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [authReason, setAuthReason] = useState('login'); // 'login' | 'register'
   const [showTermsModal, setShowTermsModal] = useState(false);
@@ -38,11 +41,20 @@ export default function CustomerPortal() {
     }
   };
 
+  const handleOpenLogin = () => {
+    setAuthReason('login');
+    setIsAuthOpen(true);
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-[#fafafa] text-slate-900">
 
       {/* Navbar */}
-      <CustomerNavbar onOpenRegister={handleOpenRegister} />
+      <CustomerNavbar
+        onOpenRegister={handleOpenRegister}
+        onOpenLogin={handleOpenLogin}
+        onOpenProfile={() => navigate('/profile')}
+      />
 
       {/* Page Sections */}
       <main className="flex-grow">
@@ -51,7 +63,6 @@ export default function CustomerPortal() {
         <PrizesSection />
         <ScheduleSection />
         <RulesSection />
-        <TeamsShowcaseSection />
         <SponsorsSection />
         <OrganizersSection />
         <FaqSection />
@@ -78,6 +89,16 @@ export default function CustomerPortal() {
         onClose={() => setIsRegisterOpen(false)}
       />
 
+      {/* Customer User Profile & Registered Teams Modal */}
+      <CustomerProfileModal
+        isOpen={isProfileOpen}
+        onClose={() => setIsProfileOpen(false)}
+        onOpenRegister={() => {
+          setIsProfileOpen(false);
+          setIsRegisterOpen(true);
+        }}
+      />
+
       {/* User Auth (Google Login/Register) Modal */}
       <UserAuthModal
         isOpen={isAuthOpen}
@@ -89,6 +110,8 @@ export default function CustomerPortal() {
             setTimeout(() => {
               setIsRegisterOpen(true);
             }, 300);
+          } else {
+            navigate('/profile');
           }
         }}
         onOpenRegister={() => {
