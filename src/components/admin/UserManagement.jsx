@@ -18,7 +18,7 @@ import {
   Filter,
   Check,
   X,
-  Sparkles,
+  ShieldCheck,
   Eye,
   EyeOff,
   Lock,
@@ -30,7 +30,8 @@ import {
   FileText,
   Camera,
   Upload,
-  Trash2
+  Trash2,
+  Award
 } from 'lucide-react';
 import sampleUsers from '../../data/json/users.json';
 
@@ -42,6 +43,11 @@ let cachedTotalCount = null;
 let hasLoadedOnce = false;
 
 export default function UserManagement() {
+  // Read ?tab and ?search from URL query parameters
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get('tab') || 'users';
+  const searchParamQuery = searchParams.get('search') || '';
+
   // Initialize with cached data if already loaded one time
   const [groups, setGroups] = useState(() => {
     if (hasLoadedOnce && Array.isArray(cachedGroupsData)) {
@@ -62,11 +68,17 @@ export default function UserManagement() {
   const [usersLoading, setUsersLoading] = useState(false);
   const [groupsLoading, setGroupsLoading] = useState(false);
 
-  // Read ?search from URL query parameters
-  const [searchParams, setSearchParams] = useSearchParams();
-  const searchParamQuery = searchParams.get('search') || '';
+  // Organizers section state
+  const [organizersList, setOrganizersList] = useState([]);
+  const [organizersLoading, setOrganizersLoading] = useState(false);
+  const [organizersCount, setOrganizersCount] = useState(0);
+  const [organizersStats, setOrganizersStats] = useState(null);
+  const [organizerSearch, setOrganizerSearch] = useState('');
+  const [organizerStatusFilter, setOrganizerStatusFilter] = useState('all');
+  const [organizerStaffFilter, setOrganizerStaffFilter] = useState('all');
+  const [selectedOrganizer, setSelectedOrganizer] = useState(null);
 
-  // Filters
+  // Filters for Users
   const [searchTerm, setSearchTerm] = useState(searchParamQuery);
   const [groupFilter, setGroupFilter] = useState('all');
   const [teamFilter, setTeamFilter] = useState('all');
@@ -86,7 +98,6 @@ export default function UserManagement() {
     last_name: '',
     password: '',
     password_confirm: '',
-    role: 'user',
     groups: [],
     team: ''
   });
@@ -101,7 +112,7 @@ export default function UserManagement() {
   const [editUser, setEditUser] = useState(null);
 
   // Disable background scrolling when any modal in UserManagement is opened
-  useBodyScrollLock(Boolean(isRegisterModalOpen || viewPayloadModalUser || editUser));
+  useBodyScrollLock(Boolean(isRegisterModalOpen || viewPayloadModalUser || editUser || selectedOrganizer));
   const [editLoading, setEditLoading] = useState(false);
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError] = useState('');
@@ -238,6 +249,81 @@ export default function UserManagement() {
     }
   };
 
+  // 3. Fetch Organizers List: GET /api/v1/users/organizers/
+  const fetchOrganizers = async (overrides = {}) => {
+    setOrganizersLoading(true);
+    try {
+      const q = overrides.search !== undefined ? overrides.search : organizerSearch;
+      const status = overrides.status !== undefined ? overrides.status : organizerStatusFilter;
+      const staff = overrides.staff !== undefined ? overrides.staff : organizerStaffFilter;
+
+      const params = {};
+      if (q && q.trim()) params.search = q.trim();
+      if (status !== 'all') params.is_active = status;
+      if (staff !== 'all') params.is_staff = staff;
+
+      const res = await api.users.getOrganizers(params);
+      const results = Array.isArray(res?.results)
+        ? res.results
+        : Array.isArray(res)
+        ? res
+        : Array.isArray(res?.data)
+        ? res.data
+        : [];
+      setOrganizersList(results);
+      const count = res?.count !== undefined ? Number(res.count) : results.length;
+      setOrganizersCount(count);
+      if (res?.stats) {
+        setOrganizersStats(res.stats);
+      }
+    } catch (err) {
+      console.warn('api.users.getOrganizers error:', err);
+      setOrganizersList([]);
+      setOrganizersCount(0);
+    } finally {
+      setOrganizersLoading(false);
+    }
+  };
+
+  // Fetch organizers when switching to tab=organizers
+  useEffect(() => {
+    if (activeTab === 'organizers') {
+      fetchOrganizers();
+      fetchGroups(false);
+    }
+  }, [activeTab]);
+
+  // Debounced search for organizers
+  useEffect(() => {
+    if (activeTab !== 'organizers') return;
+    const timer = setTimeout(() => {
+      fetchOrganizers({ search: organizerSearch });
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [organizerSearch, activeTab]);
+
+  // KPI stats calculation for Organizers
+  const orgStatsDisplay = useMemo(() => {
+    const total =
+      organizersStats?.total_organizers ??
+      organizersStats?.total_items ??
+      organizersCount ??
+      organizersList.length;
+    const active =
+      organizersStats?.active_organizers ??
+      organizersStats?.active_items ??
+      organizersList.filter((o) => o.is_active).length;
+    const staff =
+      organizersStats?.staff_organizers ??
+      organizersStats?.staff_items ??
+      organizersList.filter((o) => o.is_staff || o.is_superuser).length;
+    const verified =
+      organizersStats?.verified_organizers ??
+      organizersStats?.verified_items ??
+      organizersList.filter((o) => o.is_verified).length;
+    return { total, active, staff, verified };
+  }, [organizersStats, organizersCount, organizersList]);
+
   // On mount: load once if not cached, or load with initial search query
   useEffect(() => {
     if (!hasLoadedOnce || searchParamQuery) {
@@ -276,11 +362,15 @@ export default function UserManagement() {
     const timer = setTimeout(() => {
       setIsTypingPause(false);
 
-      if (trimmed) {
-        setSearchParams({ search: trimmed }, { replace: true });
-      } else {
-        setSearchParams({}, { replace: true });
-      }
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          if (trimmed) next.set('search', trimmed);
+          else next.delete('search');
+          return next;
+        },
+        { replace: true }
+      );
 
       // Execute API call after 2-second pause
       fetchUsers(trimmed, true);
@@ -296,11 +386,15 @@ export default function UserManagement() {
       e.preventDefault();
       setIsTypingPause(false);
       const trimmed = searchTerm.trim();
-      if (trimmed) {
-        setSearchParams({ search: trimmed }, { replace: true });
-      } else {
-        setSearchParams({}, { replace: true });
-      }
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          if (trimmed) next.set('search', trimmed);
+          else next.delete('search');
+          return next;
+        },
+        { replace: true }
+      );
       fetchUsers(trimmed, true);
     }
   };
@@ -523,6 +617,9 @@ export default function UserManagement() {
       setUsersList((prev) =>
         prev.map((u) => (String(u.id) === String(editUser.id) ? { ...u, ...mergedUser } : u))
       );
+      setOrganizersList((prev) =>
+        prev.map((u) => (String(u.id) === String(editUser.id) ? { ...u, ...mergedUser } : u))
+      );
       if (Array.isArray(cachedUsersData)) {
         cachedUsersData = cachedUsersData.map((u) =>
           String(u.id) === String(editUser.id) ? { ...u, ...mergedUser } : u
@@ -578,7 +675,6 @@ export default function UserManagement() {
       email: formData.email.trim(),
       first_name: formData.first_name.trim(),
       last_name: formData.last_name.trim(),
-      role: formData.role || 'user',
       password: formData.password,
       password_confirm: formData.password_confirm,
       groups: (formData.groups || []).map((g) => Number(g))
@@ -620,6 +716,10 @@ export default function UserManagement() {
         return newCount;
       });
 
+      if (activeTab === 'organizers') {
+        fetchOrganizers();
+      }
+
       setTimeout(() => {
         setFormData({
           email: '',
@@ -627,7 +727,6 @@ export default function UserManagement() {
           last_name: '',
           password: '',
           password_confirm: '',
-          role: 'user',
           groups: groups[0]?.id !== undefined ? [groups[0].id] : [],
           team: ''
         });
@@ -780,7 +879,418 @@ export default function UserManagement() {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto w-full text-slate-900">
-      {/* Header */}
+      {activeTab === 'organizers' ? (
+        <>
+          {/* Organizers Header */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">
+                Organizers Management
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-500 mt-1">
+                Manage hackathon committee members, administrative staff, and permissions
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2.5 w-full sm:w-auto">
+              <button
+                onClick={() => {
+                  setIsRegisterModalOpen(true);
+                  setRegisterError('');
+                  setRegisterSuccess('');
+                  const orgGroup = groups.find((g) => g.name?.toLowerCase().includes('organizer'));
+                  if (orgGroup) {
+                    setFormData((prev) => ({ ...prev, groups: [orgGroup.id] }));
+                  }
+                }}
+                className="w-full sm:w-auto justify-center inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold text-white shadow-md shadow-orange-500/20 hover:shadow-orange-500/30 active:scale-[0.99] transition-all cursor-pointer"
+                style={{ backgroundColor: '#ea580c' }}
+              >
+                <UserPlus className="w-4 h-4" />
+                <span>Register New User</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Organizers KPI Stat Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs flex items-center justify-between">
+              <div>
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                  Total Organizers
+                </p>
+                <h3 className="text-2xl font-bold text-slate-900 mt-1">
+                  {orgStatsDisplay.total}
+                </h3>
+                <p className="text-[11px] text-slate-400 mt-1">
+                  Official committee members
+                </p>
+              </div>
+              <div className="w-12 h-12 rounded-2xl bg-orange-50 text-[#ea580c] flex items-center justify-center shrink-0">
+                <Award className="w-6 h-6" />
+              </div>
+            </div>
+
+            <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs flex items-center justify-between">
+              <div>
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                  Active Accounts
+                </p>
+                <h3 className="text-2xl font-bold text-emerald-600 mt-1">
+                  {orgStatsDisplay.active}
+                </h3>
+                <p className="text-[11px] text-slate-400 mt-1">
+                  Currently operational
+                </p>
+              </div>
+              <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                <CheckCircle2 className="w-6 h-6" />
+              </div>
+            </div>
+
+            <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs flex items-center justify-between">
+              <div>
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                  Staff & Committee
+                </p>
+                <h3 className="text-2xl font-bold text-indigo-600 mt-1">
+                  {orgStatsDisplay.staff}
+                </h3>
+                <p className="text-[11px] text-slate-400 mt-1">
+                  Staff privileges enabled
+                </p>
+              </div>
+              <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+                <Shield className="w-6 h-6" />
+              </div>
+            </div>
+
+            <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs flex items-center justify-between">
+              <div>
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                  Verified Accounts
+                </p>
+                <h3 className="text-2xl font-bold text-blue-600 mt-1">
+                  {orgStatsDisplay.verified}
+                </h3>
+                <p className="text-[11px] text-slate-400 mt-1">
+                  Identity confirmed
+                </p>
+              </div>
+              <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                <CheckCircle2 className="w-6 h-6" />
+              </div>
+            </div>
+          </div>
+
+          {/* Organizers Backend-Driven Search & Filters Bar */}
+          <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
+            <div className="relative w-full lg:w-96">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                type="text"
+                value={organizerSearch}
+                onChange={(e) => setOrganizerSearch(e.target.value)}
+                placeholder="Search organizers via ?search= (name, email)..."
+                className="w-full pl-9 pr-24 py-2 rounded-xl border border-slate-200 text-xs sm:text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-[#e8622a] focus:ring-1 focus:ring-[#e8622a]/20"
+              />
+              {organizerSearch && (
+                <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+                  {organizersLoading ? (
+                    <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-md bg-orange-50 text-[#e8622a] flex items-center gap-1">
+                      <RefreshCw className="w-2.5 h-2.5 animate-spin" />
+                      <span>Searching...</span>
+                    </span>
+                  ) : (
+                    <button
+                      onClick={() => {
+                        setOrganizerSearch('');
+                        fetchOrganizers({ search: '' });
+                      }}
+                      className="text-slate-400 hover:text-slate-700 p-0.5 text-xs font-bold"
+                      title="Clear Search"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2.5 w-full lg:w-auto">
+              {/* Status Filter */}
+              <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium">
+                <Filter className="w-3.5 h-3.5" />
+                <span>Status:</span>
+              </div>
+              <select
+                value={organizerStatusFilter}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setOrganizerStatusFilter(val);
+                  fetchOrganizers({ status: val });
+                }}
+                className="px-3 py-2 rounded-xl border border-slate-200 text-xs sm:text-sm text-slate-700 bg-white focus:outline-none focus:border-[#e8622a]"
+              >
+                <option value="all">All Status</option>
+                <option value="true">Active Only</option>
+                <option value="false">Inactive Only</option>
+              </select>
+
+              {/* Staff Filter */}
+              <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium pl-1">
+                <Shield className="w-3.5 h-3.5" />
+                <span>Privilege:</span>
+              </div>
+              <select
+                value={organizerStaffFilter}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setOrganizerStaffFilter(val);
+                  fetchOrganizers({ staff: val });
+                }}
+                className="px-3 py-2 rounded-xl border border-slate-200 text-xs sm:text-sm text-slate-700 bg-white focus:outline-none focus:border-[#e8622a]"
+              >
+                <option value="all">All Organizers</option>
+                <option value="true">Staff Only</option>
+                <option value="false">Non-Staff Only</option>
+              </select>
+
+              <span className="text-xs text-slate-400 pl-2">
+                Total Organizers: <strong className="text-slate-700">{orgStatsDisplay.total}</strong>
+              </span>
+            </div>
+          </div>
+
+          {/* Organizers Table */}
+          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-slate-100 bg-slate-50/75 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                    <th className="py-3 px-4">Organizer</th>
+                    <th className="py-3 px-4">Contact</th>
+                    <th className="py-3 px-4">Role & Groups</th>
+                    <th className="py-3 px-4">Status</th>
+                    <th className="py-3 px-4">Joined</th>
+                    <th className="py-3 px-4 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 text-xs text-slate-700">
+                  {organizersLoading ? (
+                    Array.from({ length: 5 }).map((_, idx) => (
+                      <tr key={`org-skeleton-${idx}`} className="animate-pulse">
+                        <td className="py-4 px-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-slate-200 shrink-0" />
+                            <div className="space-y-1.5">
+                              <div className="w-28 h-3.5 bg-slate-200 rounded" />
+                              <div className="w-20 h-3 bg-slate-100 rounded" />
+                            </div>
+                          </div>
+                        </td>
+                        <td className="py-4 px-4">
+                          <div className="space-y-1.5">
+                            <div className="w-32 h-3.5 bg-slate-200 rounded" />
+                            <div className="w-24 h-3 bg-slate-100 rounded" />
+                          </div>
+                        </td>
+                        <td className="py-4 px-4">
+                          <div className="w-16 h-5 bg-slate-200 rounded-md" />
+                        </td>
+                        <td className="py-4 px-4">
+                          <div className="w-14 h-5 bg-slate-200 rounded-md" />
+                        </td>
+                        <td className="py-4 px-4">
+                          <div className="w-20 h-3 bg-slate-200 rounded" />
+                        </td>
+                        <td className="py-4 px-4 text-right">
+                          <div className="w-16 h-8 bg-slate-200 rounded-lg ml-auto" />
+                        </td>
+                      </tr>
+                    ))
+                  ) : organizersList.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="py-12 text-center text-slate-400">
+                        <div className="flex flex-col items-center justify-center gap-2">
+                          <div className="w-12 h-12 rounded-2xl bg-orange-50 text-[#ea580c] flex items-center justify-center">
+                            <Award className="w-6 h-6" />
+                          </div>
+                          <p className="text-sm font-semibold text-slate-700 mt-1">No organizers found</p>
+                          <p className="text-xs text-slate-400">
+                            {organizerSearch
+                              ? `No organizers matched "${organizerSearch}". Try clearing your search.`
+                              : 'No organizers have been registered with the Organizers group.'}
+                          </p>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    organizersList.map((org) => {
+                      const orgName =
+                        org.full_name ||
+                        `${org.first_name || ''} ${org.last_name || ''}`.trim() ||
+                        'Organizer';
+                      const orgInitials = `${org.first_name?.[0] || 'O'}${org.last_name?.[0] || 'G'}`.toUpperCase();
+                      const avatarUrl = org.profile_picture ? getMediaUrl(org.profile_picture) : null;
+                      const groupsList = Array.isArray(org.groups) ? org.groups : [];
+
+                      return (
+                        <tr key={org.id || org.email} className="hover:bg-slate-50/80 transition-colors">
+                          {/* Organizer */}
+                          <td className="py-3 px-4">
+                            <div className="flex items-center gap-3">
+                              {avatarUrl ? (
+                                <img
+                                  src={avatarUrl}
+                                  alt={orgName}
+                                  className="w-10 h-10 rounded-xl object-cover border border-slate-200 shrink-0"
+                                  onError={(e) => {
+                                    e.target.onerror = null;
+                                    e.target.style.display = 'none';
+                                  }}
+                                />
+                              ) : (
+                                <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-orange-500 to-amber-500 text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-xs">
+                                  {orgInitials}
+                                </div>
+                              )}
+                              <div className="min-w-0">
+                                <div className="font-semibold text-slate-900 truncate flex items-center gap-1.5">
+                                  <span>{orgName}</span>
+                                  {org.is_superuser && (
+                                    <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-200">
+                                      Super
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="text-[11px] text-slate-400 flex items-center gap-1 mt-0.5">
+                                  <span className="font-mono text-[10px]">ID: {String(org.id).slice(0, 8)}...</span>
+                                  <button
+                                    onClick={() => copyToClipboard(org.id, `org-id-${org.id}`)}
+                                    className="hover:text-slate-700 transition"
+                                    title="Copy ID"
+                                  >
+                                    {copiedId === `org-id-${org.id}` ? (
+                                      <Check className="w-3 h-3 text-emerald-500" />
+                                    ) : (
+                                      <Copy className="w-3 h-3" />
+                                    )}
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* Contact */}
+                          <td className="py-3 px-4">
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-1.5 text-slate-700">
+                                <Mail className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                <span className="truncate">{org.email || '—'}</span>
+                              </div>
+                              {org.phone_number && (
+                                <div className="flex items-center gap-1.5 text-slate-500 text-[11px]">
+                                  <Phone className="w-3 h-3 text-slate-400 shrink-0" />
+                                  <span>{org.phone_number}</span>
+                                </div>
+                              )}
+                            </div>
+                          </td>
+
+                          {/* Role & Groups */}
+                          <td className="py-3 px-4">
+                            <div className="flex flex-wrap items-center gap-1">
+                              <span
+                                className={`px-2 py-0.5 rounded-md text-[10px] font-semibold border ${
+                                  org.is_staff
+                                    ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
+                                    : 'bg-orange-50 text-[#ea580c] border-orange-200'
+                                }`}
+                              >
+                                {org.role ? org.role.toUpperCase() : org.is_staff ? 'STAFF' : 'ORGANIZER'}
+                              </span>
+                              {groupsList.map((g) => {
+                                const gName = typeof g === 'object' && g !== null ? g.name : String(g);
+                                return (
+                                  <span
+                                    key={typeof g === 'object' && g.id ? g.id : gName}
+                                    className="px-1.5 py-0.5 rounded text-[10px] bg-slate-100 text-slate-600 border border-slate-200"
+                                  >
+                                    {gName}
+                                  </span>
+                                );
+                              })}
+                            </div>
+                          </td>
+
+                          {/* Status */}
+                          <td className="py-3 px-4">
+                            <div className="flex flex-col gap-1">
+                              <div className="flex items-center gap-1.5">
+                                <span
+                                  className={`w-2 h-2 rounded-full ${
+                                    org.is_active ? 'bg-emerald-500' : 'bg-slate-400'
+                                  }`}
+                                />
+                                <span
+                                  className={`text-[11px] font-medium ${
+                                    org.is_active ? 'text-emerald-700' : 'text-slate-500'
+                                  }`}
+                                >
+                                  {org.is_active ? 'Active' : 'Inactive'}
+                                </span>
+                              </div>
+                              {org.is_verified && (
+                                <span className="text-[10px] text-blue-600 font-medium flex items-center gap-1">
+                                  <CheckCircle2 className="w-3 h-3 text-blue-500" /> Verified
+                                </span>
+                              )}
+                            </div>
+                          </td>
+
+                          {/* Joined */}
+                          <td className="py-3 px-4 text-slate-500 text-[11px]">
+                            {org.created_at || org.date_joined
+                              ? new Date(org.created_at || org.date_joined).toLocaleDateString('en-US', {
+                                  year: 'numeric',
+                                  month: 'short',
+                                  day: 'numeric'
+                                })
+                              : '—'}
+                          </td>
+
+                          {/* Actions */}
+                          <td className="py-3 px-4 text-right">
+                            <div className="flex items-center justify-end gap-1.5">
+                              <button
+                                onClick={() => setSelectedOrganizer(org)}
+                                className="p-1.5 rounded-lg text-slate-400 hover:text-[#ea580c] hover:bg-orange-50 transition"
+                                title="View Organizer Details"
+                              >
+                                <Eye className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => openEditModal(org)}
+                                className="p-1.5 rounded-lg text-slate-400 hover:text-[#ea580c] hover:bg-orange-50 transition"
+                                title="Edit Account Details"
+                              >
+                                <Edit3 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
+      ) : (
+        <>
+          {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">
@@ -823,7 +1333,7 @@ export default function UserManagement() {
             <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
               {isTypingPause ? (
                 <span
-                  className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200 flex items-center gap-1.5 animate-pulse"
+                  className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200 flex items-center gap-1.5"
                   title="Calling API after 2 second pause..."
                 >
                   <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
@@ -1073,6 +1583,169 @@ export default function UserManagement() {
           </table>
         </div>
       </div>
+        </>
+      )}
+
+      {/* ORGANIZER DETAIL MODAL */}
+      {selectedOrganizer && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-xl w-full max-h-[92vh] overflow-y-auto">
+            {/* Modal Header */}
+            <div className="sticky top-0 bg-white px-5 sm:px-6 py-4 border-b border-slate-100 flex items-center justify-between z-10">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-orange-50 text-[#ea580c] flex items-center justify-center shrink-0">
+                  <Award className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">
+                    Organizer Details
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    Complete profile and administrative assignment
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setSelectedOrganizer(null)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-5 sm:p-6 space-y-6 text-xs text-slate-700">
+              {/* Profile Card */}
+              <div className="flex items-center gap-4 p-4 rounded-xl bg-slate-50 border border-slate-100">
+                {selectedOrganizer.profile_picture ? (
+                  <img
+                    src={getMediaUrl(selectedOrganizer.profile_picture)}
+                    alt="Avatar"
+                    className="w-14 h-14 rounded-2xl object-cover border border-slate-200 shadow-xs shrink-0"
+                  />
+                ) : (
+                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-orange-500 to-amber-500 text-white font-bold text-base flex items-center justify-center shadow-xs shrink-0">
+                    {`${selectedOrganizer.first_name?.[0] || 'O'}${selectedOrganizer.last_name?.[0] || 'G'}`.toUpperCase()}
+                  </div>
+                )}
+                <div className="min-w-0">
+                  <h4 className="text-sm sm:text-base font-bold text-slate-900">
+                    {selectedOrganizer.full_name || `${selectedOrganizer.first_name || ''} ${selectedOrganizer.last_name || ''}`.trim() || 'Organizer'}
+                  </h4>
+                  <p className="text-xs text-slate-500">{selectedOrganizer.email}</p>
+                  <div className="flex flex-wrap gap-1.5 mt-2">
+                    <span className={`px-2 py-0.5 rounded-md text-[10px] font-semibold ${selectedOrganizer.is_active ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-600'}`}>
+                      {selectedOrganizer.is_active ? 'Active' : 'Inactive'}
+                    </span>
+                    {selectedOrganizer.is_staff && (
+                      <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                        Staff Member
+                      </span>
+                    )}
+                    {selectedOrganizer.is_superuser && (
+                      <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-purple-50 text-purple-700 border border-purple-200">
+                        Superuser
+                      </span>
+                    )}
+                    {selectedOrganizer.is_verified && (
+                      <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+                        Verified
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Bio */}
+              {selectedOrganizer.bio && (
+                <div className="space-y-1">
+                  <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Bio</span>
+                  <p className="p-3 bg-slate-50 rounded-xl border border-slate-100 text-slate-700 italic">
+                    "{selectedOrganizer.bio}"
+                  </p>
+                </div>
+              )}
+
+              {/* Details Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 space-y-0.5">
+                  <span className="text-[10px] text-slate-400 font-medium">User ID</span>
+                  <div className="font-mono text-slate-800 break-all select-all">{selectedOrganizer.id}</div>
+                </div>
+                <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 space-y-0.5">
+                  <span className="text-[10px] text-slate-400 font-medium">Phone Number</span>
+                  <div className="text-slate-800">{selectedOrganizer.phone_number || 'Not provided'}</div>
+                </div>
+                <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 space-y-0.5">
+                  <span className="text-[10px] text-slate-400 font-medium">Assigned Role</span>
+                  <div className="text-slate-800 font-semibold uppercase">{selectedOrganizer.role || 'Organizer'}</div>
+                </div>
+                <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 space-y-0.5">
+                  <span className="text-[10px] text-slate-400 font-medium">Date of Birth</span>
+                  <div className="text-slate-800">{selectedOrganizer.date_of_birth || 'Not recorded'}</div>
+                </div>
+                <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 space-y-0.5">
+                  <span className="text-[10px] text-slate-400 font-medium">Registered Date</span>
+                  <div className="text-slate-800">
+                    {selectedOrganizer.created_at || selectedOrganizer.date_joined
+                      ? new Date(selectedOrganizer.created_at || selectedOrganizer.date_joined).toLocaleString()
+                      : '—'}
+                  </div>
+                </div>
+                <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 space-y-0.5">
+                  <span className="text-[10px] text-slate-400 font-medium">Last Profile Update</span>
+                  <div className="text-slate-800">
+                    {selectedOrganizer.updated_at
+                      ? new Date(selectedOrganizer.updated_at).toLocaleString()
+                      : '—'}
+                  </div>
+                </div>
+              </div>
+
+              {/* Groups */}
+              <div className="space-y-1.5">
+                <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Group Memberships</span>
+                <div className="flex flex-wrap gap-1.5">
+                  {Array.isArray(selectedOrganizer.groups) && selectedOrganizer.groups.length > 0 ? (
+                    selectedOrganizer.groups.map((g) => (
+                      <span
+                        key={typeof g === 'object' && g.id ? g.id : g}
+                        className="px-2.5 py-1 rounded-lg text-xs bg-slate-100 text-slate-700 font-medium border border-slate-200"
+                      >
+                        {typeof g === 'object' && g.name ? g.name : String(g)}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-slate-400 italic">No group memberships assigned</span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-5 sm:px-6 py-3.5 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
+              <button
+                onClick={() => setSelectedOrganizer(null)}
+                className="px-4 py-2 bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 text-xs font-semibold rounded-xl transition"
+              >
+                Close
+              </button>
+              <button
+                onClick={() => {
+                  const orgToEdit = selectedOrganizer;
+                  setSelectedOrganizer(null);
+                  openEditModal(orgToEdit);
+                }}
+                className="px-4 py-2 text-white text-xs font-semibold rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer"
+                style={{ backgroundColor: '#ea580c' }}
+              >
+                <Edit3 className="w-3.5 h-3.5" />
+                <span>Edit Organizer</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* REGISTRATION MODAL */}
       {isRegisterModalOpen && (
@@ -1092,7 +1765,7 @@ export default function UserManagement() {
                     Register New User
                   </h3>
                   <p className="text-[11px] sm:text-xs text-slate-500">
-                    Create a user account with role and group permissions
+                    Create a user account and assign group memberships
                   </p>
                 </div>
               </div>
@@ -1119,7 +1792,7 @@ export default function UserManagement() {
                           onClick={handleOfflineSimulation}
                           className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-semibold transition inline-flex items-center gap-1.5"
                         >
-                          <Sparkles className="w-3.5 h-3.5" />
+                          <ShieldCheck className="w-3.5 h-3.5" />
                           <span>Save in Preview Mode</span>
                         </button>
                       </div>
@@ -1189,28 +1862,6 @@ export default function UserManagement() {
                       />
                     </div>
                   </div>
-                </div>
-
-                {/* Role Selection */}
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1 flex items-center justify-between">
-                    <span className="flex items-center gap-1.5">
-                      <Shield className="w-3.5 h-3.5 text-slate-400" />
-                      <span>Role</span>
-                      <span className="text-red-500">*</span>
-                    </span>
-                    <span className="text-[11px] text-slate-400">Account access level</span>
-                  </label>
-                  <select
-                    value={formData.role}
-                    onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs sm:text-sm bg-white text-slate-800 focus:outline-none focus:border-[#e8622a] focus:ring-1 focus:ring-[#e8622a]/20 font-medium capitalize"
-                  >
-                    <option value="user">User</option>
-                    <option value="participant">Participant</option>
-                    <option value="organizer">Organizer</option>
-                    <option value="admin">Administrator</option>
-                  </select>
                 </div>
 
                 {/* Password & Password Confirm */}

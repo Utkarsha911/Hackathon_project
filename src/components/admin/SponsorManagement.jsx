@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { api, getMediaUrl } from '../../services/api';
+import { api, getMediaUrl, getSelectedAdminHackathon } from '../../services/api';
 import { useHackathon } from '../../context/HackathonContext';
 import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
 import {
@@ -27,7 +27,6 @@ import {
   Shield,
   Tag,
   Calendar,
-  Sparkles,
   Link as LinkIcon
 } from 'lucide-react';
 
@@ -49,7 +48,10 @@ const EMPTY_SPONSOR = {
 
 const EMPTY_PACKAGE = {
   hackathon: '',
+  organization: '',
   sponsor_type: '',
+  price_paid: '',
+  price_pledged: '',
   benefits: '',
   notes: ''
 };
@@ -63,7 +65,7 @@ export default function SponsorManagement() {
   const { showToast } = useHackathon();
   const [searchParams] = useSearchParams();
   const rawTab = searchParams.get('tab') || 'sponsors';
-  const tabFromUrl = rawTab === 'directory' ? 'sponsors' : rawTab;
+  const tabFromUrl = rawTab === 'directory' || rawTab === 'organizations' ? 'sponsors' : rawTab;
 
   // Active Tab: 'sponsors' | 'packages' | 'types' | 'breakdown'
   const [activeTab, setActiveTab] = useState(tabFromUrl || 'sponsors');
@@ -91,7 +93,7 @@ export default function SponsorManagement() {
 
   // Search & Filter
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedHackathonFilter, setSelectedHackathonFilter] = useState('all');
+  const [selectedHackathonFilter, setSelectedHackathonFilter] = useState(() => getSelectedAdminHackathon() || 'all');
 
   // Modal States - Sponsors
   const [isSponsorModalOpen, setIsSponsorModalOpen] = useState(false);
@@ -105,6 +107,7 @@ export default function SponsorManagement() {
   const [packageForm, setPackageForm] = useState(EMPTY_PACKAGE);
   const [editingPackageId, setEditingPackageId] = useState(null);
   const [deletingPackage, setDeletingPackage] = useState(null);
+  const [viewingPackage, setViewingPackage] = useState(null);
 
   // Modal States - Package Types
   const [isTypeModalOpen, setIsTypeModalOpen] = useState(false);
@@ -120,31 +123,89 @@ export default function SponsorManagement() {
     viewingSponsor ||
     deletingSponsor ||
     isPackageModalOpen ||
+    viewingPackage ||
     deletingPackage ||
     isTypeModalOpen ||
     deletingType
   );
   useBodyScrollLock(isAnyModalOpen);
 
-  // Fetch all related entities
+  // Debounce search query to prevent excessive backend API calls
+  const [debouncedSearch, setDebouncedSearch] = useState(searchQuery);
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+    }, 350);
+    return () => clearTimeout(handler);
+  }, [searchQuery]);
+
+  const unwrap = (res) => {
+    if (Array.isArray(res)) return res;
+    if (Array.isArray(res?.results)) return res.results;
+    if (Array.isArray(res?.data)) return res.data;
+    return [];
+  };
+
+  // Dedicated backend query fetchers (Backend-driven filtering)
+  const fetchSponsors = async (query = '') => {
+    try {
+      const params = {};
+      if (query.trim()) params.search = query.trim();
+      const res = await api.sponsors.getAll(params);
+      setSponsors(unwrap(res));
+      if (res?.stats) setSponsorStats(res.stats);
+    } catch (err) {
+      console.warn('Failed to fetch sponsors:', err);
+    }
+  };
+
+  const fetchPackages = async (query = '', hackathonFilter = 'all') => {
+    try {
+      const params = {};
+      if (query.trim()) params.search = query.trim();
+      if (hackathonFilter !== 'all') params.hackathon = hackathonFilter;
+      const res = await api.sponsors.getPackages(params);
+      setPackages(unwrap(res));
+      if (res?.stats) setPackageStats(res.stats);
+    } catch (err) {
+      console.warn('Failed to fetch packages:', err);
+    }
+  };
+
+  const fetchTypes = async (query = '') => {
+    try {
+      const params = {};
+      if (query.trim()) params.search = query.trim();
+      const res = await api.sponsors.getPackageTypes(params);
+      setPackageTypes(unwrap(res));
+      if (res?.stats) setTypeStats(res.stats);
+    } catch (err) {
+      console.warn('Failed to fetch package types:', err);
+    }
+  };
+
+  // Fetch all related entities on mount or after mutations
   const fetchData = async (isManual = false) => {
     if (isManual) setRefreshing(true);
     else setLoading(true);
 
     try {
+      const sponsorParams = {};
+      if (debouncedSearch.trim() && (activeTab === 'sponsors')) sponsorParams.search = debouncedSearch.trim();
+
+      const packageParams = {};
+      if (debouncedSearch.trim() && activeTab === 'packages') packageParams.search = debouncedSearch.trim();
+      if (selectedHackathonFilter !== 'all' && activeTab === 'packages') packageParams.hackathon = selectedHackathonFilter;
+
+      const typeParams = {};
+      if (debouncedSearch.trim() && (activeTab === 'types')) typeParams.search = debouncedSearch.trim();
+
       const [sponsorsRes, packagesRes, typesRes, hackathonsRes] = await Promise.all([
-        api.sponsors.getAll().catch(() => ({ results: [] })),
-        api.sponsors.getPackages().catch(() => ({ results: [] })),
-        api.sponsors.getPackageTypes().catch(() => ({ results: [] })),
+        api.sponsors.getAll(sponsorParams).catch(() => ({ results: [] })),
+        api.sponsors.getPackages(packageParams).catch(() => ({ results: [] })),
+        api.sponsors.getPackageTypes(typeParams).catch(() => ({ results: [] })),
         api.hackathons.getAll().catch(() => ({ results: [] }))
       ]);
-
-      const unwrap = (res) => {
-        if (Array.isArray(res)) return res;
-        if (Array.isArray(res?.results)) return res.results;
-        if (Array.isArray(res?.data)) return res.data;
-        return [];
-      };
 
       setSponsors(unwrap(sponsorsRes));
       setPackages(unwrap(packagesRes));
@@ -172,46 +233,33 @@ export default function SponsorManagement() {
     fetchData();
   }, []);
 
-  // Filtered sponsors
-  const filteredSponsors = useMemo(() => {
-    if (!searchQuery.trim()) return sponsors;
-    const q = searchQuery.toLowerCase();
-    return sponsors.filter((s) => {
-      const name = (s.name || '').toLowerCase();
-      const service = (s.service || '').toLowerCase();
-      const location = (s.location || '').toLowerCase();
-      const email = (s.contact_email || '').toLowerCase();
-      return name.includes(q) || service.includes(q) || location.includes(q) || email.includes(q);
-    });
-  }, [sponsors, searchQuery]);
-
-  // Filtered packages
-  const filteredPackages = useMemo(() => {
-    let list = packages;
-    if (selectedHackathonFilter !== 'all') {
-      list = list.filter((p) => p.hackathon === selectedHackathonFilter);
+  // When debounced search or filters change, trigger backend query for active view
+  const isFirstMount = useRef(true);
+  useEffect(() => {
+    if (isFirstMount.current) {
+      isFirstMount.current = false;
+      return;
     }
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      list = list.filter((p) => {
-        const notes = (p.notes || '').toLowerCase();
-        const benefits = typeof p.benefits === 'string' ? p.benefits.toLowerCase() : JSON.stringify(p.benefits || '').toLowerCase();
-        return notes.includes(q) || benefits.includes(q);
-      });
-    }
-    return list;
-  }, [packages, selectedHackathonFilter, searchQuery]);
 
-  // Filtered package types
-  const filteredPackageTypes = useMemo(() => {
-    if (!searchQuery.trim()) return packageTypes;
-    const q = searchQuery.toLowerCase();
-    return packageTypes.filter((t) => {
-      const name = (t.name || '').toLowerCase();
-      const desc = (t.description || '').toLowerCase();
-      return name.includes(q) || desc.includes(q);
-    });
-  }, [packageTypes, searchQuery]);
+    if (activeTab === 'sponsors') {
+      fetchSponsors(debouncedSearch);
+    } else if (activeTab === 'packages') {
+      fetchPackages(debouncedSearch, selectedHackathonFilter);
+    } else if (activeTab === 'types') {
+      fetchTypes(debouncedSearch);
+    }
+  }, [debouncedSearch, selectedHackathonFilter, activeTab]);
+
+  // Re-fetch whenever global hackathon edition changes in AdminLayout top bar
+  useEffect(() => {
+    const handleGlobalHackathonChange = (e) => {
+      const newHackathon = e?.detail || getSelectedAdminHackathon() || 'all';
+      setSelectedHackathonFilter(newHackathon);
+      fetchData();
+    };
+    window.addEventListener('bic_admin_hackathon_changed', handleGlobalHackathonChange);
+    return () => window.removeEventListener('bic_admin_hackathon_changed', handleGlobalHackathonChange);
+  }, []);
 
   // Helper maps for quick label lookup
   const hackathonMap = useMemo(() => {
@@ -225,6 +273,23 @@ export default function SponsorManagement() {
     packageTypes.forEach((t) => map.set(t.id, t.name));
     return map;
   }, [packageTypes]);
+
+  const organizationMap = useMemo(() => {
+    const map = new Map();
+    sponsors.forEach((s) => map.set(s.id, s));
+    return map;
+  }, [sponsors]);
+
+  const getPackageOrganization = (pkg) => {
+    if (!pkg) return null;
+    if (typeof pkg.organization === 'object' && pkg.organization !== null) {
+      return pkg.organization;
+    }
+    if (pkg.organization && organizationMap.has(pkg.organization)) {
+      return organizationMap.get(pkg.organization);
+    }
+    return null;
+  };
 
   // -------------------------------------------------------------
   // Sponsor Handlers
@@ -321,8 +386,13 @@ export default function SponsorManagement() {
   const handleOpenCreatePackage = () => {
     setEditingPackageId(null);
     setPackageForm({
-      hackathon: hackathons[0]?.id || '',
+      hackathon: (getSelectedAdminHackathon() && getSelectedAdminHackathon() !== 'all')
+        ? getSelectedAdminHackathon()
+        : (hackathons[0]?.id || ''),
+      organization: sponsors[0]?.id || '',
       sponsor_type: packageTypes[0]?.id || '',
+      price_paid: '',
+      price_pledged: '',
       benefits: '',
       notes: ''
     });
@@ -331,9 +401,20 @@ export default function SponsorManagement() {
 
   const handleOpenEditPackage = (pkg) => {
     setEditingPackageId(pkg.id);
+    const orgId = typeof pkg.organization === 'object' && pkg.organization !== null
+      ? pkg.organization.id
+      : (pkg.organization || '');
+
+    const typeId = typeof pkg.sponsor_type === 'object' && pkg.sponsor_type !== null
+      ? pkg.sponsor_type.id
+      : (pkg.sponsor_type || '');
+
     setPackageForm({
       hackathon: pkg.hackathon || '',
-      sponsor_type: pkg.sponsor_type || '',
+      organization: orgId,
+      sponsor_type: typeId,
+      price_paid: pkg.price_paid || '',
+      price_pledged: pkg.price_pledged || '',
       benefits: typeof pkg.benefits === 'object' ? JSON.stringify(pkg.benefits) : (pkg.benefits || ''),
       notes: pkg.notes || ''
     });
@@ -360,9 +441,12 @@ export default function SponsorManagement() {
 
       const payload = {
         hackathon: packageForm.hackathon,
+        organization: packageForm.organization || null,
         sponsor_type: packageForm.sponsor_type || null,
+        price_paid: packageForm.price_paid || '0.00',
+        price_pledged: packageForm.price_pledged || '0.00',
         benefits: formattedBenefits || null,
-        notes: packageForm.notes.trim() || null
+        notes: packageForm.notes?.trim() || null
       };
 
       if (editingPackageId) {
@@ -475,7 +559,7 @@ export default function SponsorManagement() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">
-            {activeTab === 'sponsors' && 'Sponsors Directory'}
+            {activeTab === 'sponsors' && 'Organizations'}
             {activeTab === 'packages' && 'Sponsor Packages'}
             {activeTab === 'types' && 'Package Types'}
             {activeTab === 'breakdown' && 'Sponsorship Breakdown'}
@@ -755,7 +839,7 @@ export default function SponsorManagement() {
       </div>
 
       {/* ----------------------------------------------------------- */}
-      {/* TAB 1: SPONSORS DIRECTORY */}
+      {/* TAB 1: ORGANIZATIONS */}
       {/* ----------------------------------------------------------- */}
       {activeTab === 'sponsors' && (
         <div className="space-y-4">
@@ -771,16 +855,16 @@ export default function SponsorManagement() {
               />
             </div>
             <span className="text-xs text-slate-500 font-mono self-end sm:self-center">
-              Showing {filteredSponsors.length} of {sponsors.length} sponsor{sponsors.length === 1 ? '' : 's'}
+              Showing {sponsors.length} sponsor{sponsors.length === 1 ? '' : 's'}
             </span>
           </div>
 
           {loading && sponsors.length === 0 ? (
             <div className="bg-white rounded-2xl border border-slate-200/80 p-12 text-center">
               <div className="w-8 h-8 border-2 border-orange-200 border-t-[#ea580c] rounded-full animate-spin mx-auto mb-3" />
-              <p className="text-xs text-slate-500">Loading sponsor directory...</p>
+              <p className="text-xs text-slate-500">Loading organizations...</p>
             </div>
-          ) : filteredSponsors.length === 0 ? (
+          ) : sponsors.length === 0 ? (
             <div className="bg-white rounded-2xl border border-slate-200/80 p-12 text-center">
               <Building2 className="w-10 h-10 text-slate-300 mx-auto mb-2" />
               <h3 className="text-sm font-bold text-slate-800">No Sponsors Found</h3>
@@ -813,7 +897,7 @@ export default function SponsorManagement() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 text-slate-700">
-                    {filteredSponsors.map((s) => (
+                    {sponsors.map((s) => (
                       <tr key={s.id} className="hover:bg-slate-50/70 transition-colors">
                         <td className="py-3 px-4">
                           <div className="flex items-center gap-3">
@@ -1000,12 +1084,12 @@ export default function SponsorManagement() {
                 />
               </div>
               <span className="text-xs text-slate-500 font-mono shrink-0 hidden sm:inline">
-                {filteredPackages.length} package{filteredPackages.length === 1 ? '' : 's'}
+                {packages.length} package{packages.length === 1 ? '' : 's'}
               </span>
             </div>
           </div>
 
-          {filteredPackages.length === 0 ? (
+          {packages.length === 0 ? (
             <div className="bg-white rounded-2xl border border-slate-200/80 p-12 text-center">
               <Package className="w-10 h-10 text-slate-300 mx-auto mb-2" />
               <h3 className="text-sm font-bold text-slate-800">No Packages Found</h3>
@@ -1027,91 +1111,167 @@ export default function SponsorManagement() {
                 <table className="w-full text-left text-xs">
                   <thead className="bg-slate-50/80 border-b border-slate-200 text-slate-500 font-semibold uppercase tracking-wider text-[10px]">
                     <tr>
-                      <th className="py-3 px-4">Edition / Hackathon</th>
-                      <th className="py-3 px-4">Package Tier</th>
+                      <th className="py-3 px-4">Organization (Partner)</th>
+                      <th className="py-3 px-4">Tier & Edition</th>
+                      <th className="py-3 px-4">Financials (Paid / Pledged)</th>
                       <th className="py-3 px-4">Allocated Benefits & Perks</th>
                       <th className="py-3 px-4">Internal Notes</th>
                       <th className="py-3 px-4 text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 text-slate-700">
-                    {filteredPackages.map((pkg) => (
-                      <tr key={pkg.id} className="hover:bg-slate-50/70 transition-colors">
-                        <td className="py-3 px-4">
-                          <div className="font-semibold text-slate-900 flex items-center gap-1.5">
-                            <Calendar className="w-3.5 h-3.5 text-[#ea580c]" />
-                            <span>{hackathonMap.get(pkg.hackathon) || 'Current Hackathon'}</span>
-                          </div>
-                          <span className="text-[10px] font-mono text-slate-400">{pkg.hackathon}</span>
-                        </td>
+                    {packages.map((pkg) => {
+                      const org = getPackageOrganization(pkg);
+                      const tierName = pkg.sponsor_type?.name || packageTypeMap.get(pkg.sponsor_type) || 'General Sponsorship';
+                      const paidNum = Number(pkg.price_paid || 0);
+                      const pledgedNum = Number(pkg.price_pledged || 0);
 
-                        <td className="py-3 px-4">
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-purple-50 text-purple-700 border border-purple-200/70 font-semibold text-[11px]">
-                            <Tag className="w-3 h-3 shrink-0" />
-                            <span>{packageTypeMap.get(pkg.sponsor_type) || 'General Sponsorship'}</span>
-                          </span>
-                        </td>
-
-                        <td className="py-3 px-4">
-                          {pkg.benefits ? (
-                            <div className="max-w-md">
-                              {typeof pkg.benefits === 'object' ? (
-                                <div className="flex flex-wrap gap-1">
-                                  {Array.isArray(pkg.benefits) ? (
-                                    pkg.benefits.map((b, i) => (
-                                      <span key={i} className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 text-[10px] font-medium">
-                                        {String(b)}
-                                      </span>
-                                    ))
-                                  ) : (
-                                    Object.entries(pkg.benefits).map(([k, v], i) => (
-                                      <span key={i} className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 text-[10px] font-medium">
-                                        {k}: {String(v)}
-                                      </span>
-                                    ))
-                                  )}
+                      return (
+                        <tr key={pkg.id} className="hover:bg-slate-50/70 transition-colors">
+                          {/* Organization */}
+                          <td className="py-3 px-4">
+                            {org ? (
+                              <div className="flex items-center gap-2.5">
+                                {org.logo ? (
+                                  <img
+                                    src={getMediaUrl(org.logo)}
+                                    alt={org.name}
+                                    className="w-8 h-8 rounded-lg object-contain bg-slate-50 border border-slate-200 p-0.5 shrink-0"
+                                    onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                                  />
+                                ) : (
+                                  <div className="w-8 h-8 rounded-lg bg-orange-50 text-[#ea580c] border border-orange-200/80 flex items-center justify-center font-bold text-xs shrink-0">
+                                    {(org.name?.[0] || 'O').toUpperCase()}
+                                  </div>
+                                )}
+                                <div className="min-w-0">
+                                  <button
+                                    type="button"
+                                    onClick={() => setViewingPackage(pkg)}
+                                    className="font-bold text-slate-900 text-xs hover:text-[#ea580c] transition-colors truncate max-w-[200px] block text-left cursor-pointer"
+                                    title="Click to view organization details"
+                                  >
+                                    {org.name}
+                                  </button>
+                                  <div className="flex items-center gap-1.5 text-[10px] text-slate-500 mt-0.5">
+                                    {org.service && (
+                                      <span className="truncate max-w-[120px] font-medium text-slate-600">{org.service}</span>
+                                    )}
+                                    {org.location && (
+                                      <span className="truncate max-w-[120px] text-slate-400">· {org.location}</span>
+                                    )}
+                                  </div>
                                 </div>
-                              ) : (
-                                <p className="text-slate-600 text-[11px] line-clamp-2">
-                                  {String(pkg.benefits)}
-                                </p>
-                              )}
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-1.5 text-slate-400 text-xs italic">
+                                <Building2 className="w-3.5 h-3.5 text-slate-300" />
+                                <span>Unassigned Partner</span>
+                              </div>
+                            )}
+                          </td>
+
+                          {/* Tier & Edition */}
+                          <td className="py-3 px-4 whitespace-nowrap">
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-purple-50 text-purple-700 border border-purple-200/70 font-semibold text-[11px]">
+                              <Tag className="w-3 h-3 shrink-0" />
+                              <span>{tierName}</span>
+                            </span>
+                            <div className="text-[10px] text-slate-400 mt-1 flex items-center gap-1">
+                              <Calendar className="w-3 h-3 text-slate-400" />
+                              <span className="truncate max-w-[140px]">
+                                {hackathonMap.get(pkg.hackathon) || 'Current Hackathon'}
+                              </span>
                             </div>
-                          ) : (
-                            <span className="text-slate-400 font-mono text-[11px]">No benefits specified</span>
-                          )}
-                        </td>
+                          </td>
 
-                        <td className="py-3 px-4">
-                          {pkg.notes ? (
-                            <p className="text-slate-600 text-[11px] max-w-xs truncate">{pkg.notes}</p>
-                          ) : (
-                            <span className="text-slate-400 font-mono text-[11px]">—</span>
-                          )}
-                        </td>
+                          {/* Financials */}
+                          <td className="py-3 px-4 whitespace-nowrap">
+                            <div className="flex items-center gap-1.5">
+                              <span className="px-2 py-0.5 rounded-md font-mono font-bold text-xs bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                Rs. {paidNum.toLocaleString()}
+                              </span>
+                              <span className="text-[10px] text-emerald-600 font-semibold">Paid</span>
+                            </div>
+                            {pledgedNum > 0 && (
+                              <div className="text-[10px] font-mono text-slate-400 mt-0.5">
+                                Pledged: Rs. {pledgedNum.toLocaleString()}
+                              </div>
+                            )}
+                          </td>
 
-                        <td className="py-3 px-4 text-right">
-                          <div className="inline-flex items-center gap-1">
-                            <button
-                              type="button"
-                              onClick={() => handleOpenEditPackage(pkg)}
-                              className="p-1.5 rounded-lg text-slate-500 hover:text-[#ea580c] hover:bg-orange-50 transition cursor-pointer"
-                              title="Edit Package"
-                            >
-                              <Edit3 className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setDeletingPackage(pkg)}
-                              className="p-1.5 rounded-lg text-slate-500 hover:text-red-600 hover:bg-red-50 transition cursor-pointer"
-                              title="Delete Package"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
+                          {/* Benefits */}
+                          <td className="py-3 px-4">
+                            {pkg.benefits ? (
+                              <div className="max-w-xs">
+                                {typeof pkg.benefits === 'object' ? (
+                                  <div className="flex flex-wrap gap-1">
+                                    {Array.isArray(pkg.benefits) ? (
+                                      pkg.benefits.map((b, i) => (
+                                        <span key={i} className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 text-[10px] font-medium">
+                                          {String(b)}
+                                        </span>
+                                      ))
+                                    ) : (
+                                      Object.entries(pkg.benefits).map(([k, v], i) => (
+                                        <span key={i} className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 text-[10px] font-medium">
+                                          {k}: {String(v)}
+                                        </span>
+                                      ))
+                                    )}
+                                  </div>
+                                ) : (
+                                  <p className="text-slate-600 text-[11px] line-clamp-2">
+                                    {String(pkg.benefits)}
+                                  </p>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-slate-400 font-mono text-[11px]">No perks specified</span>
+                            )}
+                          </td>
+
+                          {/* Notes */}
+                          <td className="py-3 px-4">
+                            {pkg.notes ? (
+                              <p className="text-slate-600 text-[11px] max-w-xs truncate">{pkg.notes}</p>
+                            ) : (
+                              <span className="text-slate-400 font-mono text-[11px]">—</span>
+                            )}
+                          </td>
+
+                          {/* Actions */}
+                          <td className="py-3 px-4 text-right whitespace-nowrap">
+                            <div className="inline-flex items-center gap-1">
+                              <button
+                                type="button"
+                                onClick={() => setViewingPackage(pkg)}
+                                className="p-1.5 rounded-lg text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 transition cursor-pointer"
+                                title="View Organization & Package Details"
+                              >
+                                <Eye className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleOpenEditPackage(pkg)}
+                                className="p-1.5 rounded-lg text-slate-500 hover:text-[#ea580c] hover:bg-orange-50 transition cursor-pointer"
+                                title="Edit Package"
+                              >
+                                <Edit3 className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setDeletingPackage(pkg)}
+                                className="p-1.5 rounded-lg text-slate-500 hover:text-red-600 hover:bg-red-50 transition cursor-pointer"
+                                title="Delete Package"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -1137,11 +1297,11 @@ export default function SponsorManagement() {
               />
             </div>
             <span className="text-xs text-slate-500 font-mono self-end sm:self-center">
-              Showing {filteredPackageTypes.length} of {packageTypes.length} tier{packageTypes.length === 1 ? '' : 's'}
+              Showing {packageTypes.length} tier{packageTypes.length === 1 ? '' : 's'}
             </span>
           </div>
 
-          {filteredPackageTypes.length === 0 ? (
+          {packageTypes.length === 0 ? (
             <div className="bg-white rounded-2xl border border-slate-200/80 p-12 text-center">
               <Layers className="w-10 h-10 text-slate-300 mx-auto mb-2" />
               <h3 className="text-sm font-bold text-slate-800">No Package Types Defined</h3>
@@ -1159,7 +1319,7 @@ export default function SponsorManagement() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredPackageTypes.map((t) => (
+              {packageTypes.map((t) => (
                 <div
                   key={t.id}
                   className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs flex flex-col justify-between hover:border-orange-200 hover:shadow-sm transition"
@@ -1215,92 +1375,6 @@ export default function SponsorManagement() {
       {/* ----------------------------------------------------------- */}
       {activeTab === 'breakdown' && (
         <div className="space-y-6">
-          {/* Executive Overview Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
-              <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider mb-3 flex items-center gap-2">
-                <PieChart className="w-4 h-4 text-[#ea580c]" />
-                <span>Tier Breakdown</span>
-              </h3>
-              <div className="space-y-2.5">
-                {packageTypes.length === 0 ? (
-                  <p className="text-xs text-slate-400">No package types defined yet.</p>
-                ) : (
-                  packageTypes.map((t) => {
-                    const count = packages.filter((p) => p.sponsor_type === t.id).length;
-                    const percent = packages.length > 0 ? Math.round((count / packages.length) * 100) : 0;
-                    return (
-                      <div key={t.id} className="space-y-1">
-                        <div className="flex justify-between text-xs">
-                          <span className="font-medium text-slate-700">{t.name}</span>
-                          <span className="font-mono text-slate-500">
-                            {count} ({percent}%)
-                          </span>
-                        </div>
-                        <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
-                          <div
-                            className="bg-[#ea580c] h-full rounded-full transition-all duration-500"
-                            style={{ width: `${percent}%` }}
-                          />
-                        </div>
-                      </div>
-                    );
-                  })
-                )}
-              </div>
-            </div>
-
-            <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
-              <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider mb-3 flex items-center gap-2">
-                <Briefcase className="w-4 h-4 text-emerald-600" />
-                <span>Service Category Highlights</span>
-              </h3>
-              <div className="space-y-2">
-                {sponsors.filter((s) => Boolean(s.service)).length === 0 ? (
-                  <p className="text-xs text-slate-400">No partner services logged.</p>
-                ) : (
-                  sponsors
-                    .filter((s) => Boolean(s.service))
-                    .slice(0, 5)
-                    .map((s) => (
-                      <div key={s.id} className="flex items-center justify-between text-xs py-1 border-b border-slate-50 last:border-0">
-                        <span className="font-semibold text-slate-800 truncate max-w-[120px]">{s.name}</span>
-                        <span className="text-slate-500 truncate max-w-[160px] text-[11px] font-mono">
-                          {s.service}
-                        </span>
-                      </div>
-                    ))
-                )}
-              </div>
-            </div>
-
-            <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
-              <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider mb-3 flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-blue-600" />
-                <span>Edition Distribution</span>
-              </h3>
-              <div className="space-y-2">
-                {hackathons.length === 0 ? (
-                  <p className="text-xs text-slate-400">No hackathon editions recorded.</p>
-                ) : (
-                  hackathons.map((h) => {
-                    const pkgsCount = packages.filter((p) => p.hackathon === h.id).length;
-                    return (
-                      <div key={h.id} className="flex items-center justify-between text-xs py-1.5 border-b border-slate-50 last:border-0">
-                        <span className="font-medium text-slate-700 truncate max-w-[170px]">
-                          {h.title || h.name || 'Hackathon Edition'}
-                        </span>
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-blue-50 text-blue-700 font-bold">
-                          {pkgsCount} package{pkgsCount === 1 ? '' : 's'}
-                        </span>
-                      </div>
-                    );
-                  })
-                )}
-              </div>
-            </div>
-          </div>
-
           {/* Comprehensive Matrix Table */}
           <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
             <div className="p-4 border-b border-slate-100 flex items-center justify-between">
@@ -1735,6 +1809,24 @@ export default function SponsorManagement() {
             <form onSubmit={handleSavePackage} className="p-5 space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Partner Organization
+                </label>
+                <select
+                  value={packageForm.organization}
+                  onChange={(e) => setPackageForm({ ...packageForm, organization: e.target.value })}
+                  className="w-full text-xs px-3.5 py-2 rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-[#ea580c]"
+                >
+                  <option value="">Select Partner Organization...</option>
+                  {sponsors.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name} {s.service ? `(${s.service})` : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
                   Target Hackathon Edition <span className="text-red-500">*</span>
                 </label>
                 <select
@@ -1768,6 +1860,35 @@ export default function SponsorManagement() {
                     </option>
                   ))}
                 </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Price Paid (Rs.)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={packageForm.price_paid}
+                    onChange={(e) => setPackageForm({ ...packageForm, price_paid: e.target.value })}
+                    placeholder="e.g. 5000.00"
+                    className="w-full text-xs px-3.5 py-2 rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-[#ea580c]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Price Pledged (Rs.)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={packageForm.price_pledged}
+                    onChange={(e) => setPackageForm({ ...packageForm, price_pledged: e.target.value })}
+                    placeholder="e.g. 15000.00"
+                    className="w-full text-xs px-3.5 py-2 rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-[#ea580c]"
+                  />
+                </div>
               </div>
 
               <div>
@@ -1813,6 +1934,275 @@ export default function SponsorManagement() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ----------------------------------------------------------- */}
+      {/* MODAL: VIEW ORGANIZATION & SPONSOR PACKAGE DETAILS */}
+      {/* ----------------------------------------------------------- */}
+      {viewingPackage && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in zoom-in-95 duration-150 overflow-y-auto">
+          <div className="bg-white rounded-3xl w-full max-w-xl border border-slate-200 shadow-2xl overflow-hidden my-8">
+            {(() => {
+              const org = getPackageOrganization(viewingPackage);
+              const tierName = viewingPackage.sponsor_type?.name || packageTypeMap.get(viewingPackage.sponsor_type) || 'General Sponsorship';
+              const paidNum = Number(viewingPackage.price_paid || 0);
+              const pledgedNum = Number(viewingPackage.price_pledged || 0);
+
+              return (
+                <>
+                  <div className="p-6 border-b border-slate-100 flex items-start justify-between bg-gradient-to-r from-orange-50/50 via-white to-slate-50">
+                    <div className="flex items-center gap-3.5">
+                      {org?.logo ? (
+                        <img
+                          src={getMediaUrl(org.logo)}
+                          alt={org.name}
+                          className="w-14 h-14 rounded-2xl object-contain border border-slate-200 p-1 bg-white shadow-xs"
+                        />
+                      ) : (
+                        <div className="w-14 h-14 rounded-2xl bg-orange-100 text-[#ea580c] flex items-center justify-center font-extrabold text-xl shadow-xs border border-orange-200">
+                          {(org?.name?.[0] || 'O').toUpperCase()}
+                        </div>
+                      )}
+                      <div>
+                        <h3 className="font-extrabold text-slate-900 text-lg leading-tight">
+                          {org?.name || 'Sponsor Organization'}
+                        </h3>
+                        {org?.service && (
+                          <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-orange-100 text-[#c2410c] mt-1">
+                            <Briefcase className="w-3 h-3 text-[#ea580c]" />
+                            <span>{org.service}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setViewingPackage(null)}
+                      className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-white/80 transition cursor-pointer"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+
+                  <div className="p-6 space-y-5 text-xs max-h-[75vh] overflow-y-auto">
+                    {/* Organization About */}
+                    {org?.description && (
+                      <div>
+                        <span className="text-slate-400 font-bold uppercase tracking-wider text-[10px] block mb-1">
+                          About Organization
+                        </span>
+                        <p className="text-slate-700 leading-relaxed bg-slate-50 p-3.5 rounded-2xl border border-slate-100">
+                          {org.description}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Contact & Location Details */}
+                    {org && (
+                      <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-3">
+                        <span className="text-slate-400 font-bold uppercase tracking-wider text-[10px] block">
+                          Organization Contact & Location
+                        </span>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                          {org.contact_email && (
+                            <div className="flex items-center gap-2">
+                              <Mail className="w-4 h-4 text-[#ea580c] shrink-0" />
+                              <a
+                                href={`mailto:${org.contact_email}`}
+                                className="text-slate-800 hover:text-[#ea580c] font-mono truncate transition"
+                              >
+                                {org.contact_email}
+                              </a>
+                            </div>
+                          )}
+
+                          {(org.phone_number1 || org.phone_number2) && (
+                            <div className="flex items-center gap-2">
+                              <Phone className="w-4 h-4 text-emerald-600 shrink-0" />
+                              <span className="text-slate-800 font-mono">
+                                {[org.phone_number1, org.phone_number2].filter(Boolean).join(' / ')}
+                              </span>
+                            </div>
+                          )}
+
+                          {org.location && (
+                            <div className="flex items-center gap-2 sm:col-span-2">
+                              <MapPin className="w-4 h-4 text-amber-600 shrink-0" />
+                              <span className="text-slate-700 leading-tight">
+                                {org.location}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Social & Web Links */}
+                        <div className="pt-2 border-t border-slate-200/60 flex flex-wrap items-center gap-2">
+                          {org.website_link && (
+                            <a
+                              href={org.website_link}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-white border border-slate-200 text-slate-700 hover:border-[#ea580c] hover:text-[#ea580c] transition shadow-2xs"
+                            >
+                              <Globe className="w-3.5 h-3.5 text-[#ea580c]" />
+                              <span>Website</span>
+                              <ExternalLink className="w-3 h-3 text-slate-400" />
+                            </a>
+                          )}
+                          {org.facebook_link && (
+                            <a
+                              href={org.facebook_link}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-white border border-slate-200 text-blue-700 hover:border-blue-300 transition shadow-2xs"
+                            >
+                              <span>Facebook</span>
+                              <ExternalLink className="w-3 h-3 text-slate-400" />
+                            </a>
+                          )}
+                          {org.linkedin_link && (
+                            <a
+                              href={org.linkedin_link}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-white border border-slate-200 text-sky-700 hover:border-sky-300 transition shadow-2xs"
+                            >
+                              <span>LinkedIn</span>
+                              <ExternalLink className="w-3 h-3 text-slate-400" />
+                            </a>
+                          )}
+                          {org.twitter_link && (
+                            <a
+                              href={org.twitter_link}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-white border border-slate-200 text-slate-800 hover:border-slate-400 transition shadow-2xs"
+                            >
+                              <span>Twitter</span>
+                              <ExternalLink className="w-3 h-3 text-slate-400" />
+                            </a>
+                          )}
+                          {org.instagram_link && (
+                            <a
+                              href={org.instagram_link}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-white border border-slate-200 text-pink-700 hover:border-pink-300 transition shadow-2xs"
+                            >
+                              <span>Instagram</span>
+                              <ExternalLink className="w-3 h-3 text-slate-400" />
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Sponsorship Package Financials & Tier */}
+                    <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-xs space-y-3">
+                      <span className="text-slate-400 font-bold uppercase tracking-wider text-[10px] block">
+                        Package Financials & Tier
+                      </span>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="p-3 rounded-xl bg-purple-50/70 border border-purple-200/80">
+                          <span className="text-[10px] uppercase font-bold text-purple-600 block">Sponsorship Tier</span>
+                          <span className="text-sm font-bold text-purple-900 mt-0.5 block">{tierName}</span>
+                        </div>
+                        <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80">
+                          <span className="text-[10px] uppercase font-bold text-slate-500 block">Hackathon Edition</span>
+                          <span className="text-sm font-bold text-slate-800 mt-0.5 block truncate">
+                            {hackathonMap.get(viewingPackage.hackathon) || 'Current Edition'}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3 pt-1">
+                        <div className="p-3 rounded-xl bg-emerald-50/70 border border-emerald-200/80">
+                          <span className="text-[10px] uppercase font-bold text-emerald-600 block">Amount Paid</span>
+                          <span className="text-base font-extrabold text-emerald-700 mt-0.5 block font-mono">
+                            Rs. {paidNum.toLocaleString()}
+                          </span>
+                        </div>
+                        <div className="p-3 rounded-xl bg-amber-50/70 border border-amber-200/80">
+                          <span className="text-[10px] uppercase font-bold text-amber-700 block">Pledged Amount</span>
+                          <span className="text-base font-extrabold text-amber-800 mt-0.5 block font-mono">
+                            Rs. {pledgedNum.toLocaleString()}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Benefits & Perks */}
+                    {viewingPackage.benefits && (
+                      <div>
+                        <span className="text-slate-400 font-bold uppercase tracking-wider text-[10px] block mb-1">
+                          Allocated Perks & Benefits
+                        </span>
+                        <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80">
+                          {typeof viewingPackage.benefits === 'object' ? (
+                            <div className="flex flex-wrap gap-1.5">
+                              {Array.isArray(viewingPackage.benefits) ? (
+                                viewingPackage.benefits.map((b, i) => (
+                                  <span key={i} className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-slate-800 font-semibold text-[11px] shadow-2xs">
+                                    {String(b)}
+                                  </span>
+                                ))
+                              ) : (
+                                Object.entries(viewingPackage.benefits).map(([k, v], i) => (
+                                  <span key={i} className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-slate-800 font-semibold text-[11px] shadow-2xs">
+                                    <span className="text-slate-500 font-medium">{k}:</span> {String(v)}
+                                  </span>
+                                ))
+                              )}
+                            </div>
+                          ) : (
+                            <p className="text-slate-700 text-xs leading-relaxed">
+                              {String(viewingPackage.benefits)}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Internal Notes */}
+                    {viewingPackage.notes && (
+                      <div>
+                        <span className="text-slate-400 font-bold uppercase tracking-wider text-[10px] block mb-1">
+                          Internal Notes
+                        </span>
+                        <p className="text-slate-700 bg-amber-50/60 p-3 rounded-xl border border-amber-200/60 italic">
+                          {viewingPackage.notes}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const pkgToEdit = viewingPackage;
+                        setViewingPackage(null);
+                        handleOpenEditPackage(pkgToEdit);
+                      }}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-[#ea580c] bg-orange-50 hover:bg-orange-100 transition cursor-pointer"
+                    >
+                      <Edit3 className="w-3.5 h-3.5" />
+                      <span>Edit Package</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setViewingPackage(null)}
+                      className="px-4 py-1.5 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-200 transition cursor-pointer"
+                    >
+                      Close
+                    </button>
+                  </div>
+                </>
+              );
+            })()}
           </div>
         </div>
       )}

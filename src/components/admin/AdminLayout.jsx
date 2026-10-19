@@ -12,7 +12,9 @@ import {
   clearAuthToken,
   clearRefreshToken,
   logout,
-  getMediaUrl
+  getMediaUrl,
+  getSelectedAdminHackathon,
+  setSelectedAdminHackathon
 } from '../../services/api';
 import {
   UserCog,
@@ -27,7 +29,6 @@ import {
   Shield,
   LayoutDashboard,
   LogOut,
-  Sparkles,
   Layers,
   ChevronRight,
   Menu,
@@ -37,7 +38,10 @@ import {
   Trophy,
   Building2,
   Package,
-  PieChart
+  PieChart,
+  CalendarClock,
+  Calendar,
+  Award
 } from 'lucide-react';
 import hackathonLogo from '../../assets/HACKATHON-LOGO.png';
 
@@ -45,6 +49,7 @@ import hackathonLogo from '../../assets/HACKATHON-LOGO.png';
 const AdminLogin = lazy(() => import('./AdminLogin'));
 const HackathonManagement = lazy(() => import('./HackathonManagement'));
 const SponsorManagement = lazy(() => import('./SponsorManagement'));
+const ScheduleManagement = lazy(() => import('./ScheduleManagement'));
 const UserManagement = lazy(() => import('./UserManagement'));
 const GroupManagement = lazy(() => import('./GroupManagement'));
 const TeamManagement = lazy(() => import('./TeamManagement'));
@@ -81,6 +86,54 @@ export default function AdminLayout() {
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [profileModalOpen, setProfileModalOpen] = useState(false);
+
+  // Available Hackathons for Global Admin Filter
+  const [adminHackathons, setAdminHackathons] = useState([]);
+  const [selectedHackathonId, setSelectedHackathonId] = useState(() => getSelectedAdminHackathon() || '');
+
+  // Fetch hackathons on mount to populate the top-right filter dropdown
+  useEffect(() => {
+    if (getAuthToken()) {
+      api.hackathons
+        .getAll({ skipHackathonFilter: true })
+        .then((res) => {
+          const list = Array.isArray(res)
+            ? res
+            : Array.isArray(res?.results)
+            ? res.results
+            : res?.data || [];
+          setAdminHackathons(list);
+
+          const stored = getSelectedAdminHackathon();
+          if (!stored || stored === 'all') {
+            const currentH = list.find((h) => h.is_current === true);
+            if (currentH?.id) {
+              setSelectedHackathonId(currentH.id);
+              setSelectedAdminHackathon(currentH.id);
+            } else if (list.length > 0 && !stored) {
+              setSelectedHackathonId(list[0].id);
+              setSelectedAdminHackathon(list[0].id);
+            }
+          } else {
+            const found = list.find((h) => h.id === stored);
+            if (found) {
+              setSelectedHackathonId(found.id);
+            }
+          }
+        })
+        .catch((err) => {
+          console.warn('Failed to load hackathons in AdminLayout:', err);
+        });
+    }
+
+    const handleExternalChange = (e) => {
+      if (e?.detail !== undefined) {
+        setSelectedHackathonId(e.detail);
+      }
+    };
+    window.addEventListener('bic_admin_hackathon_changed', handleExternalChange);
+    return () => window.removeEventListener('bic_admin_hackathon_changed', handleExternalChange);
+  }, []);
 
   // Listen for profile updates and only fetch on mount if not already cached
   useEffect(() => {
@@ -120,6 +173,7 @@ export default function AdminLayout() {
   // Dropdown accordion states
   const [hackathonMgmtOpen, setHackathonMgmtOpen] = useState(true);
   const [sponsorMgmtOpen, setSponsorMgmtOpen] = useState(true);
+  const [scheduleMgmtOpen, setScheduleMgmtOpen] = useState(true);
   const [userMgmtOpen, setUserMgmtOpen] = useState(true);
 
   // Group permission objects for non-staff / non-superuser users
@@ -191,11 +245,18 @@ export default function AdminLayout() {
 
   const pathname = location.pathname;
   const currentTab = new URLSearchParams(location.search).get('tab') || 'sponsors';
+  const userTab = new URLSearchParams(location.search).get('tab') || 'users';
+  const hackathonTab = new URLSearchParams(location.search).get('tab') || 'hackathons';
   const isDashboardActive = pathname === '/admin-control-site' || pathname === '/admin-control-site/';
   const isHackathonsActive = pathname.startsWith('/admin-control-site/hackathons');
+  const isHackathonOrganizersActive = isHackathonsActive && hackathonTab === 'organizers';
+  const isHackathonsListActive = isHackathonsActive && hackathonTab !== 'organizers';
   const isSponsorsActive = pathname.startsWith('/admin-control-site/sponsors');
+  const isSchedulesActive = pathname.startsWith('/admin-control-site/schedules');
   const isCustomersActive = pathname.startsWith('/admin-control-site/participants') || pathname.startsWith('/admin-control-site/customers');
   const isUsersActive = pathname.startsWith('/admin-control-site/users');
+  const isOrganizersActive = isUsersActive && userTab === 'organizers';
+  const isUsersListActive = isUsersActive && userTab !== 'organizers';
   const isGroupsActive = pathname.startsWith('/admin-control-site/groups');
   const isTeamsActive = pathname.startsWith('/admin-control-site/teams');
   const isSystemConfigActive = pathname.startsWith('/admin-control-site/system-config');
@@ -267,20 +328,38 @@ export default function AdminLayout() {
     return false;
   };
 
-  const canAccessHackathons = hasPermission(['hackathon', 'schedule', 'event']);
-  const canAccessSponsors = hasPermission(['sponsor', 'sponsorship', 'package', 'hackathon']);
+  const canAccessHackathons = hasPermission(['hackathon', 'event']);
+  const canAccessSponsors = hasPermission(['sponsor', 'sponsorship', 'package']);
   const canAccessParticipants = hasPermission(['participant', 'customer', 'user', 'registration']);
   const canAccessUsers = hasPermission(['user', 'customuser']);
+  const canAccessOrganizers = hasPermission(['organizer', 'user', 'customuser']);
   const canAccessGroups = hasPermission(['group', 'permission']);
   const canAccessTeams = hasPermission(['team']);
-  const canAccessUserMgmt = canAccessParticipants || canAccessUsers || canAccessGroups || canAccessTeams;
+  const canAccessUserMgmt = canAccessParticipants || canAccessUsers || canAccessOrganizers || canAccessGroups || canAccessTeams;
   const canAccessSystemConfig = hasPermission(['config', 'setting', 'system']);
   const canAccessLogs = hasPermission(['activity', 'log', 'audit', 'comment']);
 
+  // Schedule Access Rule:
+  // Show only to users who have group "admin schedules" (or "admin schedule"), and show everything to is_superuser: true
+  const isSuperuser = Boolean(currentUser?.is_superuser === true);
+  const userGroupsList = [
+    ...(Array.isArray(currentUser?.groups) ? currentUser.groups : []),
+    ...(Array.isArray(userGroupObjects) ? userGroupObjects : [])
+  ];
+  const hasAdminSchedulesGroup = userGroupsList.some((g) => {
+    const name = typeof g === 'string' ? g : (g?.name || '');
+    const clean = name.toLowerCase().replace(/[-_]/g, ' ').trim();
+    return clean === 'admin schedules' || clean === 'admin schedule' || clean.includes('admin schedule');
+  });
+  const canAccessSchedules = isSuperuser || hasAdminSchedulesGroup;
+
   // Header Title mapping
   let pageTitle = 'Admin Workspace';
-  if (isHackathonsActive) pageTitle = 'Hackathon Management';
+  if (isHackathonOrganizersActive) pageTitle = 'Hackathon Organizers';
+  else if (isHackathonsActive) pageTitle = 'Hackathon Management';
   else if (isSponsorsActive) pageTitle = 'Sponsors & Packages';
+  else if (isSchedulesActive) pageTitle = 'Schedule Management';
+  else if (isOrganizersActive) pageTitle = 'Organizers Management';
   else if (isUsersActive) pageTitle = 'User Management';
   else if (isCustomersActive) pageTitle = 'Participant Directory';
   else if (isGroupsActive) pageTitle = 'Group Management';
@@ -374,21 +453,40 @@ export default function AdminLayout() {
                   <div className="space-y-0.5 pl-3 ml-2.5 border-l border-slate-100 py-0.5">
                     {/* Hackathons */}
                     <Link
-                      to="/admin-control-site/hackathons"
+                      to="/admin-control-site/hackathons?tab=hackathons"
                       onClick={() => setMobileMenuOpen(false)}
                       className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-normal transition-all ${
-                        isHackathonsActive
+                        isHackathonsListActive
                           ? 'shadow-xs text-white'
                           : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
                       }`}
                       style={
-                        isHackathonsActive
+                        isHackathonsListActive
                           ? { backgroundColor: '#ea580c', color: '#ffffff' }
                           : {}
                       }
                     >
                       <Trophy className="w-3.5 h-3.5 shrink-0" />
                       <span>Hackathons</span>
+                    </Link>
+
+                    {/* Hackathon Organizers */}
+                    <Link
+                      to="/admin-control-site/hackathons?tab=organizers"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-normal transition-all ${
+                        isHackathonOrganizersActive
+                          ? 'shadow-xs text-white'
+                          : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                      }`}
+                      style={
+                        isHackathonOrganizersActive
+                          ? { backgroundColor: '#ea580c', color: '#ffffff' }
+                          : {}
+                      }
+                    >
+                      <Award className="w-3.5 h-3.5 shrink-0" />
+                      <span>Organizers</span>
                     </Link>
                   </div>
                 )}
@@ -419,23 +517,23 @@ export default function AdminLayout() {
                 {/* Collapsible Sub-Items for Sponsors */}
                 {sponsorMgmtOpen && (
                   <div className="space-y-0.5 pl-3 ml-2.5 border-l border-slate-100 py-0.5">
-                    {/* Sponsors Directory */}
+                    {/* Organizations (formerly Sponsors Directory) */}
                     <Link
                       to="/admin-control-site/sponsors?tab=sponsors"
                       onClick={() => setMobileMenuOpen(false)}
                       className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-normal transition-all ${
-                        isSponsorsActive && currentTab === 'sponsors'
+                        isSponsorsActive && (currentTab === 'sponsors' || currentTab === 'organizations')
                           ? 'shadow-xs text-white'
                           : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
                       }`}
                       style={
-                        isSponsorsActive && currentTab === 'sponsors'
+                        isSponsorsActive && (currentTab === 'sponsors' || currentTab === 'organizations')
                           ? { backgroundColor: '#ea580c', color: '#ffffff' }
                           : {}
                       }
                     >
                       <Building2 className="w-3.5 h-3.5 shrink-0" />
-                      <span>Sponsors Directory</span>
+                      <span>Organizations</span>
                     </Link>
 
                     {/* Sponsor Packages */}
@@ -499,6 +597,52 @@ export default function AdminLayout() {
               </div>
             )}
 
+            {/* Schedule Management Dropdown Accordion */}
+            {canAccessSchedules && (
+              <div className="space-y-0.5 mb-1">
+                <button
+                  type="button"
+                  onClick={() => setScheduleMgmtOpen((prev) => !prev)}
+                  className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-slate-700 hover:bg-slate-100/80 hover:text-slate-900 transition-colors group cursor-pointer"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <CalendarClock className="w-4 h-4 text-slate-600 shrink-0" />
+                    <span className="text-xs font-normal text-slate-700">
+                      Schedule Management
+                    </span>
+                  </div>
+                  {scheduleMgmtOpen ? (
+                    <ChevronUp className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                  ) : (
+                    <ChevronDown className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                  )}
+                </button>
+
+                {/* Collapsible Sub-Items for Schedule */}
+                {scheduleMgmtOpen && (
+                  <div className="space-y-0.5 pl-3 ml-2.5 border-l border-slate-100 py-0.5">
+                    <Link
+                      to="/admin-control-site/schedules"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-normal transition-all ${
+                        isSchedulesActive
+                          ? 'shadow-xs text-white'
+                          : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                      }`}
+                      style={
+                        isSchedulesActive
+                          ? { backgroundColor: '#ea580c', color: '#ffffff' }
+                          : {}
+                      }
+                    >
+                      <Calendar className="w-3.5 h-3.5 shrink-0" />
+                      <span>Schedules</span>
+                    </Link>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* User Management Dropdown Accordion */}
             {canAccessUserMgmt && (
               <div className="space-y-0.5">
@@ -547,21 +691,42 @@ export default function AdminLayout() {
                     {/* User Management */}
                     {canAccessUsers && (
                       <Link
-                        to="/admin-control-site/users"
+                        to="/admin-control-site/users?tab=users"
                         onClick={() => setMobileMenuOpen(false)}
                         className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-normal transition-all ${
-                          isUsersActive
+                          isUsersListActive
                             ? 'shadow-xs text-white'
                             : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
                         }`}
                         style={
-                          isUsersActive
+                          isUsersListActive
                             ? { backgroundColor: '#ea580c', color: '#ffffff' }
                             : {}
                         }
                       >
                         <UserCheck className="w-3.5 h-3.5 shrink-0" />
                         <span>User Management</span>
+                      </Link>
+                    )}
+
+                    {/* Organizers */}
+                    {canAccessOrganizers && (
+                      <Link
+                        to="/admin-control-site/users?tab=organizers"
+                        onClick={() => setMobileMenuOpen(false)}
+                        className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-normal transition-all ${
+                          isOrganizersActive
+                            ? 'shadow-xs text-white'
+                            : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                        }`}
+                        style={
+                          isOrganizersActive
+                            ? { backgroundColor: '#ea580c', color: '#ffffff' }
+                            : {}
+                        }
+                      >
+                        <Award className="w-3.5 h-3.5 shrink-0" />
+                        <span>Organizers</span>
                       </Link>
                     )}
 
@@ -737,6 +902,31 @@ export default function AdminLayout() {
             </div>
 
             <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+              {/* Global Hackathon Edition Filter */}
+              <div className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl border border-orange-200/90 bg-orange-50/80 text-slate-800 shadow-2xs hover:border-orange-300 transition">
+                <Trophy className="w-3.5 h-3.5 text-[#ea580c] shrink-0" />
+                <span className="text-[11px] font-bold uppercase tracking-wider text-[#c2410c] hidden md:inline">
+                  Edition:
+                </span>
+                <select
+                  value={selectedHackathonId || 'all'}
+                  onChange={(e) => {
+                    const newId = e.target.value;
+                    setSelectedHackathonId(newId);
+                    setSelectedAdminHackathon(newId);
+                  }}
+                  className="bg-transparent text-xs sm:text-sm font-semibold text-slate-900 focus:outline-none cursor-pointer max-w-[140px] sm:max-w-[200px] truncate"
+                  title="Filter all admin APIs by Hackathon Edition"
+                >
+                  <option value="all">All Hackathons</option>
+                  {adminHackathons.map((h) => (
+                    <option key={h.id} value={h.id}>
+                      {h.title || h.name || 'Hackathon'}{h.version ? ` (${h.version})` : ''}{h.is_current ? ' ★ Active' : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               <button
                 onClick={() => setProfileModalOpen(true)}
                 className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition border border-orange-200 bg-orange-50 text-[#c2410c] hover:bg-orange-100 shadow-xs"
@@ -754,15 +944,6 @@ export default function AdminLayout() {
                 <ArrowLeft className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">Public Site</span>
               </Link>
-
-              <button
-                onClick={handleLogout}
-                className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-semibold text-red-600 hover:bg-red-50 border border-transparent hover:border-red-200 transition"
-                title="Sign Out"
-              >
-                <LogOut className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Sign Out</span>
-              </button>
             </div>
           </header>
 
@@ -789,6 +970,16 @@ export default function AdminLayout() {
                   <Route
                     path="sponsors/*"
                     element={canAccessSponsors ? <SponsorManagement /> : <Navigate to="/admin-control-site" replace />}
+                  />
+
+                  {/* Schedule Management */}
+                  <Route
+                    path="schedules"
+                    element={canAccessSchedules ? <ScheduleManagement /> : <Navigate to="/admin-control-site" replace />}
+                  />
+                  <Route
+                    path="schedules/*"
+                    element={canAccessSchedules ? <ScheduleManagement /> : <Navigate to="/admin-control-site" replace />}
                   />
 
                   {/* User Management */}
@@ -849,7 +1040,7 @@ export default function AdminLayout() {
                             className="w-14 h-14 mb-4 rounded-2xl flex items-center justify-center shadow-inner"
                             style={{ backgroundColor: '#fff3ef' }}
                           >
-                            <Sparkles className="w-7 h-7" style={{ color: '#e8622a' }} />
+                            <Trophy className="w-7 h-7" style={{ color: '#e8622a' }} />
                           </div>
 
                           <h2 className="text-2xl font-bold mb-2 tracking-tight" style={{ color: '#1a1a2e' }}>

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Shield, Key, Users, CheckCircle2, Search, Sparkles } from 'lucide-react';
+import { Shield, Key, Users, CheckCircle2, Search } from 'lucide-react';
 
 const SYSTEM_ROLES = [
   {

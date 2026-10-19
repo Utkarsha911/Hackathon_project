@@ -313,19 +313,22 @@ export function HackathonProvider({ children }) {
           connected = true;
         }
 
-        const schedulesRes = await api.schedules.getAll().catch(() => null);
-        if (Array.isArray(schedulesRes) && schedulesRes.length > 0) {
-          setSchedules(schedulesRes);
-          const extractedEvents = [];
-          schedulesRes.forEach(s => {
-            if (Array.isArray(s.events)) {
-              extractedEvents.push(...s.events);
+        // Only fetch generic schedules if current-hackathon did not embed schedules
+        if (!currentDetails?.schedules || currentDetails.schedules.length === 0) {
+          const schedulesRes = await api.schedules.getAll().catch(() => null);
+          if (Array.isArray(schedulesRes) && schedulesRes.length > 0) {
+            setSchedules(schedulesRes);
+            const extractedEvents = [];
+            schedulesRes.forEach(s => {
+              if (Array.isArray(s.events)) {
+                extractedEvents.push(...s.events);
+              }
+            });
+            if (extractedEvents.length > 0) {
+              setScheduleEvents(extractedEvents);
             }
-          });
-          if (extractedEvents.length > 0) {
-            setScheduleEvents(extractedEvents);
+            connected = true;
           }
-          connected = true;
         }
 
         const teamsRes = await api.teams.getAll().catch(() => null);

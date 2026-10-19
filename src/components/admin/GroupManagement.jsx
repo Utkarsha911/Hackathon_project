@@ -17,7 +17,6 @@ import {
   Check,
   X,
   Code2,
-  Sparkles,
   Edit3,
   Save
 } from 'lucide-react';

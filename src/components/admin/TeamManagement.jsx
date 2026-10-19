@@ -8,7 +8,6 @@ import {
   Building2,
   CheckCircle2,
   Clock,
-  Sparkles,
   GitBranch
 } from 'lucide-react';
 

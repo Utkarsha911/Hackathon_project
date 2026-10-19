@@ -13,7 +13,6 @@ import {
   AlertCircle,
   Save,
   RefreshCw,
-  Sparkles,
   Camera,
   Upload,
   Trash2
@@ -367,7 +366,7 @@ export default function UserProfileModal({ isOpen, onClose, onProfileUpdated }) 
           {/* EDITABLE FIELDS FORM */}
           <form id="user-profile-form" onSubmit={handleSubmit} className="space-y-4">
             <div className="pb-1 border-b border-slate-100 flex items-center gap-1.5 text-xs font-bold text-slate-800">
-              <Sparkles className="w-3.5 h-3.5 text-[#e8622a]" />
+              <User className="w-3.5 h-3.5 text-[#e8622a]" />
               <span>Personal Information</span>
             </div>
 

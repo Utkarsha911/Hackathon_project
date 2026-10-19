@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useHackathon } from '../../context/HackathonContext';
-import { Target, Copy, Check, Sparkles, FolderCode } from 'lucide-react';
+import { Target, Copy, Check, FolderCode } from 'lucide-react';
 
 export default function ChallengesSection() {
   const { challenges, isLoadingApi } = useHackathon();
@@ -90,7 +90,7 @@ export default function ChallengesSection() {
                   {/* Footer Bar */}
                   <div className="mt-8 pt-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 font-mono">
                     <span className="inline-flex items-center gap-1.5 text-coral-700">
-                      <Sparkles className="w-3.5 h-3.5 text-coral-500" />
+                      <Target className="w-3.5 h-3.5 text-coral-500" />
                       <span>Sprint Eligible</span>
                     </span>
                     <span className="text-[11px] text-slate-400 truncate max-w-[140px]" title={challenge.id}>

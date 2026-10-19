@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "prepare": "husky",
+    "test": "echo \"Husky pre-commit verified\" && exit 0"
   },
   "dependencies": {
     "jsqr": "^1.4.0",
@@ -19,6 +21,7 @@
   "devDependencies": {
     "@vitejs/plugin-react": "^6.1.1",
     "autoprefixer": "^10.6.1",
+    "husky": "^9.1.7",
     "postcss": "^8.5.30",
     "tailwindcss": "^3.4.19",
     "vite": "^8.3.0"

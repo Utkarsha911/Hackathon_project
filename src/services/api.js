@@ -129,6 +129,60 @@ export function clearAdminUser() {
   localStorage.removeItem('bic_admin_user');
 }
 
+export function getSelectedAdminHackathon() {
+  if (typeof window === 'undefined') return '';
+  return localStorage.getItem('bic_admin_selected_hackathon') || '';
+}
+
+export function setSelectedAdminHackathon(id) {
+  if (typeof window === 'undefined') return;
+  if (id && id !== 'all') {
+    localStorage.setItem('bic_admin_selected_hackathon', id);
+  } else {
+    localStorage.removeItem('bic_admin_selected_hackathon');
+  }
+  clearApiCache();
+  window.dispatchEvent(new CustomEvent('bic_admin_hackathon_changed', { detail: id }));
+}
+
+function applyAdminHackathonFilter(endpoint) {
+  if (typeof window === 'undefined') return endpoint;
+  if (!window.location.pathname.startsWith('/admin-control-site')) return endpoint;
+
+  const activeHackathon = getSelectedAdminHackathon();
+  if (!activeHackathon || activeHackathon === 'all') return endpoint;
+
+  const cleanPath = endpoint.split('?')[0];
+  // Do NOT filter endpoints that are part of global metadata, auth, or the hackathon listing itself
+  if (
+    cleanPath === '/hackathons/' ||
+    cleanPath === '/hackathons' ||
+    cleanPath.startsWith('/hackathons/current') ||
+    cleanPath.startsWith('/users/') ||
+    cleanPath.startsWith('/system/') ||
+    cleanPath.startsWith('/logs/')
+  ) {
+    return endpoint;
+  }
+
+  const [base, query] = endpoint.split('?');
+  const params = new URLSearchParams(query || '');
+  let changed = false;
+  if (!params.has('hackathon')) {
+    params.set('hackathon', activeHackathon);
+    changed = true;
+  }
+  if (!params.has('hackathon_id')) {
+    params.set('hackathon_id', activeHackathon);
+    changed = true;
+  }
+  if (changed) {
+    return `${base}?${params.toString()}`;
+  }
+
+  return endpoint;
+}
+
 export function logout() {
   clearAuthToken();
   clearRefreshToken();
@@ -228,7 +282,10 @@ async function request(endpoint, options = {}) {
   const method = (options.method || 'GET').toUpperCase();
   const isGet = method === 'GET';
   const forceRefresh = Boolean(options.forceRefresh || options._retry);
-  const cacheKey = `${method}:${endpoint}`;
+  const resolvedEndpoint = isGet && !options.skipHackathonFilter
+    ? applyAdminHackathonFilter(endpoint)
+    : endpoint;
+  const cacheKey = `${method}:${resolvedEndpoint}`;
 
   // If a mutation occurs (POST, PUT, PATCH, DELETE), invalidate affected GET caches
   if (!isGet) {
@@ -256,7 +313,7 @@ async function request(endpoint, options = {}) {
   }
 
   const executeRequest = async () => {
-    const url = `${API_BASE_URL}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
+    const url = `${API_BASE_URL}${resolvedEndpoint.startsWith('/') ? resolvedEndpoint : `/${resolvedEndpoint}`}`;
     const token = options.token || getAuthToken();
 
     const headers = {
@@ -536,6 +593,74 @@ export const api = {
           ...options,
         }),
     },
+
+    // --- Admin Schedules APIs (/api/v1/hackathons/admin/schedules/) ---
+    adminSchedules: {
+      getAll: (params = {}, options = {}) =>
+        request(`/hackathons/admin/schedules/${buildQueryString(params)}`, options),
+      getById: (id, options = {}) =>
+        request(`/hackathons/admin/schedules/${id}/`, options),
+      create: (data, options = {}) =>
+        request('/hackathons/admin/schedules/', {
+          method: 'POST',
+          body: JSON.stringify(data),
+          ...options,
+        }),
+      update: (id, data, options = {}) =>
+        request(`/hackathons/admin/schedules/${id}/`, {
+          method: 'PUT',
+          body: JSON.stringify(data),
+          ...options,
+        }),
+      patch: (id, data, options = {}) =>
+        request(`/hackathons/admin/schedules/${id}/`, {
+          method: 'PATCH',
+          body: JSON.stringify(data),
+          ...options,
+        }),
+      delete: (id, options = {}) =>
+        request(`/hackathons/admin/schedules/${id}/`, {
+          method: 'DELETE',
+          ...options,
+        }),
+      updateStatus: (id, data, options = {}) =>
+        request(`/hackathons/admin/schedules/${id}/update-status/`, {
+          method: 'PATCH',
+          body: JSON.stringify(data),
+          ...options,
+        }),
+    },
+
+    // --- Hackathon Committee Organizers APIs (/hackathons/organizers/) ---
+    organizers: {
+      getAll: (params = {}, options = {}) =>
+        request(`/hackathons/organizers/${buildQueryString(params)}`, options),
+      getById: (id, options = {}) =>
+        request(`/hackathons/organizers/${id}/`, options),
+      create: (data, options = {}) =>
+        request('/hackathons/organizers/', {
+          method: 'POST',
+          body: data instanceof FormData ? data : JSON.stringify(data),
+          ...options,
+        }),
+      update: (id, data, options = {}) =>
+        request(`/hackathons/organizers/${id}/`, {
+          method: 'PUT',
+          body: data instanceof FormData ? data : JSON.stringify(data),
+          ...options,
+        }),
+      patch: (id, data, options = {}) =>
+        request(`/hackathons/organizers/${id}/`, {
+          method: 'PATCH',
+          body: data instanceof FormData ? data : JSON.stringify(data),
+          ...options,
+        }),
+      delete: (id, options = {}) =>
+        request(`/hackathons/organizers/${id}/`, {
+          method: 'DELETE',
+          ...options,
+        }),
+    },
   },
 
   // --- CRM APIs (FAQs, Prizes, Challenges, Terms, Contact) ---
@@ -686,6 +811,43 @@ export const api = {
       request(`/schedules/${scheduleId}/events`, {
         method: 'POST',
         body: JSON.stringify(eventData),
+      }),
+  },
+
+  // --- Admin Schedules APIs (/api/v1/hackathons/admin/schedules/) ---
+  adminSchedules: {
+    getAll: (params = {}, options = {}) =>
+      request(`/hackathons/admin/schedules/${buildQueryString(params)}`, options),
+    getById: (id, options = {}) =>
+      request(`/hackathons/admin/schedules/${id}/`, options),
+    create: (data, options = {}) =>
+      request('/hackathons/admin/schedules/', {
+        method: 'POST',
+        body: JSON.stringify(data),
+        ...options,
+      }),
+    update: (id, data, options = {}) =>
+      request(`/hackathons/admin/schedules/${id}/`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+        ...options,
+      }),
+    patch: (id, data, options = {}) =>
+      request(`/hackathons/admin/schedules/${id}/`, {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+        ...options,
+      }),
+    delete: (id, options = {}) =>
+      request(`/hackathons/admin/schedules/${id}/`, {
+        method: 'DELETE',
+        ...options,
+      }),
+    updateStatus: (id, data, options = {}) =>
+      request(`/hackathons/admin/schedules/${id}/update-status/`, {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+        ...options,
       }),
   },
 
@@ -991,6 +1153,27 @@ export const api = {
         queryStr = str ? `?${str}` : '';
       }
       return request(`/users/${queryStr}`, options);
+    },
+    getOrganizers: (params = {}, options = {}) => {
+      let queryStr = '';
+      if (typeof params === 'string') {
+        queryStr = params ? `?search=${encodeURIComponent(params)}` : '';
+      } else if (params && typeof params === 'object') {
+        const queryParams = new URLSearchParams();
+        if (params.search) queryParams.set('search', params.search);
+        if (params.is_active !== undefined && params.is_active !== 'all' && params.is_active !== '') {
+          queryParams.set('is_active', params.is_active);
+        }
+        if (params.is_staff !== undefined && params.is_staff !== 'all' && params.is_staff !== '') {
+          queryParams.set('is_staff', params.is_staff);
+        }
+        if (params.ordering) queryParams.set('ordering', params.ordering);
+        if (params.page) queryParams.set('page', params.page);
+        if (params.page_size) queryParams.set('page_size', params.page_size);
+        const str = queryParams.toString();
+        queryStr = str ? `?${str}` : '';
+      }
+      return request(`/users/organizers/${queryStr}`, options);
     },
     getById: (id, options = {}) => request(`/users/${id}/`, options),
     getDetail: (id, options = {}) => request(`/users/${id}/`, options),

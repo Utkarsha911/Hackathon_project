@@ -47,7 +47,7 @@ export default function CustomerNavbar({ onOpenRegister }) {
           <div className="max-w-6xl mx-auto flex items-center justify-between gap-3 text-xs">
             <div className="flex items-center gap-2 sm:gap-3 overflow-hidden text-ellipsis whitespace-nowrap min-w-0">
               <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-coral-500/15 text-coral-400 font-mono text-[10px] font-bold uppercase tracking-wider border border-coral-500/30 shrink-0">
-                <span className="w-1.5 h-1.5 rounded-full bg-coral-400 animate-pulse" />
+                <span className="w-1.5 h-1.5 rounded-full bg-coral-400" />
                 Current Hackathon
               </span>
 

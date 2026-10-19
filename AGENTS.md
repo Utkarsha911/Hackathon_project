@@ -25,3 +25,22 @@ These rules are unconditionally active for all operations in this workspace:
    - Modal scroll lock: always apply `useBodyScrollLock`.
    - Media URLs: always wrap paths with `getMediaUrl()`.
    - Never output raw JSON API responses.
+
+6. **Backend-Driven Filtering & Search (Never Filter in Frontend)**:
+   - NEVER perform client-side filtering (`.filter()`, `.find()`, etc.) in frontend memory on fetched collections for search queries or dropdown filters.
+   - Always delegate filtering, searching, and status queries to backend API endpoints via query parameters (e.g. `?search=...`, `?execution_status=...`, `?is_active=...`, `?hackathon=...`).
+   - Directly consume and render the backend's returned `results` and `stats`.
+
+7. **Top-Bar Hackathon Edition Selector & Global Filtering**:
+   - The top-right navbar must feature the global Hackathon Edition selector (fetching editions from `api.hackathons.getAll()`) instead of a Sign Out button (sign out is maintained in the sidebar user profile row).
+   - The selected edition filters every API request dispatched across the admin panel via `?hackathon=<id>`.
+
+8. **No Playful/Sparkle Icons (No Emoji-style Icons)**:
+   - NEVER use `Sparkles` or playful star/sparkle/emoji-style icons for administrative statuses, KPI cards, or verification labels.
+   - Always use clean, professional enterprise icons (e.g. `CheckCircle2`, `BadgeCheck`, `ShieldCheck`, `Clock`, `Shield`, `Award`).
+
+9. **No Blinking or Pulsing Status Indicators**:
+   - NEVER add blinking, pulsing, or pinging animations (`animate-pulse`, `animate-ping`) to status indicator dots, pills, or chips (e.g. for "Active", "Live", or "Verified").
+   - Status dots and badges must remain solid and static (e.g. `<span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />`) to maintain a clean, distraction-free interface.
+
+

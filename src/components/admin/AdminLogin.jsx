@@ -9,7 +9,7 @@ import {
   EyeOff,
   ArrowLeft,
   LogIn,
-  Sparkles
+  Shield
 } from 'lucide-react';
 import GoogleAuthButton from '../common/GoogleAuthButton';
 import hackathonLogo from '../../assets/HACKATHON-LOGO.png';
@@ -317,7 +317,7 @@ export default function AdminLogin({ onLoginSuccess }) {
               onClick={handleOfflineDemoLogin}
               className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-[#e8622a] transition"
             >
-              <Sparkles className="w-3.5 h-3.5 text-[#e8622a]" />
+              <Shield className="w-3.5 h-3.5 text-[#e8622a]" />
               <span>Backend server offline? Enter via Demo Mode</span>
             </button>
           </div>

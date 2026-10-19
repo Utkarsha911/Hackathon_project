@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { api } from '../../services/api';
-import { Sparkles, AlertCircle, CheckCircle2, KeyRound, ArrowRight, Lock, HelpCircle } from 'lucide-react';
+import { AlertCircle, CheckCircle2, KeyRound, ArrowRight, Lock, HelpCircle } from 'lucide-react';
 
 const GOOGLE_CLIENT_ID =
   import.meta.env.VITE_GOOGLE_CLIENT_ID ||

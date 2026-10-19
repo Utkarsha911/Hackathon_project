@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { api, getMediaUrl } from '../../services/api';
+import { useSearchParams } from 'react-router-dom';
+import { api, getMediaUrl, getSelectedAdminHackathon } from '../../services/api';
 import { useHackathon } from '../../context/HackathonContext';
 import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
 import {
@@ -15,7 +16,6 @@ import {
   Trash2,
   CheckCircle2,
   AlertCircle,
-  Sparkles,
   Layers,
   Image as ImageIcon,
   ChevronRight,
@@ -25,7 +25,12 @@ import {
   Check,
   Flame,
   LayoutGrid,
-  ListFilter
+  ListFilter,
+  Award,
+  UserCheck,
+  Mail,
+  Shield,
+  Hash
 } from 'lucide-react';
 
 // Module-level cache so tab switching within the admin panel is instant
@@ -82,9 +87,11 @@ const EMPTY_FORM = {
 };
 
 export default function HackathonManagement() {
-  const { showToast } = useHackathon();
+  const [searchParams] = useSearchParams();
+  const activeTab = searchParams.get('tab') || 'hackathons';
+  const { showToast, hackathon: currentHackathon } = useHackathon();
 
-  // Primary data state
+  // Primary data state (Hackathons)
   const [hackathons, setHackathons] = useState(() => {
     return Array.isArray(cachedHackathonsPayload?.results) ? cachedHackathonsPayload.results : [];
   });
@@ -98,7 +105,7 @@ export default function HackathonManagement() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [viewMode, setViewMode] = useState('table'); // 'table' | 'grid'
 
-  // Modals state
+  // Modals state (Hackathons)
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [createForm, setCreateForm] = useState(EMPTY_FORM);
   const [createImagePreview, setCreateImagePreview] = useState('');
@@ -113,9 +120,44 @@ export default function HackathonManagement() {
   const [deletingHackathon, setDeletingHackathon] = useState(null);
   const [submittingDelete, setSubmittingDelete] = useState(false);
 
+  // -------------------------------------------------------------
+  // ORGANIZERS STATE & MODALS
+  // -------------------------------------------------------------
+  const [organizers, setOrganizers] = useState([]);
+  const [organizersStats, setOrganizersStats] = useState({ total_items: 0, active_items: 0, inactive_items: 0 });
+  const [organizersLoading, setOrganizersLoading] = useState(false);
+  const [organizerSearchInput, setOrganizerSearchInput] = useState('');
+  const [appliedOrganizerSearch, setAppliedOrganizerSearch] = useState('');
+  const [organizerHackathonFilter, setOrganizerHackathonFilter] = useState('');
+
+  // Dropdown lists for Add/Edit Organizer modal
+  const [availableUsers, setAvailableUsers] = useState([]);
+  const [, setLoadingUsers] = useState(false);
+  const [availableHackathons, setAvailableHackathons] = useState([]);
+
+  // Modals state (Organizers)
+  const [isOrgModalOpen, setIsOrgModalOpen] = useState(false);
+  const [editingOrg, setEditingOrg] = useState(null);
+  const [orgForm, setOrgForm] = useState({
+    user: '',
+    hackathon: '',
+    designation: '',
+    order: 0
+  });
+  const [submittingOrg, setSubmittingOrg] = useState(false);
+  const [viewingOrg, setViewingOrg] = useState(null);
+  const [deletingOrg, setDeletingOrg] = useState(null);
+  const [submittingDeleteOrg, setSubmittingDeleteOrg] = useState(false);
+
   // Background scroll lock when any modal is open
   const isAnyModalOpen = Boolean(
-    isCreateOpen || viewingHackathon || editingHackathon || deletingHackathon
+    isCreateOpen ||
+      viewingHackathon ||
+      editingHackathon ||
+      deletingHackathon ||
+      isOrgModalOpen ||
+      viewingOrg ||
+      deletingOrg
   );
   useBodyScrollLock(isAnyModalOpen);
 
@@ -167,6 +209,201 @@ export default function HackathonManagement() {
   useEffect(() => {
     fetchHackathons();
   }, []);
+
+  // -------------------------------------------------------------
+  // ORGANIZERS FETCH & HANDLERS
+  // -------------------------------------------------------------
+  const fetchAvailableUsers = async () => {
+    if (availableUsers.length > 0) return;
+    setLoadingUsers(true);
+    try {
+      const res = await api.users.getAll({ page_size: 200 });
+      const list = Array.isArray(res) ? res : res?.results || [];
+      setAvailableUsers(list);
+    } catch (err) {
+      console.warn('Failed to load users for selector:', err);
+    } finally {
+      setLoadingUsers(false);
+    }
+  };
+
+  const fetchAvailableHackathons = async () => {
+    try {
+      const res = await api.hackathons.getAll();
+      const list = Array.isArray(res) ? res : res?.results || [];
+      setAvailableHackathons(list);
+    } catch (err) {
+      console.warn('Failed to load hackathons list:', err);
+    }
+  };
+
+  const fetchOrganizers = async (overrides = {}) => {
+    setOrganizersLoading(true);
+    try {
+      const search = overrides.search !== undefined ? overrides.search : appliedOrganizerSearch;
+      const hackathonId = overrides.hackathon !== undefined ? overrides.hackathon : organizerHackathonFilter;
+
+      const params = {};
+      if (search && search.trim()) {
+        params.search = search.trim();
+      }
+      if (hackathonId && hackathonId !== 'all') {
+        params.hackathon = hackathonId;
+      }
+
+      const res = await api.hackathons.organizers.getAll(params);
+      const list = Array.isArray(res) ? res : res?.results || [];
+      const computedStats = res?.stats || {
+        total_items: res?.count ?? list.length,
+        active_items: list.filter((o) => o?.user?.is_active !== false).length,
+        inactive_items: list.filter((o) => o?.user?.is_active === false).length
+      };
+
+      setOrganizers(list);
+      setOrganizersStats(computedStats);
+    } catch (err) {
+      console.warn('Failed to fetch organizers:', err);
+      showToast(err?.message || 'Failed to load hackathon organizers.', 'error');
+    } finally {
+      setOrganizersLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'organizers') {
+      fetchOrganizers();
+      fetchAvailableHackathons();
+    }
+  }, [activeTab, appliedOrganizerSearch, organizerHackathonFilter]);
+
+  useEffect(() => {
+    const handleGlobalHackathonChange = () => {
+      if (activeTab === 'organizers') {
+        fetchOrganizers();
+      } else {
+        fetchHackathons(true);
+      }
+    };
+    window.addEventListener('bic_admin_hackathon_changed', handleGlobalHackathonChange);
+    return () => {
+      window.removeEventListener('bic_admin_hackathon_changed', handleGlobalHackathonChange);
+    };
+  }, [activeTab]);
+
+  const getHackathonTitle = (hackathonIdOrObj) => {
+    if (!hackathonIdOrObj) return '—';
+    if (typeof hackathonIdOrObj === 'object' && hackathonIdOrObj.title) {
+      return `${hackathonIdOrObj.title} ${hackathonIdOrObj.version ? `(${hackathonIdOrObj.version})` : ''}`.trim();
+    }
+    const id = typeof hackathonIdOrObj === 'string' ? hackathonIdOrObj : hackathonIdOrObj.id;
+    const found = availableHackathons.find((h) => h.id === id) || hackathons.find((h) => h.id === id);
+    if (found) {
+      return `${found.title} ${found.version ? `(${found.version})` : ''}`.trim();
+    }
+    return id ? `${id.substring(0, 8)}...` : '—';
+  };
+
+  const handleOrganizerSearchSubmit = (e) => {
+    e.preventDefault();
+    setAppliedOrganizerSearch(organizerSearchInput);
+  };
+
+  const handleClearOrganizerSearch = () => {
+    setOrganizerSearchInput('');
+    setAppliedOrganizerSearch('');
+  };
+
+  const handleOpenCreateOrg = () => {
+    const activeHId = getSelectedAdminHackathon();
+    const defaultHackathon =
+      activeHId && activeHId !== 'all'
+        ? activeHId
+        : currentHackathon?.id || availableHackathons[0]?.id || hackathons[0]?.id || '';
+
+    setEditingOrg(null);
+    setOrgForm({
+      user: '',
+      hackathon: defaultHackathon,
+      designation: '',
+      order: (organizers?.length || 0) + 1
+    });
+    fetchAvailableUsers();
+    fetchAvailableHackathons();
+    setIsOrgModalOpen(true);
+  };
+
+  const handleOpenEditOrg = (org) => {
+    setEditingOrg(org);
+    setOrgForm({
+      user: org.user?.id || org.user || '',
+      hackathon: typeof org.hackathon === 'object' ? org.hackathon?.id : org.hackathon || '',
+      designation: org.designation || '',
+      order: org.order ?? 0
+    });
+    fetchAvailableUsers();
+    fetchAvailableHackathons();
+    setIsOrgModalOpen(true);
+  };
+
+  const handleSaveOrg = async (e) => {
+    e.preventDefault();
+    if (!orgForm.user) {
+      showToast('Please select a user account.', 'error');
+      return;
+    }
+    if (!orgForm.hackathon) {
+      showToast('Please select a hackathon edition.', 'error');
+      return;
+    }
+    if (!orgForm.designation.trim()) {
+      showToast('Please provide an organizer designation.', 'error');
+      return;
+    }
+
+    setSubmittingOrg(true);
+    try {
+      const payload = {
+        user: orgForm.user,
+        user_id: orgForm.user,
+        hackathon: orgForm.hackathon,
+        designation: orgForm.designation.trim(),
+        order: parseInt(orgForm.order, 10) || 0
+      };
+
+      if (editingOrg) {
+        await api.hackathons.organizers.update(editingOrg.id, payload);
+        showToast('Organizer updated successfully.', 'success');
+      } else {
+        await api.hackathons.organizers.create(payload);
+        showToast('Organizer added successfully.', 'success');
+      }
+
+      setIsOrgModalOpen(false);
+      setEditingOrg(null);
+      fetchOrganizers();
+    } catch (err) {
+      console.error('Error saving organizer:', err);
+      showToast(err?.message || 'Failed to save organizer.', 'error');
+    } finally {
+      setSubmittingOrg(false);
+    }
+  };
+
+  const handleDeleteOrgSubmit = async () => {
+    if (!deletingOrg) return;
+    setSubmittingDeleteOrg(true);
+    try {
+      await api.hackathons.organizers.delete(deletingOrg.id);
+      showToast('Organizer removed successfully.', 'success');
+      setDeletingOrg(null);
+      fetchOrganizers();
+    } catch (err) {
+      console.error('Error deleting organizer:', err);
+      showToast(err?.message || 'Failed to delete organizer.', 'error');
+    } finally {
+      setSubmittingDeleteOrg(false);
+    }
+  };
 
   // Filter hackathons
   const filteredHackathons = hackathons.filter((item) => {
@@ -394,8 +631,316 @@ export default function HackathonManagement() {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
-      {/* Header with Title and Create Button */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      {activeTab === 'organizers' ? (
+        <div className="space-y-6">
+          {/* Header with Title and Add Organizer Button (Rule 1) */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">
+                  Hackathon Organizers
+                </h2>
+                <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-orange-100 text-[#c2410c] border border-orange-200">
+                  {organizersStats.total_items ?? organizers.length} Assigned
+                </span>
+              </div>
+              <p className="text-xs sm:text-sm text-slate-500 mt-1">
+                Manage committee leads, officers, and event coordinators assigned to platform hackathons
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2.5 w-full sm:w-auto">
+              <button
+                type="button"
+                onClick={handleOpenCreateOrg}
+                className="w-full sm:w-auto justify-center inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold text-white shadow-md shadow-orange-500/20 hover:shadow-orange-500/30 active:scale-[0.99] transition-all cursor-pointer"
+                style={{ backgroundColor: '#ea580c' }}
+              >
+                <Plus className="w-4 h-4" />
+                <span>Add Organizer</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Stats Cards (Rule 4) */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {/* Total Organizers */}
+            <div className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200 shadow-xs flex items-center justify-between">
+              <div>
+                <div className="text-xs font-medium text-slate-500 uppercase tracking-wider">
+                  Total Organizers
+                </div>
+                <div className="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-1">
+                  {organizersStats.total_items ?? organizers.length}
+                </div>
+                <div className="text-[11px] text-slate-400 mt-1 flex items-center gap-1">
+                  <Award className="w-3 h-3 text-[#ea580c]" />
+                  <span>Committee members in database</span>
+                </div>
+              </div>
+              <div
+                className="w-12 h-12 rounded-2xl flex items-center justify-center shadow-inner shrink-0"
+                style={{ backgroundColor: '#fff3ef' }}
+              >
+                <Award className="w-6 h-6" style={{ color: '#ea580c' }} />
+              </div>
+            </div>
+
+            {/* Active Accounts */}
+            <div className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200 shadow-xs flex items-center justify-between">
+              <div>
+                <div className="text-xs font-medium text-slate-500 uppercase tracking-wider">
+                  Active Accounts
+                </div>
+                <div className="text-2xl sm:text-3xl font-extrabold text-emerald-600 mt-1">
+                  {organizersStats.active_items ?? 0}
+                </div>
+                <div className="text-[11px] text-slate-400 mt-1 flex items-center gap-1">
+                  <CheckCircle2 className="w-3 h-3 text-emerald-500" />
+                  <span>Enabled user profiles</span>
+                </div>
+              </div>
+              <div className="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center shadow-inner shrink-0 border border-emerald-100">
+                <CheckCircle2 className="w-6 h-6 text-emerald-600" />
+              </div>
+            </div>
+
+            {/* Inactive Accounts */}
+            <div className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200 shadow-xs flex items-center justify-between">
+              <div>
+                <div className="text-xs font-medium text-slate-500 uppercase tracking-wider">
+                  Inactive Accounts
+                </div>
+                <div className="text-2xl sm:text-3xl font-extrabold text-slate-700 mt-1">
+                  {organizersStats.inactive_items ?? 0}
+                </div>
+                <div className="text-[11px] text-slate-400 mt-1 flex items-center gap-1">
+                  <AlertCircle className="w-3 h-3 text-slate-400" />
+                  <span>Pending or deactivated profiles</span>
+                </div>
+              </div>
+              <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center shadow-inner shrink-0 border border-slate-200">
+                <AlertCircle className="w-6 h-6 text-slate-500" />
+              </div>
+            </div>
+          </div>
+
+          {/* Search & Hackathon Filter Bar (Rule 6: Backend-driven filtering) */}
+          <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+            <form onSubmit={handleOrganizerSearchSubmit} className="relative flex-1">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                type="text"
+                value={organizerSearchInput}
+                onChange={(e) => setOrganizerSearchInput(e.target.value)}
+                placeholder="Search organizers by name, email, designation... (Press Enter)"
+                className="w-full pl-9.5 pr-20 py-2 rounded-xl border border-slate-200 text-xs sm:text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition"
+              />
+              <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                {organizerSearchInput && (
+                  <button
+                    type="button"
+                    onClick={handleClearOrganizerSearch}
+                    className="p-1 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition cursor-pointer"
+                    title="Clear search"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+                <button
+                  type="submit"
+                  className="px-2.5 py-1 text-xs font-semibold rounded-lg text-white transition cursor-pointer shadow-xs"
+                  style={{ backgroundColor: '#ea580c' }}
+                >
+                  Search
+                </button>
+              </div>
+            </form>
+
+            <div className="flex items-center gap-2">
+              <div className="relative min-w-[200px]">
+                <select
+                  value={organizerHackathonFilter}
+                  onChange={(e) => setOrganizerHackathonFilter(e.target.value)}
+                  className="w-full px-3 py-2 text-xs font-semibold rounded-xl border border-slate-200 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition cursor-pointer"
+                >
+                  <option value="">All Hackathon Editions</option>
+                  {availableHackathons.map((h) => (
+                    <option key={h.id} value={h.id}>
+                      {h.title} {h.version ? `(${h.version})` : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Table / Empty State / Loading State */}
+          {organizersLoading && organizers.length === 0 ? (
+            <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center shadow-xs">
+              <div className="w-8 h-8 border-2 border-orange-200 border-t-[#ea580c] rounded-full animate-spin mx-auto mb-3" />
+              <p className="text-xs font-semibold text-slate-500">
+                Loading organizers from /api/v1/hackathons/organizers/...
+              </p>
+            </div>
+          ) : organizers.length === 0 ? (
+            <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center shadow-xs">
+              <Award className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+              <h3 className="text-sm font-bold text-slate-700">No Organizers Found</h3>
+              <p className="text-xs text-slate-400 max-w-md mx-auto mt-1 mb-4">
+                {appliedOrganizerSearch || organizerHackathonFilter
+                  ? 'No organizers match the applied filter criteria.'
+                  : 'No organizers have been assigned to hackathon editions yet.'}
+              </p>
+              <button
+                type="button"
+                onClick={handleOpenCreateOrg}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold text-white cursor-pointer hover:opacity-90 transition"
+                style={{ backgroundColor: '#ea580c' }}
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Add First Organizer</span>
+              </button>
+            </div>
+          ) : (
+            <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="border-b border-slate-100 bg-slate-50/75 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                      <th className="py-3 px-4 w-20">Order</th>
+                      <th className="py-3 px-4">Organizer</th>
+                      <th className="py-3 px-4">Designation</th>
+                      <th className="py-3 px-4">Hackathon Edition</th>
+                      <th className="py-3 px-4">User Status</th>
+                      <th className="py-3 px-4 text-right w-28">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 text-xs text-slate-700">
+                    {organizers.map((org) => {
+                      const user = org.user || {};
+                      const avatarUrl = user.profile_picture ? getMediaUrl(user.profile_picture) : null;
+                      const displayName =
+                        user.full_name ||
+                        `${user.first_name || ''} ${user.last_name || ''}`.trim() ||
+                        user.email ||
+                        'Unnamed User';
+                      const initial = (user.first_name?.[0] || user.full_name?.[0] || user.email?.[0] || 'O').toUpperCase();
+
+                      return (
+                        <tr key={org.id} className="hover:bg-slate-50/60 transition group">
+                          {/* Order */}
+                          <td className="py-3.5 px-4">
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-md font-mono text-[11px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                              #{org.order ?? 0}
+                            </span>
+                          </td>
+
+                          {/* Organizer Name & Avatar */}
+                          <td className="py-3.5 px-4">
+                            <div className="flex items-center gap-3">
+                              {avatarUrl ? (
+                                <img
+                                  src={avatarUrl}
+                                  alt={displayName}
+                                  className="w-9 h-9 rounded-full object-cover border border-slate-200 shadow-xs shrink-0"
+                                  onError={(e) => {
+                                    e.currentTarget.style.display = 'none';
+                                  }}
+                                />
+                              ) : (
+                                <div className="w-9 h-9 rounded-full bg-orange-100 text-[#c2410c] font-bold text-xs flex items-center justify-center shrink-0 border border-orange-200">
+                                  {initial}
+                                </div>
+                              )}
+                              <div className="min-w-0">
+                                <div className="font-semibold text-slate-900 truncate flex items-center gap-1.5">
+                                  <span>{displayName}</span>
+                                  {user.is_verified && (
+                                    <span title="Verified user">
+                                      <CheckCircle2 className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="text-[11px] text-slate-400 font-mono truncate">
+                                  {user.email || 'No email'}
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* Designation */}
+                          <td className="py-3.5 px-4">
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-orange-50 text-[#c2410c] border border-orange-100">
+                              <Award className="w-3.5 h-3.5 text-[#ea580c] shrink-0" />
+                              <span>{org.designation || 'Organizer'}</span>
+                            </span>
+                          </td>
+
+                          {/* Hackathon Edition */}
+                          <td className="py-3.5 px-4">
+                            <div className="font-medium text-slate-800">
+                              {getHackathonTitle(org.hackathon)}
+                            </div>
+                          </td>
+
+                          {/* User Status */}
+                          <td className="py-3.5 px-4">
+                            {user.is_active !== false ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                                Active
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-600 border border-slate-200">
+                                <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+                                Inactive
+                              </span>
+                            )}
+                          </td>
+
+                          {/* Actions */}
+                          <td className="py-3.5 px-4 text-right">
+                            <div className="flex items-center justify-end gap-1">
+                              <button
+                                type="button"
+                                onClick={() => setViewingOrg(org)}
+                                className="p-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition cursor-pointer"
+                                title="View Details"
+                              >
+                                <Eye className="w-4 h-4" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleOpenEditOrg(org)}
+                                className="p-1.5 rounded-lg text-slate-500 hover:text-[#ea580c] hover:bg-orange-50 transition cursor-pointer"
+                                title="Edit Organizer"
+                              >
+                                <Edit3 className="w-4 h-4" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setDeletingOrg(org)}
+                                className="p-1.5 rounded-lg text-slate-500 hover:text-red-600 hover:bg-red-50 transition cursor-pointer"
+                                title="Delete Organizer"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
+      ) : (
+        <>
+          {/* Header with Title and Create Button */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
             <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">
@@ -854,6 +1399,8 @@ export default function HackathonManagement() {
             </table>
           </div>
         </div>
+      )}
+        </>
       )}
 
       {/* ------------------------------------------------------------- */}
@@ -1591,6 +2138,328 @@ export default function HackathonManagement() {
                 className="px-4 py-2 rounded-xl text-xs font-semibold text-white bg-red-600 hover:bg-red-700 transition cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
               >
                 {submittingDelete ? 'Deleting...' : 'Confirm Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ------------------------------------------------------------- */}
+      {/* ADD / EDIT ORGANIZER MODAL                                    */}
+      {/* ------------------------------------------------------------- */}
+      {isOrgModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/50 backdrop-blur-xs overflow-y-auto">
+          <div className="bg-white rounded-2xl max-w-lg w-full border border-slate-200 shadow-2xl overflow-hidden my-6">
+            {/* Modal Header */}
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+              <div className="flex items-center gap-2.5">
+                <div
+                  className="w-9 h-9 rounded-xl flex items-center justify-center shadow-inner"
+                  style={{ backgroundColor: '#fff3ef' }}
+                >
+                  <Award className="w-5 h-5" style={{ color: '#ea580c' }} />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">
+                    {editingOrg ? 'Edit Hackathon Organizer' : 'Add Hackathon Organizer'}
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    Assign a platform user as committee officer for a hackathon edition
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsOrgModalOpen(false);
+                  setEditingOrg(null);
+                }}
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Modal Form */}
+            <form onSubmit={handleSaveOrg} className="p-6 space-y-4">
+              {/* Select User */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Organizer User Account <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={orgForm.user}
+                  onChange={(e) => setOrgForm((prev) => ({ ...prev, user: e.target.value }))}
+                  required
+                  className="w-full px-3 py-2 text-xs sm:text-sm rounded-xl border border-slate-200 text-slate-800 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition"
+                >
+                  <option value="">Select a user account...</option>
+                  {availableUsers.map((u) => {
+                    const name =
+                      u.full_name ||
+                      `${u.first_name || ''} ${u.last_name || ''}`.trim() ||
+                      u.email;
+                    return (
+                      <option key={u.id} value={u.id}>
+                        {name} ({u.email})
+                      </option>
+                    );
+                  })}
+                </select>
+                <p className="text-[11px] text-slate-400 mt-1">
+                  Select an authenticated user to be designated as an organizer.
+                </p>
+              </div>
+
+              {/* Select Hackathon Edition */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Hackathon Edition <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={orgForm.hackathon}
+                  onChange={(e) => setOrgForm((prev) => ({ ...prev, hackathon: e.target.value }))}
+                  required
+                  className="w-full px-3 py-2 text-xs sm:text-sm rounded-xl border border-slate-200 text-slate-800 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition"
+                >
+                  <option value="">Select a hackathon edition...</option>
+                  {availableHackathons.map((h) => (
+                    <option key={h.id} value={h.id}>
+                      {h.title} {h.version ? `(${h.version})` : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Designation */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Designation / Role Title <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={orgForm.designation}
+                  onChange={(e) => setOrgForm((prev) => ({ ...prev, designation: e.target.value }))}
+                  placeholder="e.g. Technical Officer, Operations Lead, Sponsorship Head"
+                  required
+                  className="w-full px-3 py-2 text-xs sm:text-sm rounded-xl border border-slate-200 text-slate-800 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition"
+                />
+              </div>
+
+              {/* Display Order */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Display Sequence / Order
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  value={orgForm.order}
+                  onChange={(e) => setOrgForm((prev) => ({ ...prev, order: e.target.value }))}
+                  className="w-full px-3 py-2 text-xs sm:text-sm rounded-xl border border-slate-200 text-slate-800 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition"
+                />
+                <p className="text-[11px] text-slate-400 mt-1">
+                  Determines sorting position on the organizers lineup (lower numbers appear first).
+                </p>
+              </div>
+
+              {/* Actions */}
+              <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsOrgModalOpen(false);
+                    setEditingOrg(null);
+                  }}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submittingOrg}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-white shadow-md shadow-orange-500/20 hover:shadow-orange-500/30 transition cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+                  style={{ backgroundColor: '#ea580c' }}
+                >
+                  {submittingOrg ? (
+                    <>
+                      <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      <span>Saving...</span>
+                    </>
+                  ) : (
+                    <span>{editingOrg ? 'Update Organizer' : 'Add Organizer'}</span>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ------------------------------------------------------------- */}
+      {/* VIEW ORGANIZER MODAL                                          */}
+      {/* ------------------------------------------------------------- */}
+      {viewingOrg && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/50 backdrop-blur-xs overflow-y-auto">
+          <div className="bg-white rounded-2xl max-w-lg w-full border border-slate-200 shadow-2xl overflow-hidden my-6">
+            {/* Modal Header */}
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+              <div className="flex items-center gap-2.5">
+                <div
+                  className="w-9 h-9 rounded-xl flex items-center justify-center shadow-inner"
+                  style={{ backgroundColor: '#fff3ef' }}
+                >
+                  <Award className="w-5 h-5" style={{ color: '#ea580c' }} />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">
+                    Organizer Details
+                  </h3>
+                  <p className="text-xs text-slate-500 font-mono">
+                    ID: {viewingOrg.id}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setViewingOrg(null)}
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Profile Info */}
+            <div className="p-6 space-y-4">
+              <div className="flex items-center gap-4 p-4 rounded-xl bg-slate-50 border border-slate-200">
+                {viewingOrg.user?.profile_picture ? (
+                  <img
+                    src={getMediaUrl(viewingOrg.user.profile_picture)}
+                    alt={viewingOrg.user.full_name}
+                    className="w-16 h-16 rounded-full object-cover border-2 border-white shadow-sm"
+                  />
+                ) : (
+                  <div className="w-16 h-16 rounded-full bg-orange-100 text-[#ea580c] font-bold text-xl flex items-center justify-center border-2 border-white shadow-sm">
+                    {(viewingOrg.user?.first_name?.[0] || viewingOrg.user?.full_name?.[0] || 'O').toUpperCase()}
+                  </div>
+                )}
+                <div>
+                  <h4 className="text-base font-bold text-slate-900 flex items-center gap-1.5">
+                    {viewingOrg.user?.full_name || `${viewingOrg.user?.first_name || ''} ${viewingOrg.user?.last_name || ''}`.trim() || 'Unnamed User'}
+                    {viewingOrg.user?.is_verified && (
+                      <CheckCircle2 className="w-4 h-4 text-blue-500" />
+                    )}
+                  </h4>
+                  <p className="text-xs text-slate-500 font-mono">
+                    {viewingOrg.user?.email}
+                  </p>
+                  <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-orange-100 text-[#c2410c]">
+                    <Award className="w-3.5 h-3.5" />
+                    {viewingOrg.designation}
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
+                  <span className="text-[11px] font-medium text-slate-400 block uppercase">
+                    Hackathon Edition
+                  </span>
+                  <span className="text-xs font-bold text-slate-800 mt-0.5 block">
+                    {getHackathonTitle(viewingOrg.hackathon)}
+                  </span>
+                </div>
+                <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
+                  <span className="text-[11px] font-medium text-slate-400 block uppercase">
+                    Display Order
+                  </span>
+                  <span className="text-xs font-bold text-slate-800 mt-0.5 block font-mono">
+                    #{viewingOrg.order ?? 0}
+                  </span>
+                </div>
+                <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
+                  <span className="text-[11px] font-medium text-slate-400 block uppercase">
+                    Account Status
+                  </span>
+                  <span className="text-xs font-bold text-slate-800 mt-0.5 block">
+                    {viewingOrg.user?.is_active !== false ? 'Active Account' : 'Inactive'}
+                  </span>
+                </div>
+                <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
+                  <span className="text-[11px] font-medium text-slate-400 block uppercase">
+                    User Role
+                  </span>
+                  <span className="text-xs font-bold text-slate-800 mt-0.5 block capitalize">
+                    {viewingOrg.user?.role || 'User'}
+                  </span>
+                </div>
+              </div>
+
+              <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
+                <span className="text-[11px] text-slate-400 font-mono">
+                  Created: {viewingOrg.created_at ? new Date(viewingOrg.created_at).toLocaleString() : '—'}
+                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const target = viewingOrg;
+                      setViewingOrg(null);
+                      handleOpenEditOrg(target);
+                    }}
+                    className="px-3.5 py-1.5 rounded-xl text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition"
+                  >
+                    Edit Organizer
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setViewingOrg(null)}
+                    className="px-4 py-1.5 rounded-xl text-xs font-semibold text-white transition"
+                    style={{ backgroundColor: '#ea580c' }}
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ------------------------------------------------------------- */}
+      {/* DELETE ORGANIZER CONFIRMATION MODAL                           */}
+      {/* ------------------------------------------------------------- */}
+      {deletingOrg && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/50 backdrop-blur-xs">
+          <div className="bg-white rounded-2xl max-w-md w-full border border-slate-200 shadow-2xl p-6">
+            <div className="w-12 h-12 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center mx-auto mb-4 border border-red-100">
+              <Trash2 className="w-6 h-6" />
+            </div>
+            <h3 className="text-base font-bold text-slate-900 text-center">
+              Remove Organizer?
+            </h3>
+            <p className="text-xs text-slate-500 text-center mt-1.5 leading-relaxed">
+              Are you sure you want to remove{' '}
+              <strong className="text-slate-800">
+                "{deletingOrg.user?.full_name || deletingOrg.user?.email || 'this organizer'}"
+              </strong>{' '}
+              as {deletingOrg.designation} from this hackathon edition?
+            </p>
+            <div className="mt-6 flex items-center justify-center gap-3">
+              <button
+                type="button"
+                onClick={() => setDeletingOrg(null)}
+                className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={submittingDeleteOrg}
+                onClick={handleDeleteOrgSubmit}
+                className="px-4 py-2 rounded-xl text-xs font-semibold text-white bg-red-600 hover:bg-red-700 transition cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+              >
+                {submittingDeleteOrg ? 'Removing...' : 'Confirm Remove'}
               </button>
             </div>
           </div>
