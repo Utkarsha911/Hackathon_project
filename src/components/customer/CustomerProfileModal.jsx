@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useHackathon } from '../../context/HackathonContext';
 import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
-import api, { getMediaUrl } from '../../services/api';
+import api, { getMediaUrl, getUserAvatarUrl, DEFAULT_USER_AVATAR } from '../../services/api';
 import {
   X,
   User,
@@ -24,7 +24,7 @@ import {
   Award,
   Ban
 } from 'lucide-react';
-import hackathonLogo from '../../assets/HACKATHON-LOGO.png';
+import HackathonBrand from '../common/HackathonBrand';
 
 export default function CustomerProfileModal({ isOpen, onClose, onOpenRegister }) {
   const { currentUser, hackathon, logoutUser } = useHackathon();
@@ -116,10 +116,11 @@ export default function CustomerProfileModal({ isOpen, onClose, onOpenRegister }
           {/* Modal Title / Header */}
           <div className="mb-6">
             <div className="flex items-center gap-3 mb-2">
-              <img
-                src={hackathonLogo}
-                alt="BIC Hackathon"
-                className="h-7 w-auto object-contain"
+              <HackathonBrand
+                imageClassName="h-7 w-auto max-w-[140px] object-contain"
+                textClassName="text-xs font-bold text-slate-800"
+                showSubText={false}
+                iconSizeClass="w-6 h-6 text-[10px]"
               />
               <span className="text-xs font-mono font-bold uppercase tracking-widest text-[#ea580c]">
                 User Profile
@@ -137,17 +138,14 @@ export default function CustomerProfileModal({ isOpen, onClose, onOpenRegister }
           <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200/90 mb-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200/80">
               <div className="flex items-center gap-3.5">
-                {currentUser.profile_picture ? (
-                  <img
-                    src={getMediaUrl(currentUser.profile_picture)}
-                    alt={fullName}
-                    className="w-14 h-14 rounded-2xl object-cover border-2 border-white shadow-sm"
-                  />
-                ) : (
-                  <div className="w-14 h-14 rounded-2xl bg-[#ea580c] text-white flex items-center justify-center text-xl font-extrabold shadow-sm">
-                    {userInitial}
-                  </div>
-                )}
+                <img
+                  src={getUserAvatarUrl(currentUser)}
+                  alt={fullName}
+                  onError={(e) => {
+                    e.currentTarget.src = DEFAULT_USER_AVATAR;
+                  }}
+                  className="w-14 h-14 rounded-2xl object-cover border-2 border-white shadow-sm bg-slate-50"
+                />
                 <div>
                   <h4 className="text-base sm:text-lg font-bold text-slate-900 leading-tight">
                     {fullName}

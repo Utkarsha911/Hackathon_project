@@ -80,7 +80,9 @@ export default function GoogleAuthButton({
 
     try {
       // Calls POST /api/v1/users/google/ with { "token": cleanToken.trim() }
-      const response = await api.users.googleLogin(cleanToken.trim());
+      const response = await api.users.googleLogin(cleanToken.trim(), {
+        scope: mode === 'admin' ? 'admin' : 'customer'
+      });
       const user = response?.user || response?.data?.user;
       const isNewUser = response?.created;
 
@@ -202,10 +204,15 @@ export default function GoogleAuthButton({
       is_staff: isMockAdmin,
       is_demo: true,
     };
-    api.users.login({ email: mockUser.email, password: 'demopassword' }).catch(() => {});
+    api.users.login({ email: mockUser.email, password: 'demopassword' }, { scope: isMockAdmin ? 'admin' : 'customer' }).catch(() => {});
     // Dispatch events
-    window.dispatchEvent(new CustomEvent('bic_user_updated', { detail: mockUser }));
-    window.dispatchEvent(new CustomEvent('bic_auth_login', { detail: { user: mockUser } }));
+    if (isMockAdmin) {
+      window.dispatchEvent(new CustomEvent('bic_admin_user_updated', { detail: mockUser }));
+      window.dispatchEvent(new CustomEvent('bic_admin_login', { detail: { user: mockUser } }));
+    } else {
+      window.dispatchEvent(new CustomEvent('bic_user_updated', { detail: mockUser }));
+      window.dispatchEvent(new CustomEvent('bic_auth_login', { detail: { user: mockUser } }));
+    }
     setSuccessMsg(`Simulated demo sign-in as ${mockUser.email}`);
     if (onSuccess) onSuccess(mockUser, { user: mockUser });
   };

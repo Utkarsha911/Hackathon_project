@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { api, getMediaUrl, getAdminUser, setAdminUser } from '../../services/api';
+import { api, getMediaUrl, getUserAvatarUrl, DEFAULT_USER_AVATAR, getAdminUser, setAdminUser } from '../../services/api';
 import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
 import {
   Users,
@@ -34,7 +34,25 @@ import {
   Award
 } from 'lucide-react';
 import sampleUsers from '../../data/json/users.json';
+import permissionsData from '../../data/json/permissions.json';
 import DepartmentManagement from './DepartmentManagement';
+
+const PERMISSIONS_ID_MAP = {};
+if (permissionsData && typeof permissionsData === 'object') {
+  Object.entries(permissionsData).forEach(([category, list]) => {
+    if (Array.isArray(list)) {
+      list.forEach((p) => {
+        if (p?.id) {
+          PERMISSIONS_ID_MAP[Number(p.id)] = {
+            category: category.toLowerCase(),
+            codename: (p.codename || '').toLowerCase(),
+            name: (p.name || '').toLowerCase()
+          };
+        }
+      });
+    }
+  });
+}
 
 // Module-level in-memory cache to ensure data loads once and NEVER re-fetches
 // until the user explicitly clicks the Refresh button or reloads the webpage.
@@ -864,7 +882,112 @@ export default function UserManagement() {
     Boolean(currentUser?.is_superuser) ||
     Boolean(currentUser?.is_staff);
 
-  if (!isAdmin) {
+  // Group and Role Permission Resolution
+  const checkHasPermission = (scopes) => {
+    if (isAdmin) return true;
+
+    // Resolve user's groups: either objects on currentUser or matched by ID from groups state
+    const rawGroups = Array.isArray(currentUser?.groups) ? currentUser.groups : [];
+    const resolvedGroups = rawGroups.map((g) => {
+      if (typeof g === 'object' && g !== null && (g.permissions_name || g.permissions)) {
+        return g;
+      }
+      const gid = typeof g === 'object' ? g.id : g;
+      return (groups || []).find((grp) => Number(grp.id) === Number(gid)) || g;
+    });
+
+    const scopeList = (Array.isArray(scopes) ? scopes : [scopes]).map((s) => s.toLowerCase());
+
+    // 1. Direct permissions
+    const userPerms = currentUser?.permissions || currentUser?.user_permissions || [];
+    if (Array.isArray(userPerms)) {
+      for (const p of userPerms) {
+        const pStr = (typeof p === 'string' ? p : p?.codename || p?.name || '').toLowerCase();
+        if (scopeList.some((s) => pStr.includes(s))) return true;
+        if (typeof p === 'number' || !isNaN(Number(p))) {
+          const meta = PERMISSIONS_ID_MAP[Number(p)];
+          if (meta && scopeList.some((s) => meta.category === s || meta.category.includes(s) || meta.codename.includes(s))) {
+            return true;
+          }
+        }
+      }
+    }
+
+    // 2. Group permissions
+    for (const group of resolvedGroups) {
+      if (!group || typeof group !== 'object') continue;
+
+      if (group.permissions_name && typeof group.permissions_name === 'object') {
+        for (const [category, perms] of Object.entries(group.permissions_name)) {
+          const catLower = category.toLowerCase();
+          if (scopeList.includes(catLower)) {
+            return true;
+          }
+          if (Array.isArray(perms)) {
+            for (const perm of perms) {
+              const pStr = (perm?.codename || perm?.name || '').toLowerCase();
+              if (scopeList.some((s) => pStr === s || pStr === `view_${s}` || pStr === `add_${s}` || pStr === `change_${s}` || pStr === `delete_${s}` || pStr.endsWith(`_${s}`))) return true;
+              if (perm?.id && PERMISSIONS_ID_MAP[Number(perm.id)]) {
+                const meta = PERMISSIONS_ID_MAP[Number(perm.id)];
+                if (scopeList.some((s) => meta.category === s || meta.codename === s || meta.codename.endsWith(`_${s}`))) {
+                  return true;
+                }
+              }
+            }
+          }
+        }
+      }
+
+      if (Array.isArray(group.permissions)) {
+        for (const perm of group.permissions) {
+          if (typeof perm === 'string') {
+            const pStr = perm.toLowerCase();
+            if (scopeList.some((s) => pStr === s || pStr.endsWith(`_${s}`))) return true;
+          } else if (typeof perm === 'object' && perm !== null) {
+            const pStr = (perm.codename || perm.name || '').toLowerCase();
+            if (scopeList.some((s) => pStr === s || pStr.endsWith(`_${s}`))) return true;
+            if (perm.id && PERMISSIONS_ID_MAP[Number(perm.id)]) {
+              const meta = PERMISSIONS_ID_MAP[Number(perm.id)];
+              if (scopeList.some((s) => meta.category === s || meta.codename === s || meta.codename.endsWith(`_${s}`))) {
+                return true;
+              }
+            }
+          } else if (typeof perm === 'number' || !isNaN(Number(perm))) {
+            const meta = PERMISSIONS_ID_MAP[Number(perm)];
+            if (meta && scopeList.some((s) => meta.category === s || meta.codename === s || meta.codename.endsWith(`_${s}`))) {
+              return true;
+            }
+          }
+        }
+      }
+    }
+
+    return false;
+  };
+
+  const canAccessDepartments = checkHasPermission(['department']);
+  const canAccessOrganizers = checkHasPermission(['organizer']);
+  const canAccessUsers = checkHasPermission(['user']);
+
+  // Auto-switch to accessible tab if user lacks User permissions but has Department or Organizer access
+  useEffect(() => {
+    if (!isAdmin && !canAccessUsers) {
+      if (canAccessDepartments && activeTab !== 'departments' && activeTab !== 'organizers') {
+        setSearchParams({ tab: 'departments' }, { replace: true });
+      } else if (canAccessOrganizers && activeTab !== 'organizers') {
+        setSearchParams({ tab: 'organizers' }, { replace: true });
+      }
+    }
+  }, [isAdmin, canAccessUsers, canAccessDepartments, canAccessOrganizers, activeTab, setSearchParams]);
+
+  // Determine if current active tab is permitted
+  const hasAccessToCurrentTab =
+    isAdmin ||
+    (activeTab === 'departments' && canAccessDepartments) ||
+    (activeTab === 'organizers' && canAccessOrganizers) ||
+    (activeTab !== 'departments' && activeTab !== 'organizers' && canAccessUsers);
+
+  if (!hasAccessToCurrentTab) {
     return (
       <div className="max-w-md mx-auto my-12 p-8 bg-white rounded-2xl border border-slate-200 text-center shadow-xs">
         <div className="w-12 h-12 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center mx-auto mb-3">
@@ -872,7 +995,11 @@ export default function UserManagement() {
         </div>
         <h3 className="text-base font-bold text-slate-900">Access Restricted</h3>
         <p className="text-xs text-slate-500 mt-1">
-          User Management is only accessible to users with the Administrator role.
+          {activeTab === 'departments'
+            ? 'Department Management requires Department permissions.'
+            : activeTab === 'organizers'
+            ? 'Organizer Management requires Organizer permissions.'
+            : 'User Management requires User permissions.'}
         </p>
       </div>
     );
@@ -1135,7 +1262,7 @@ export default function UserManagement() {
                         `${org.first_name || ''} ${org.last_name || ''}`.trim() ||
                         'Organizer';
                       const orgInitials = `${org.first_name?.[0] || 'O'}${org.last_name?.[0] || 'G'}`.toUpperCase();
-                      const avatarUrl = org.profile_picture ? getMediaUrl(org.profile_picture) : null;
+                      const avatarUrl = getUserAvatarUrl(org.profile_picture);
                       const groupsList = Array.isArray(org.groups) ? org.groups : [];
 
                       return (
@@ -1143,21 +1270,14 @@ export default function UserManagement() {
                           {/* Organizer */}
                           <td className="py-3 px-4">
                             <div className="flex items-center gap-3">
-                              {avatarUrl ? (
-                                <img
-                                  src={avatarUrl}
-                                  alt={orgName}
-                                  className="w-10 h-10 rounded-xl object-cover border border-slate-200 shrink-0"
-                                  onError={(e) => {
-                                    e.target.onerror = null;
-                                    e.target.style.display = 'none';
-                                  }}
-                                />
-                              ) : (
-                                <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-orange-500 to-amber-500 text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-xs">
-                                  {orgInitials}
-                                </div>
-                              )}
+                              <img
+                                src={avatarUrl}
+                                alt={orgName}
+                                className="w-10 h-10 rounded-xl object-cover border border-slate-200 shrink-0 bg-slate-50"
+                                onError={(e) => {
+                                  e.target.src = DEFAULT_USER_AVATAR;
+                                }}
+                              />
                               <div className="min-w-0">
                                 <div className="font-semibold text-slate-900 truncate flex items-center gap-1.5">
                                   <span>{orgName}</span>
@@ -1447,7 +1567,7 @@ export default function UserManagement() {
                   const isVerified = Boolean(user?.is_verified);
 
                   // Profile picture URL resolving
-                  const profilePicUrl = user?.profile_picture ? getMediaUrl(user.profile_picture) : null;
+                  const profilePicUrl = getUserAvatarUrl(user?.profile_picture);
 
                   const rawGroups = user?.groups || user?.group || [];
                   const userGroups = Array.isArray(rawGroups) ? rawGroups : [rawGroups];
@@ -1457,28 +1577,14 @@ export default function UserManagement() {
                       {/* User with Profile Picture Link */}
                       <td className="py-3.5 px-4 sm:px-6">
                         <div className="flex items-center gap-3">
-                          {profilePicUrl ? (
-                            <img
-                              src={profilePicUrl}
-                              alt={fullName}
-                              className="w-10 h-10 rounded-full object-cover shrink-0 shadow-sm border border-slate-200"
-                              onError={(e) => {
-                                e.currentTarget.style.display = 'none';
-                                if (e.currentTarget.nextSibling) {
-                                  e.currentTarget.nextSibling.style.display = 'flex';
-                                }
-                              }}
-                            />
-                          ) : null}
-                          <div
-                            className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-xs text-white shrink-0 shadow-sm"
-                            style={{
-                              backgroundColor: '#e8622a',
-                              display: profilePicUrl ? 'none' : 'flex'
+                          <img
+                            src={profilePicUrl}
+                            alt={fullName}
+                            className="w-10 h-10 rounded-full object-cover shrink-0 shadow-sm border border-slate-200 bg-slate-50"
+                            onError={(e) => {
+                              e.currentTarget.src = DEFAULT_USER_AVATAR;
                             }}
-                          >
-                            {initials}
-                          </div>
+                          />
                           <div>
                             <div className="font-semibold text-slate-900 leading-tight">
                               {fullName}
@@ -1620,17 +1726,14 @@ export default function UserManagement() {
             <div className="p-5 sm:p-6 space-y-6 text-xs text-slate-700">
               {/* Profile Card */}
               <div className="flex items-center gap-4 p-4 rounded-xl bg-slate-50 border border-slate-100">
-                {selectedOrganizer.profile_picture ? (
-                  <img
-                    src={getMediaUrl(selectedOrganizer.profile_picture)}
-                    alt="Avatar"
-                    className="w-14 h-14 rounded-2xl object-cover border border-slate-200 shadow-xs shrink-0"
-                  />
-                ) : (
-                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-orange-500 to-amber-500 text-white font-bold text-base flex items-center justify-center shadow-xs shrink-0">
-                    {`${selectedOrganizer.first_name?.[0] || 'O'}${selectedOrganizer.last_name?.[0] || 'G'}`.toUpperCase()}
-                  </div>
-                )}
+                <img
+                  src={getUserAvatarUrl(selectedOrganizer.profile_picture)}
+                  alt="Avatar"
+                  className="w-14 h-14 rounded-2xl object-cover border border-slate-200 shadow-xs shrink-0 bg-white"
+                  onError={(e) => {
+                    e.currentTarget.src = DEFAULT_USER_AVATAR;
+                  }}
+                />
                 <div className="min-w-0">
                   <h4 className="text-sm sm:text-base font-bold text-slate-900">
                     {selectedOrganizer.full_name || `${selectedOrganizer.first_name || ''} ${selectedOrganizer.last_name || ''}`.trim() || 'Organizer'}
@@ -2070,28 +2173,14 @@ export default function UserManagement() {
 
             {/* Profile Picture & User Banner Card */}
             <div className="mt-4 flex flex-col sm:flex-row items-start sm:items-center gap-3.5 sm:gap-4 p-3.5 sm:p-4 rounded-xl bg-slate-50 border border-slate-200">
-              {viewPayloadModalUser.profile_picture ? (
-                <img
-                  src={getMediaUrl(viewPayloadModalUser.profile_picture)}
-                  alt={viewPayloadModalUser.full_name || viewPayloadModalUser.email}
-                  className="w-16 h-16 rounded-full object-cover border-2 border-orange-200 shadow-md shrink-0"
-                  onError={(e) => {
-                    e.currentTarget.style.display = 'none';
-                    if (e.currentTarget.nextSibling) {
-                      e.currentTarget.nextSibling.style.display = 'flex';
-                    }
-                  }}
-                />
-              ) : null}
-              <div
-                className="w-16 h-16 rounded-full flex items-center justify-center text-lg font-bold text-white shadow-md shrink-0"
-                style={{
-                  backgroundColor: '#e8622a',
-                  display: viewPayloadModalUser.profile_picture ? 'none' : 'flex'
+              <img
+                src={getUserAvatarUrl(viewPayloadModalUser.profile_picture)}
+                alt={viewPayloadModalUser.full_name || viewPayloadModalUser.email}
+                className="w-16 h-16 rounded-full object-cover border-2 border-orange-200 shadow-md shrink-0 bg-white"
+                onError={(e) => {
+                  e.currentTarget.src = DEFAULT_USER_AVATAR;
                 }}
-              >
-                {viewPayloadModalUser.first_name?.[0]?.toUpperCase() || 'U'}
-              </div>
+              />
               <div className="flex-1 min-w-0">
                 <div className="font-bold text-slate-900 text-base truncate">
                   {viewPayloadModalUser.full_name ||

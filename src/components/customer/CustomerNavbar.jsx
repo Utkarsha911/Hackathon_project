@@ -1,13 +1,20 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ArrowUpRight, ChevronDown, User, LogOut, Menu, X, Shield, Award } from 'lucide-react';
 import { useHackathon } from '../../context/HackathonContext';
-import { getMediaUrl } from '../../services/api';
-import hackathonLogo from '../../assets/HACKATHON-LOGO.png';
+import { getMediaUrl, getUserAvatarUrl, DEFAULT_USER_AVATAR } from '../../services/api';
+import HackathonBrand from '../common/HackathonBrand';
 
 export default function CustomerNavbar({ onOpenRegister, onOpenLogin, onOpenProfile }) {
-  const { hackathon, currentUser, logoutUser } = useHackathon();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { hackathon, currentUser, logoutUser, schedules = [], scheduleEvents = [] } = useHackathon();
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
+
+  const hasScheduleData =
+    (Array.isArray(schedules) && schedules.length > 0) ||
+    (Array.isArray(scheduleEvents) && scheduleEvents.length > 0) ||
+    (Array.isArray(hackathon?.schedules) && hackathon.schedules.length > 0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const dropdownRef = useRef(null);
 
@@ -40,128 +47,74 @@ export default function CustomerNavbar({ onOpenRegister, onOpenLogin, onOpenProf
     setMobileMenuOpen(false);
   };
 
+  const handleSectionClick = (e, targetHash) => {
+    e.preventDefault();
+    if (location.pathname === '/') {
+      const targetEl = document.querySelector(targetHash);
+      if (targetEl) {
+        const navHeight = 72;
+        const elementPosition = targetEl.getBoundingClientRect().top + window.pageYOffset;
+        window.scrollTo({
+          top: elementPosition - navHeight,
+          behavior: 'smooth'
+        });
+        window.history.pushState(null, '', targetHash);
+      }
+    } else {
+      navigate(`/${targetHash}`);
+    }
+  };
+
   return (
     <header className="sticky top-0 z-40 w-full transition-all">
-      {/* Top Banner: Current Live / Active Hackathon */}
-      {hackathon?.title && (
-        <div className="bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 text-white border-b border-coral-500/20 px-3 sm:px-6 py-2 shadow-xs transition-all">
-          <div className="max-w-6xl mx-auto flex items-center justify-between gap-3 text-xs">
-            <div className="flex items-center gap-2 sm:gap-3 overflow-hidden text-ellipsis whitespace-nowrap min-w-0">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-coral-500/15 text-coral-400 font-mono text-[10px] font-bold uppercase tracking-wider border border-coral-500/30 shrink-0">
-                <span className="w-1.5 h-1.5 rounded-full bg-coral-400" />
-                Current Hackathon
-              </span>
-
-              <span className="font-semibold text-white tracking-tight truncate">
-                {hackathon.title}
-              </span>
-
-              {hackathon.version && (
-                <span className="shrink-0 px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-white/10 text-coral-300 border border-coral-500/20">
-                  {hackathon.version}
-                </span>
-              )}
-
-              {hackathon.sub_heading && (
-                <span className="hidden md:inline text-slate-400 text-xs truncate">
-                  • {hackathon.sub_heading}
-                </span>
-              )}
-
-              {hackathon.venue && (
-                <span className="hidden lg:inline-flex items-center gap-1 text-slate-400 text-[11px] truncate">
-                  <span className="text-coral-500/70">📍</span> {hackathon.venue}
-                </span>
-              )}
-            </div>
-
-            <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-              {(hackathon.registration_end_date || hackathon.registration_enddate) && (
-                <span className="hidden sm:inline-block text-[11px] text-slate-300 font-mono">
-                  Registration open till{' '}
-                  <strong className="text-coral-400 font-medium">
-                    {new Date(hackathon.registration_end_date || hackathon.registration_enddate).toLocaleDateString([], {
-                      month: 'short',
-                      day: 'numeric',
-                      year: 'numeric',
-                    })}
-                  </strong>
-                </span>
-              )}
-
-              <button
-                type="button"
-                onClick={onOpenRegister}
-                className="inline-flex items-center gap-1 text-[11px] font-semibold bg-coral-600 hover:bg-coral-500 text-white px-2.5 py-1 rounded-lg transition-all shadow-xs cursor-pointer active:scale-95"
-              >
-                <span>Register Squad</span>
-                <ArrowUpRight className="w-3 h-3" />
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Main Navbar */}
       <div className="w-full bg-white/95 backdrop-blur-md border-b border-slate-200/70">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
 
           {/* Brand */}
           <Link to="/" className="flex items-center gap-2.5 group">
-            <img
-              src={hackathonLogo}
-              alt={hackathon?.title || 'BIC Hackathon'}
-              className="h-8 sm:h-9 w-auto object-contain transition-transform group-hover:scale-102"
+            <HackathonBrand
+              imageClassName="h-8 sm:h-9 w-auto max-w-[150px] object-contain transition-transform group-hover:scale-102"
+              textClassName="text-sm font-extrabold text-slate-900 group-hover:text-[#ea580c] transition-colors"
+              showSubText={true}
             />
-            {hackathon?.title && (
-              <div className="hidden sm:flex flex-col text-left">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-xs font-bold text-slate-900 tracking-tight leading-none group-hover:text-coral-600 transition-colors">
-                    {hackathon.title}
-                  </span>
-                  {hackathon.version && (
-                    <span className="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-coral-50 text-coral-600 border border-coral-200/80 leading-none">
-                      {hackathon.version}
-                    </span>
-                  )}
-                </div>
-                {hackathon.sub_heading && (
-                  <span className="text-[10px] text-slate-500 font-medium truncate max-w-[190px] leading-tight mt-0.5">
-                    {hackathon.sub_heading}
-                  </span>
-                )}
-              </div>
-            )}
           </Link>
 
           {/* Desktop Nav Links */}
           <nav className="hidden lg:flex items-center gap-1 text-[13px] font-medium text-slate-600">
           <a
-            href="#prizes"
+            href="/#prizes"
+            onClick={(e) => handleSectionClick(e, '#prizes')}
             className="px-3 py-1.5 rounded-lg hover:text-slate-900 hover:bg-slate-100/70 transition-colors"
           >
             Prizes
           </a>
+          {hasScheduleData && (
+            <a
+              href="/#schedule"
+              onClick={(e) => handleSectionClick(e, '#schedule')}
+              className="px-3 py-1.5 rounded-lg hover:text-slate-900 hover:bg-slate-100/70 transition-colors"
+            >
+              Schedule
+            </a>
+          )}
           <a
-            href="#schedule"
-            className="px-3 py-1.5 rounded-lg hover:text-slate-900 hover:bg-slate-100/70 transition-colors"
-          >
-            Schedule
-          </a>
-          <a
-            href="#sponsors"
+            href="/#sponsors"
+            onClick={(e) => handleSectionClick(e, '#sponsors')}
             className="px-3 py-1.5 rounded-lg hover:text-slate-900 hover:bg-slate-100/70 transition-colors"
           >
             Sponsors
           </a>
           <a
-            href="#organizers"
+            href="/#organizers"
+            onClick={(e) => handleSectionClick(e, '#organizers')}
             className="px-3 py-1.5 rounded-lg hover:text-slate-900 hover:bg-slate-100/70 transition-colors"
           >
             Organizers
           </a>
           <a
-            href="#contact"
+            href="/#contact"
+            onClick={(e) => handleSectionClick(e, '#contact')}
             className="px-3 py-1.5 rounded-lg hover:text-slate-900 hover:bg-slate-100/70 transition-colors"
           >
             Contact
@@ -189,17 +142,14 @@ export default function CustomerNavbar({ onOpenRegister, onOpenLogin, onOpenProf
                 aria-label="User account and profile menu"
                 title={`${displayName} - View Profile`}
               >
-                {currentUser.profile_picture ? (
-                  <img
-                    src={getMediaUrl(currentUser.profile_picture)}
-                    alt={displayName}
-                    className="w-8 h-8 sm:w-9 sm:h-9 rounded-full object-cover"
-                  />
-                ) : (
-                  <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-gradient-to-tr from-[#ea580c] to-amber-500 text-white flex items-center justify-center text-xs sm:text-sm font-bold shadow-xs">
-                    {userInitial}
-                  </div>
-                )}
+                <img
+                  src={getUserAvatarUrl(currentUser)}
+                  alt={displayName}
+                  onError={(e) => {
+                    e.currentTarget.src = DEFAULT_USER_AVATAR;
+                  }}
+                  className="w-8 h-8 sm:w-9 sm:h-9 rounded-full object-cover"
+                />
               </button>
 
               {userDropdownOpen && (
@@ -323,36 +273,53 @@ export default function CustomerNavbar({ onOpenRegister, onOpenLogin, onOpenProf
           )}
           <nav className="flex flex-col space-y-1 font-medium text-sm text-slate-700">
             <a
-              href="#prizes"
-              onClick={handleMobileNavClick}
+              href="/#prizes"
+              onClick={(e) => {
+                handleMobileNavClick();
+                handleSectionClick(e, '#prizes');
+              }}
               className="px-3 py-2 rounded-xl hover:bg-slate-100 transition"
             >
               Prizes & Awards
             </a>
+            {hasScheduleData && (
+              <a
+                href="/#schedule"
+                onClick={(e) => {
+                  handleMobileNavClick();
+                  handleSectionClick(e, '#schedule');
+                }}
+                className="px-3 py-2 rounded-xl hover:bg-slate-100 transition"
+              >
+                48-Hour Sprint Schedule
+              </a>
+            )}
             <a
-              href="#schedule"
-              onClick={handleMobileNavClick}
-              className="px-3 py-2 rounded-xl hover:bg-slate-100 transition"
-            >
-              48-Hour Sprint Schedule
-            </a>
-            <a
-              href="#sponsors"
-              onClick={handleMobileNavClick}
+              href="/#sponsors"
+              onClick={(e) => {
+                handleMobileNavClick();
+                handleSectionClick(e, '#sponsors');
+              }}
               className="px-3 py-2 rounded-xl hover:bg-slate-100 transition"
             >
               Sponsors & Partners
             </a>
             <a
-              href="#organizers"
-              onClick={handleMobileNavClick}
+              href="/#organizers"
+              onClick={(e) => {
+                handleMobileNavClick();
+                handleSectionClick(e, '#organizers');
+              }}
               className="px-3 py-2 rounded-xl hover:bg-slate-100 transition"
             >
               Organizers & Mentors
             </a>
             <a
-              href="#contact"
-              onClick={handleMobileNavClick}
+              href="/#contact"
+              onClick={(e) => {
+                handleMobileNavClick();
+                handleSectionClick(e, '#contact');
+              }}
               className="px-3 py-2 rounded-xl hover:bg-slate-100 transition"
             >
               Contact Committee

@@ -24,7 +24,8 @@ import {
   Trophy,
   UserCheck,
   Ban,
-  Loader2
+  Loader2,
+  ShieldCheck
 } from 'lucide-react';
 
 export default function TeamManagement() {
@@ -128,14 +129,14 @@ export default function TeamManagement() {
         if (response?.stats && typeof response.stats === 'object') {
           setStats({
             total_items: response.stats.total_items ?? list.length,
-            active_items: response.stats.active_items ?? list.filter((t) => t.is_active || t.status === 'approved').length,
-            inactive_items: response.stats.inactive_items ?? list.filter((t) => !t.is_active || t.status !== 'approved').length
+            active_items: response.stats.active_items ?? list.filter((t) => t.is_active || ['approved', 'participation_confirmed'].includes(t.status)).length,
+            inactive_items: response.stats.inactive_items ?? list.filter((t) => !t.is_active || !['approved', 'participation_confirmed'].includes(t.status)).length
           });
         } else {
           setStats({
             total_items: response?.count ?? list.length,
-            active_items: list.filter((t) => t.status === 'approved').length,
-            inactive_items: list.filter((t) => t.status !== 'approved').length
+            active_items: list.filter((t) => ['approved', 'participation_confirmed'].includes(t.status)).length,
+            inactive_items: list.filter((t) => !['approved', 'participation_confirmed'].includes(t.status)).length
           });
         }
       } catch (err) {
@@ -471,6 +472,7 @@ export default function TeamManagement() {
             <option value="all">All Statuses</option>
             <option value="submitted">Submitted</option>
             <option value="approved">Approved</option>
+            <option value="participation_confirmed">Participation Confirmed</option>
             <option value="rejected">Rejected</option>
             <option value="disqualified">Disqualified</option>
           </select>
@@ -504,6 +506,7 @@ export default function TeamManagement() {
           {teams.map((team) => {
             const status = (team.status || 'submitted').toLowerCase();
             const isApproved = status === 'approved';
+            const isConfirmed = status === 'participation_confirmed';
             const isRejected = status === 'rejected';
             const isDisqualified = status === 'disqualified';
 
@@ -532,7 +535,9 @@ export default function TeamManagement() {
                     {/* Status Badge (Rule 8 & 9: Static, clean enterprise icon) */}
                     <span
                       className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold capitalize shrink-0 ${
-                        isApproved
+                        isConfirmed
+                          ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                          : isApproved
                           ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                           : isDisqualified
                           ? 'bg-rose-50 text-rose-700 border border-rose-200'
@@ -541,7 +546,9 @@ export default function TeamManagement() {
                           : 'bg-amber-50 text-amber-700 border border-amber-200'
                       }`}
                     >
-                      {isApproved ? (
+                      {isConfirmed ? (
+                        <ShieldCheck className="w-3 h-3 text-blue-600" />
+                      ) : isApproved ? (
                         <CheckCircle2 className="w-3 h-3 text-emerald-600" />
                       ) : isDisqualified ? (
                         <Ban className="w-3 h-3 text-rose-600" />
@@ -550,7 +557,7 @@ export default function TeamManagement() {
                       ) : (
                         <Clock className="w-3 h-3 text-amber-600" />
                       )}
-                      <span>{team.status || 'Submitted'}</span>
+                      <span>{isConfirmed ? 'Participation Confirmed' : (team.status || 'Submitted')}</span>
                     </span>
                   </div>
 
@@ -584,10 +591,45 @@ export default function TeamManagement() {
                       <span className="font-medium text-slate-700">{team.no_of_members || 1} Persons</span>
                     </div>
 
+                    <div className="flex items-center justify-between text-[11px] pt-1 border-t border-slate-200/60">
+                      <span className="text-slate-400 font-mono uppercase text-[10px]">Roster</span>
+                      <span
+                        className={`font-semibold px-2 py-0.5 rounded-full text-[10px] ${
+                          (team.participants?.length || 0) === (team.no_of_members || 1)
+                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                            : (team.participants?.length || 0) > 0
+                            ? 'bg-orange-50 text-[#ea580c] border border-orange-200'
+                            : 'bg-slate-100 text-slate-500'
+                        }`}
+                      >
+                        {team.participants?.length || 0} / {team.no_of_members || 1} Enrolled
+                      </span>
+                    </div>
+
                     {team.coordinator_phone && (
                       <div className="flex items-center justify-between text-[11px]">
                         <span className="text-slate-400 font-mono uppercase text-[10px]">Phone</span>
                         <span className="font-medium text-slate-700">{team.coordinator_phone}</span>
+                      </div>
+                    )}
+
+                    {/* Quick participant preview pills */}
+                    {team.participants && team.participants.length > 0 && (
+                      <div className="pt-1.5 border-t border-slate-200/40 flex flex-wrap gap-1">
+                        {team.participants.map((p, pIdx) => (
+                          <span
+                            key={p.id || pIdx}
+                            className={`inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded font-medium ${
+                              pIdx === 0
+                                ? 'bg-orange-100/70 text-orange-900 border border-orange-200/60'
+                                : 'bg-slate-100 text-slate-700'
+                            }`}
+                            title={`${p.name || 'Member'} (${p.email || 'No email'})`}
+                          >
+                            <span className="truncate max-w-[85px]">{p.name || 'Member'}</span>
+                            {pIdx === 0 && <span className="text-[9px] font-bold text-[#ea580c]">★</span>}
+                          </span>
+                        ))}
                       </div>
                     )}
                   </div>
@@ -597,14 +639,34 @@ export default function TeamManagement() {
                 <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
                   {/* Status Toggles */}
                   <div className="flex items-center gap-1 flex-wrap">
-                    {!isApproved && (
+                    {!isApproved && !isConfirmed && (
                       <button
                         type="button"
                         onClick={() => handleQuickStatusChange(team.id, 'approved')}
                         title="Approve Team"
-                        className="px-2 py-0.5 rounded-lg text-[10px] font-semibold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 transition"
+                        className="px-2 py-0.5 rounded-lg text-[10px] font-semibold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 transition cursor-pointer"
                       >
                         Approve
+                      </button>
+                    )}
+                    {isApproved && (
+                      <button
+                        type="button"
+                        onClick={() => handleQuickStatusChange(team.id, 'participation_confirmed')}
+                        title="Confirm Participation"
+                        className="px-2 py-0.5 rounded-lg text-[10px] font-semibold bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 transition cursor-pointer"
+                      >
+                        Confirm
+                      </button>
+                    )}
+                    {isConfirmed && (
+                      <button
+                        type="button"
+                        onClick={() => handleQuickStatusChange(team.id, 'approved')}
+                        title="Revert to Approved"
+                        className="px-2 py-0.5 rounded-lg text-[10px] font-semibold bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200 transition cursor-pointer"
+                      >
+                        Revert
                       </button>
                     )}
                     {!isRejected && !isDisqualified && (
@@ -612,7 +674,7 @@ export default function TeamManagement() {
                         type="button"
                         onClick={() => handleQuickStatusChange(team.id, 'rejected')}
                         title="Reject Team"
-                        className="px-2 py-0.5 rounded-lg text-[10px] font-semibold bg-red-50 text-red-700 hover:bg-red-100 border border-red-200 transition"
+                        className="px-2 py-0.5 rounded-lg text-[10px] font-semibold bg-red-50 text-red-700 hover:bg-red-100 border border-red-200 transition cursor-pointer"
                       >
                         Reject
                       </button>
@@ -622,7 +684,7 @@ export default function TeamManagement() {
                         type="button"
                         onClick={() => handleQuickStatusChange(team.id, 'disqualified')}
                         title="Disqualify Team"
-                        className="px-2 py-0.5 rounded-lg text-[10px] font-semibold bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200 transition"
+                        className="px-2 py-0.5 rounded-lg text-[10px] font-semibold bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200 transition cursor-pointer"
                       >
                         Disqualify
                       </button>
@@ -864,6 +926,7 @@ export default function TeamManagement() {
                   >
                     <option value="submitted">Submitted</option>
                     <option value="approved">Approved</option>
+                    <option value="participation_confirmed">Participation Confirmed</option>
                     <option value="rejected">Rejected</option>
                     <option value="disqualified">Disqualified</option>
                   </select>
@@ -1078,6 +1141,7 @@ export default function TeamManagement() {
                   >
                     <option value="submitted">Submitted</option>
                     <option value="approved">Approved</option>
+                    <option value="participation_confirmed">Participation Confirmed</option>
                     <option value="rejected">Rejected</option>
                     <option value="disqualified">Disqualified</option>
                   </select>
@@ -1129,7 +1193,7 @@ export default function TeamManagement() {
       {/* 7. VIEW DETAIL MODAL */}
       {detailModalOpen && selectedTeam && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs overflow-y-auto">
-          <div className="w-full max-w-xl rounded-2xl relative max-h-[90vh] overflow-y-auto bg-white border border-slate-200 shadow-2xl p-6 sm:p-8">
+          <div className="w-full max-w-2xl rounded-2xl relative max-h-[90vh] overflow-y-auto bg-white border border-slate-200 shadow-2xl p-6 sm:p-8">
             <button
               type="button"
               onClick={() => setDetailModalOpen(false)}
@@ -1154,7 +1218,9 @@ export default function TeamManagement() {
                   <span className="text-slate-500 font-mono text-[11px]">Status</span>
                   <span
                     className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold capitalize ${
-                      selectedTeam.status === 'approved'
+                      selectedTeam.status === 'participation_confirmed'
+                        ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                        : selectedTeam.status === 'approved'
                         ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                         : selectedTeam.status === 'disqualified'
                         ? 'bg-rose-50 text-rose-700 border border-rose-200'
@@ -1163,7 +1229,9 @@ export default function TeamManagement() {
                         : 'bg-amber-50 text-amber-700 border border-amber-200'
                     }`}
                   >
-                    {selectedTeam.status === 'approved' ? (
+                    {selectedTeam.status === 'participation_confirmed' ? (
+                      <ShieldCheck className="w-3 h-3 text-blue-600" />
+                    ) : selectedTeam.status === 'approved' ? (
                       <CheckCircle2 className="w-3 h-3 text-emerald-600" />
                     ) : selectedTeam.status === 'disqualified' ? (
                       <Ban className="w-3 h-3 text-rose-600" />
@@ -1172,7 +1240,11 @@ export default function TeamManagement() {
                     ) : (
                       <Clock className="w-3 h-3 text-amber-600" />
                     )}
-                    <span>{selectedTeam.status || 'submitted'}</span>
+                    <span>
+                      {selectedTeam.status === 'participation_confirmed'
+                        ? 'Participation Confirmed'
+                        : (selectedTeam.status || 'submitted')}
+                    </span>
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
@@ -1241,6 +1313,149 @@ export default function TeamManagement() {
                     >
                       {selectedTeam.github_repo}
                     </a>
+                  </div>
+                )}
+              </div>
+
+              {/* Squad Participants Roster Section */}
+              <div className="p-4 rounded-xl bg-white border border-slate-200 space-y-3">
+                <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                  <div className="flex items-center gap-2">
+                    <Users className="w-4 h-4 text-[#ea580c]" />
+                    <span className="font-bold text-slate-800 text-xs">
+                      Squad Participants Roster
+                    </span>
+                  </div>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 font-semibold">
+                    {selectedTeam.participants?.length || 0} of {selectedTeam.no_of_members || 1} Enrolled
+                  </span>
+                </div>
+
+                {selectedTeam.participants && selectedTeam.participants.length > 0 ? (
+                  <div className="space-y-3">
+                    {selectedTeam.participants.map((p, idx) => {
+                      const isLeader = idx === 0;
+                      return (
+                        <div
+                          key={p.id || idx}
+                          className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2"
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <span
+                                className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
+                                  isLeader ? 'bg-[#ea580c] text-white' : 'bg-slate-200 text-slate-700'
+                                }`}
+                              >
+                                {idx + 1}
+                              </span>
+                              <span className="font-bold text-slate-900 text-xs">{p.name}</span>
+                              {isLeader && (
+                                <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-orange-100 text-[#ea580c] font-bold">
+                                  Team Leader
+                                </span>
+                              )}
+                            </div>
+
+                            <div className="flex items-center gap-1.5 text-[10px] font-medium text-slate-600">
+                              {p.shirt_size && (
+                                <span className="px-1.5 py-0.5 rounded bg-white border border-slate-200">
+                                  T-Shirt: {p.shirt_size}
+                                </span>
+                              )}
+                              {p.food_preference && (
+                                <span className="px-1.5 py-0.5 rounded bg-white border border-slate-200 capitalize">
+                                  {p.food_preference.replace('_', ' ')}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] text-slate-600 pt-1 border-t border-slate-200/60">
+                            <div>
+                              <span className="text-slate-400 text-[10px] uppercase font-mono block">Email</span>
+                              <span className="font-mono text-slate-800 break-all">{p.email || 'N/A'}</span>
+                            </div>
+                            <div>
+                              <span className="text-slate-400 text-[10px] uppercase font-mono block">Phone</span>
+                              <span className="font-medium text-slate-800">{p.phone_number || 'N/A'}</span>
+                            </div>
+                            {p.current_grade && (
+                              <div>
+                                <span className="text-slate-400 text-[10px] uppercase font-mono block">Academic Grade</span>
+                                <span className="font-medium text-slate-800">{p.current_grade}</span>
+                              </div>
+                            )}
+                            {p.emergency_contact && (
+                              <div>
+                                <span className="text-slate-400 text-[10px] uppercase font-mono block">Emergency Contact</span>
+                                <span className="font-medium text-slate-800">{p.emergency_contact}</span>
+                              </div>
+                            )}
+                            {p.medical_conditions && (
+                              <div className="sm:col-span-2">
+                                <span className="text-slate-400 text-[10px] uppercase font-mono block">Medical / Dietary Notes</span>
+                                <span className="text-amber-800 font-medium">{p.medical_conditions}</span>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Social & Portfolio Links */}
+                          <div className="flex items-center gap-3 pt-1 border-t border-slate-200/60 text-[11px] flex-wrap">
+                            {p.github_profile && (
+                              <a
+                                href={p.github_profile}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-slate-600 hover:text-[#ea580c] inline-flex items-center gap-1 font-mono transition"
+                              >
+                                <span>GitHub</span>
+                                <ExternalLink className="w-2.5 h-2.5 text-slate-400" />
+                              </a>
+                            )}
+                            {p.linkedin_profile && (
+                              <a
+                                href={p.linkedin_profile}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-slate-600 hover:text-[#ea580c] inline-flex items-center gap-1 font-mono transition"
+                              >
+                                <span>LinkedIn</span>
+                                <ExternalLink className="w-2.5 h-2.5 text-slate-400" />
+                              </a>
+                            )}
+                            {p.portfolio_website && (
+                              <a
+                                href={p.portfolio_website}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-slate-600 hover:text-[#ea580c] inline-flex items-center gap-1 font-mono transition"
+                              >
+                                <span>Portfolio</span>
+                                <ExternalLink className="w-2.5 h-2.5 text-slate-400" />
+                              </a>
+                            )}
+                            {p.cv && (
+                              <a
+                                href={p.cv}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-[#ea580c] hover:underline inline-flex items-center gap-1 font-semibold transition"
+                              >
+                                <span>View CV</span>
+                                <ExternalLink className="w-2.5 h-2.5 text-[#ea580c]" />
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="p-4 rounded-xl bg-slate-50 border border-dashed border-slate-200 text-center">
+                    <p className="text-xs text-slate-400">
+                      No participants submitted by the team leader yet.
+                    </p>
                   </div>
                 )}
               </div>

@@ -7,12 +7,11 @@ import {
   api,
   getAdminUser,
   setAdminUser,
-  getAuthToken,
-  clearAdminUser,
-  clearAuthToken,
-  clearRefreshToken,
-  logout,
+  getAdminAuthToken,
+  adminLogout,
   getMediaUrl,
+  getUserAvatarUrl,
+  DEFAULT_USER_AVATAR,
   getSelectedAdminHackathon,
   setSelectedAdminHackathon
 } from '../../services/api';
@@ -47,7 +46,26 @@ import {
   Clock,
   CheckCircle2
 } from 'lucide-react';
-import hackathonLogo from '../../assets/HACKATHON-LOGO.png';
+import HackathonBrand from '../common/HackathonBrand';
+import permissionsData from '../../data/json/permissions.json';
+
+// Build fast ID lookup for numeric Django permissions
+const PERMISSIONS_ID_MAP = {};
+if (permissionsData && typeof permissionsData === 'object') {
+  Object.entries(permissionsData).forEach(([category, list]) => {
+    if (Array.isArray(list)) {
+      list.forEach((p) => {
+        if (p?.id) {
+          PERMISSIONS_ID_MAP[Number(p.id)] = {
+            category: category.toLowerCase(),
+            codename: (p.codename || '').toLowerCase(),
+            name: (p.name || '').toLowerCase()
+          };
+        }
+      });
+    }
+  });
+}
 
 // Lazy loaded admin views
 const AdminLogin = lazy(() => import('./AdminLogin'));
@@ -83,7 +101,7 @@ export default function AdminLayout() {
   const [currentUser, setCurrentUser] = useState(() => {
     return (
       getAdminUser() ||
-      (getAuthToken()
+      (getAdminAuthToken()
         ? { email: 'admin@bichackathon.org', first_name: 'Admin', last_name: 'User' }
         : null)
     );
@@ -98,7 +116,7 @@ export default function AdminLayout() {
 
   // Fetch hackathons on mount to populate the top-right filter dropdown
   useEffect(() => {
-    if (getAuthToken()) {
+    if (getAdminAuthToken()) {
       api.hackathons
         .getAll({ skipHackathonFilter: true })
         .then((res) => {
@@ -142,7 +160,7 @@ export default function AdminLayout() {
 
   // Listen for profile updates and only fetch on mount if not already cached
   useEffect(() => {
-    if (getAuthToken() && !getAdminUser()?.id) {
+    if (getAdminAuthToken() && !getAdminUser()?.id) {
       api.users
         .getProfile()
         .then((profile) => {
@@ -162,15 +180,17 @@ export default function AdminLayout() {
       }
     };
 
-    const handleAuthLogout = () => {
+    const handleAdminLogout = () => {
       setCurrentUser(null);
       navigate('/admin-control-site');
     };
 
-    window.addEventListener('bic_auth_logout', handleAuthLogout);
+    window.addEventListener('bic_admin_logout', handleAdminLogout);
+    window.addEventListener('bic_admin_user_updated', handleUserUpdated);
     window.addEventListener('bic_user_updated', handleUserUpdated);
     return () => {
-      window.removeEventListener('bic_auth_logout', handleAuthLogout);
+      window.removeEventListener('bic_admin_logout', handleAdminLogout);
+      window.removeEventListener('bic_admin_user_updated', handleUserUpdated);
       window.removeEventListener('bic_user_updated', handleUserUpdated);
     };
   }, [navigate]);
@@ -230,7 +250,7 @@ export default function AdminLayout() {
   });
 
   const handleLogout = () => {
-    logout();
+    adminLogout();
     setCurrentUser(null);
     navigate('/admin-control-site');
   };
@@ -282,7 +302,7 @@ export default function AdminLayout() {
 
   const initials = `${currentUser?.first_name?.[0] || 'A'}${currentUser?.last_name?.[0] || 'D'}`.toUpperCase();
   const displayName = `${currentUser?.first_name || 'Admin'} ${currentUser?.last_name || 'User'}`;
-  const profilePicUrl = currentUser?.profile_picture ? getMediaUrl(currentUser.profile_picture) : null;
+  const profilePicUrl = getUserAvatarUrl(currentUser);
 
   const userRole = (currentUser?.role || '').toLowerCase();
   const isSuperOrStaff =
@@ -293,38 +313,73 @@ export default function AdminLayout() {
     Boolean(currentUser?.is_staff);
 
   // Group permission evaluation:
-  // "show everything to 'is_staff': true, 'is_superuser': true, but only show the items which permission inside group is given inside groups permission"
+  // Rule: "Hide entire menu if a user has no group in admin site, show only with those grouped permission"
+  const userGroupsList = [
+    ...(Array.isArray(currentUser?.groups) ? currentUser.groups : []),
+    ...(Array.isArray(userGroupObjects) ? userGroupObjects : [])
+  ].filter(Boolean);
+
   const hasPermission = (scopes) => {
     if (isSuperOrStaff) return true;
 
+    // Hide entire menu if non-staff / non-superuser has no groups
+    if (!userGroupsList || userGroupsList.length === 0) {
+      return false;
+    }
+
     const scopeList = (Array.isArray(scopes) ? scopes : [scopes]).map((s) => s.toLowerCase());
+
+    // Strict scope check helper
+    const checkScopeMatch = (itemCategory, itemCodename) => {
+      const cat = (itemCategory || '').toLowerCase();
+      const code = (itemCodename || '').toLowerCase();
+
+      return scopeList.some((s) => {
+        // 1. Exact category match
+        if (cat === s) return true;
+        // 2. Exact or standard Django codename match (e.g. view_hackathon, add_organization)
+        if (code === s) return true;
+        if (code === `view_${s}` || code === `add_${s}` || code === `change_${s}` || code === `delete_${s}`) return true;
+        if (code.endsWith(`_${s}`)) return true;
+        return false;
+      });
+    };
 
     // 1. Direct user permissions
     const userPerms = currentUser?.permissions || currentUser?.user_permissions || [];
     if (Array.isArray(userPerms)) {
       for (const p of userPerms) {
         const pStr = (typeof p === 'string' ? p : p?.codename || p?.name || '').toLowerCase();
-        if (scopeList.some((s) => pStr.includes(s))) return true;
+        if (checkScopeMatch('', pStr)) return true;
+        if (typeof p === 'number' || !isNaN(Number(p))) {
+          const meta = PERMISSIONS_ID_MAP[Number(p)];
+          if (meta && checkScopeMatch(meta.category, meta.codename)) {
+            return true;
+          }
+        }
       }
     }
 
     // 2. Group permissions from user's groups
-    const groupsToCheck = [
-      ...(Array.isArray(userGroupObjects) ? userGroupObjects : []),
-      ...(Array.isArray(currentUser?.groups) ? currentUser.groups : [])
-    ];
-
-    for (const group of groupsToCheck) {
+    for (const group of userGroupsList) {
       if (!group || typeof group !== 'object') continue;
 
       if (group.permissions_name && typeof group.permissions_name === 'object') {
         for (const [category, perms] of Object.entries(group.permissions_name)) {
           const catLower = category.toLowerCase();
-          if (scopeList.some((s) => catLower.includes(s))) return true;
+          if (scopeList.includes(catLower)) {
+            return true;
+          }
           if (Array.isArray(perms)) {
             for (const perm of perms) {
               const pStr = (perm?.codename || perm?.name || '').toLowerCase();
-              if (scopeList.some((s) => pStr.includes(s))) return true;
+              if (checkScopeMatch(catLower, pStr)) return true;
+              if (perm?.id && PERMISSIONS_ID_MAP[Number(perm.id)]) {
+                const meta = PERMISSIONS_ID_MAP[Number(perm.id)];
+                if (checkScopeMatch(meta.category, meta.codename)) {
+                  return true;
+                }
+              }
             }
           }
         }
@@ -334,10 +389,21 @@ export default function AdminLayout() {
         for (const perm of group.permissions) {
           if (typeof perm === 'string') {
             const pStr = perm.toLowerCase();
-            if (scopeList.some((s) => pStr.includes(s))) return true;
+            if (checkScopeMatch('', pStr)) return true;
           } else if (typeof perm === 'object' && perm !== null) {
             const pStr = (perm.codename || perm.name || '').toLowerCase();
-            if (scopeList.some((s) => pStr.includes(s))) return true;
+            if (checkScopeMatch('', pStr)) return true;
+            if (perm.id && PERMISSIONS_ID_MAP[Number(perm.id)]) {
+              const meta = PERMISSIONS_ID_MAP[Number(perm.id)];
+              if (checkScopeMatch(meta.category, meta.codename)) {
+                return true;
+              }
+            }
+          } else if (typeof perm === 'number' || !isNaN(Number(perm))) {
+            const meta = PERMISSIONS_ID_MAP[Number(perm)];
+            if (meta && checkScopeMatch(meta.category, meta.codename)) {
+              return true;
+            }
           }
         }
       }
@@ -346,31 +412,43 @@ export default function AdminLayout() {
     return false;
   };
 
-  const canAccessHackathons = hasPermission(['hackathon', 'event']);
-  const canAccessSponsors = hasPermission(['sponsor', 'sponsorship', 'package']);
-  const canAccessParticipants = hasPermission(['participant', 'customer', 'user', 'registration']);
-  const canAccessUsers = hasPermission(['user', 'customuser']);
-  const canAccessOrganizers = hasPermission(['organizer', 'user', 'customuser']);
-  const canAccessGroups = hasPermission(['group', 'permission']);
-  const canAccessTeams = hasPermission(['team', 'hackathon']);
-  const canAccessOrganizerTasks = hasPermission(['task', 'organizer', 'hackathon']);
-  const canAccessUserMgmt = canAccessParticipants || canAccessUsers || canAccessOrganizers || canAccessGroups;
-  const canAccessSystemConfig = hasPermission(['config', 'setting', 'system']);
-  const canAccessLogs = hasPermission(['activity', 'log', 'audit', 'comment']);
+  // Specific granular permissions matching backend catalog strictly
+  // 1. Hackathons & Committee
+  const canAccessHackathons = hasPermission(['hackathon']);
+  const canAccessOrganizers = hasPermission(['organizer']);
+  const canAccessTeams = hasPermission(['team']);
+  const canAccessHackathonCrm = isSuperOrStaff; // CRM submodules (prizes, faqs, contacts) reserved for super/staff
+  const canAccessHackathonsDropdown = canAccessHackathons || canAccessOrganizers || canAccessTeams || canAccessHackathonCrm;
 
-  // Schedule Access Rule:
-  // Show only to users who have group "admin schedules" (or "admin schedule"), and show everything to is_superuser: true
-  const isSuperuser = Boolean(currentUser?.is_superuser === true);
-  const userGroupsList = [
-    ...(Array.isArray(currentUser?.groups) ? currentUser.groups : []),
-    ...(Array.isArray(userGroupObjects) ? userGroupObjects : [])
-  ];
+  // 2. Organizations & Sponsors (Clean separation: Organization vs Sponsor Packages)
+  const canAccessOrganizations = hasPermission(['organization']);
+  const canAccessSponsorPackages = hasPermission(['sponsorpackage']);
+  const canAccessSponsorPackageTypes = hasPermission(['sponsorpackagetype']);
+  const canAccessSponsorshipBreakdown = canAccessSponsorPackages;
+  const canAccessSponsorPackagesSection = canAccessSponsorPackages || canAccessSponsorPackageTypes || canAccessSponsorshipBreakdown;
+  const canAccessSponsorsDropdown = canAccessOrganizations || canAccessSponsorPackagesSection;
+  const canAccessSponsors = canAccessSponsorsDropdown;
+
+  // 3. Schedules
   const hasAdminSchedulesGroup = userGroupsList.some((g) => {
     const name = typeof g === 'string' ? g : (g?.name || '');
     const clean = name.toLowerCase().replace(/[-_]/g, ' ').trim();
     return clean === 'admin schedules' || clean === 'admin schedule' || clean.includes('admin schedule');
   });
-  const canAccessSchedules = isSuperuser || hasAdminSchedulesGroup;
+  const canAccessSchedules = isSuperOrStaff || hasAdminSchedulesGroup || hasPermission(['schedule']);
+
+  // 4. Users, Departments & Groups
+  const canAccessParticipants = isSuperOrStaff;
+  const canAccessUsers = hasPermission(['user']);
+  const canAccessDepartments = hasPermission(['department']);
+  const canAccessGroups = isSuperOrStaff || hasPermission(['group']);
+  const canAccessUserMgmtDropdown = canAccessParticipants || canAccessUsers || canAccessOrganizers || canAccessDepartments || canAccessGroups;
+  const canAccessUserMgmt = canAccessUserMgmtDropdown;
+
+  // 5. Organizer Tasks & Activity Logs
+  const canAccessOrganizerTasks = hasPermission(['organizertasks']);
+  const canAccessSystemConfig = isSuperOrStaff;
+  const canAccessLogs = isSuperOrStaff || hasPermission(['activity']);
 
   // Header Title mapping
   let pageTitle = 'Admin Workspace';
@@ -414,11 +492,20 @@ export default function AdminLayout() {
         >
           {/* Logo */}
           <div className="h-16 flex items-center justify-between px-6" style={{ borderBottom: '1px solid #e8e9ef' }}>
-            <Link to="/admin-control-site" className="flex items-center gap-3 group">
-              <img
-                src={hackathonLogo}
-                alt="BIC Hackathon Admin"
-                className="h-8 w-auto object-contain transition-opacity group-hover:opacity-90"
+            <Link to="/admin-control-site" className="flex items-center gap-2.5 group min-w-0">
+              <HackathonBrand
+                hackathon={
+                  adminHackathons.find((h) => h.id === selectedHackathonId) ||
+                  adminHackathons.find((h) => h.is_current === true) ||
+                  adminHackathons[0] ||
+                  null
+                }
+                imageClassName="h-8 w-auto max-w-[140px] object-contain transition-opacity group-hover:opacity-90"
+                textClassName="text-xs font-bold text-slate-900 group-hover:text-[#ea580c] transition-colors"
+                subTextClassName="text-[9px] font-mono font-bold text-[#ea580c]"
+                iconSizeClass="w-7 h-7 text-[10px]"
+                showSubText={true}
+                fallbackTitle="BIC HACKATHON"
               />
             </Link>
 
@@ -452,7 +539,7 @@ export default function AdminLayout() {
             </Link>
 
             {/* Hackathon Management Dropdown Accordion */}
-            {canAccessHackathons && (
+            {canAccessHackathonsDropdown && (
               <div className="space-y-0.5 mb-1">
                 <button
                   type="button"
@@ -476,125 +563,160 @@ export default function AdminLayout() {
                 {hackathonMgmtOpen && (
                   <div className="space-y-0.5 pl-3 ml-2.5 border-l border-slate-100 py-0.5">
                     {/* Hackathons */}
-                    <Link
-                      to="/admin-control-site/hackathons?tab=hackathons"
-                      onClick={() => setMobileMenuOpen(false)}
-                      className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-normal transition-all ${
-                        isHackathonsListActive
-                          ? 'shadow-xs text-white'
-                          : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-                      }`}
-                      style={
-                        isHackathonsListActive
-                          ? { backgroundColor: '#ea580c', color: '#ffffff' }
-                          : {}
-                      }
-                    >
-                      <Trophy className="w-3.5 h-3.5 shrink-0" />
-                      <span>Hackathons</span>
-                    </Link>
+                    {canAccessHackathons && (
+                      <Link
+                        to="/admin-control-site/hackathons?tab=hackathons"
+                        onClick={() => setMobileMenuOpen(false)}
+                        className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-normal transition-all ${
+                          isHackathonsListActive
+                            ? 'shadow-xs text-white'
+                            : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                        }`}
+                        style={
+                          isHackathonsListActive
+                            ? { backgroundColor: '#ea580c', color: '#ffffff' }
+                            : {}
+                        }
+                      >
+                        <Trophy className="w-3.5 h-3.5 shrink-0" />
+                        <span>Hackathons</span>
+                      </Link>
+                    )}
 
                     {/* Hackathon Organizers */}
-                    <Link
-                      to="/admin-control-site/hackathons?tab=organizers"
-                      onClick={() => setMobileMenuOpen(false)}
-                      className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-normal transition-all ${
-                        isHackathonOrganizersActive
-                          ? 'shadow-xs text-white'
-                          : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-                      }`}
-                      style={
-                        isHackathonOrganizersActive
-                          ? { backgroundColor: '#ea580c', color: '#ffffff' }
-                          : {}
-                      }
-                    >
-                      <Award className="w-3.5 h-3.5 shrink-0" />
-                      <span>Organizers</span>
-                    </Link>
+                    {canAccessOrganizers && (
+                      <Link
+                        to="/admin-control-site/hackathons?tab=organizers"
+                        onClick={() => setMobileMenuOpen(false)}
+                        className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-normal transition-all ${
+                          isHackathonOrganizersActive
+                            ? 'shadow-xs text-white'
+                            : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                        }`}
+                        style={
+                          isHackathonOrganizersActive
+                            ? { backgroundColor: '#ea580c', color: '#ffffff' }
+                            : {}
+                        }
+                      >
+                        <Award className="w-3.5 h-3.5 shrink-0" />
+                        <span>Organizers</span>
+                      </Link>
+                    )}
 
                     {/* Hackathon Teams */}
-                    <Link
-                      to="/admin-control-site/hackathons?tab=teams"
-                      onClick={() => setMobileMenuOpen(false)}
-                      className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-normal transition-all ${
-                        isHackathonTeamsActive
-                          ? 'shadow-xs text-white'
-                          : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-                      }`}
-                      style={
-                        isHackathonTeamsActive
-                          ? { backgroundColor: '#ea580c', color: '#ffffff' }
-                          : {}
-                      }
-                    >
-                      <Users className="w-3.5 h-3.5 shrink-0" />
-                      <span>Teams</span>
-                    </Link>
+                    {canAccessTeams && (
+                      <Link
+                        to="/admin-control-site/hackathons?tab=teams"
+                        onClick={() => setMobileMenuOpen(false)}
+                        className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-normal transition-all ${
+                          isHackathonTeamsActive
+                            ? 'shadow-xs text-white'
+                            : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                        }`}
+                        style={
+                          isHackathonTeamsActive
+                            ? { backgroundColor: '#ea580c', color: '#ffffff' }
+                            : {}
+                        }
+                      >
+                        <Users className="w-3.5 h-3.5 shrink-0" />
+                        <span>Teams</span>
+                      </Link>
+                    )}
 
                     {/* Hackathon Prizes */}
-                    <Link
-                      to="/admin-control-site/hackathons?tab=prizes"
-                      onClick={() => setMobileMenuOpen(false)}
-                      className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-normal transition-all ${
-                        isHackathonPrizesActive
-                          ? 'shadow-xs text-white'
-                          : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-                      }`}
-                      style={
-                        isHackathonPrizesActive
-                          ? { backgroundColor: '#ea580c', color: '#ffffff' }
-                          : {}
-                      }
-                    >
-                      <Trophy className="w-3.5 h-3.5 shrink-0" />
-                      <span>Prizes</span>
-                    </Link>
+                    {canAccessHackathonCrm && (
+                      <Link
+                        to="/admin-control-site/hackathons?tab=prizes"
+                        onClick={() => setMobileMenuOpen(false)}
+                        className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-normal transition-all ${
+                          isHackathonPrizesActive
+                            ? 'shadow-xs text-white'
+                            : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                        }`}
+                        style={
+                          isHackathonPrizesActive
+                            ? { backgroundColor: '#ea580c', color: '#ffffff' }
+                            : {}
+                        }
+                      >
+                        <Trophy className="w-3.5 h-3.5 shrink-0" />
+                        <span>Prizes</span>
+                      </Link>
+                    )}
 
                     {/* Hackathon FAQs */}
-                    <Link
-                      to="/admin-control-site/hackathons?tab=faqs"
-                      onClick={() => setMobileMenuOpen(false)}
-                      className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-normal transition-all ${
-                        isHackathonFaqsActive
-                          ? 'shadow-xs text-white'
-                          : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-                      }`}
-                      style={
-                        isHackathonFaqsActive
-                          ? { backgroundColor: '#ea580c', color: '#ffffff' }
-                          : {}
-                      }
-                    >
-                      <HelpCircle className="w-3.5 h-3.5 shrink-0" />
-                      <span>FAQs</span>
-                    </Link>
+                    {canAccessHackathonCrm && (
+                      <Link
+                        to="/admin-control-site/hackathons?tab=faqs"
+                        onClick={() => setMobileMenuOpen(false)}
+                        className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-normal transition-all ${
+                          isHackathonFaqsActive
+                            ? 'shadow-xs text-white'
+                            : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                        }`}
+                        style={
+                          isHackathonFaqsActive
+                            ? { backgroundColor: '#ea580c', color: '#ffffff' }
+                            : {}
+                        }
+                      >
+                        <HelpCircle className="w-3.5 h-3.5 shrink-0" />
+                        <span>FAQs</span>
+                      </Link>
+                    )}
 
                     {/* Hackathon Contacts */}
-                    <Link
-                      to="/admin-control-site/hackathons?tab=contacts"
-                      onClick={() => setMobileMenuOpen(false)}
-                      className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-normal transition-all ${
-                        isHackathonContactsActive
-                          ? 'shadow-xs text-white'
-                          : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-                      }`}
-                      style={
-                        isHackathonContactsActive
-                          ? { backgroundColor: '#ea580c', color: '#ffffff' }
-                          : {}
-                      }
-                    >
-                      <Mail className="w-3.5 h-3.5 shrink-0" />
-                      <span>Contacts</span>
-                    </Link>
+                    {canAccessHackathonCrm && (
+                      <Link
+                        to="/admin-control-site/hackathons?tab=contacts"
+                        onClick={() => setMobileMenuOpen(false)}
+                        className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-normal transition-all ${
+                          isHackathonContactsActive
+                            ? 'shadow-xs text-white'
+                            : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                        }`}
+                        style={
+                          isHackathonContactsActive
+                            ? { backgroundColor: '#ea580c', color: '#ffffff' }
+                            : {}
+                        }
+                      >
+                        <Mail className="w-3.5 h-3.5 shrink-0" />
+                        <span>Contacts</span>
+                      </Link>
+                    )}
                   </div>
                 )}
               </div>
             )}
 
-            {/* Dedicated Sponsor Management Dropdown Accordion */}
-            {canAccessSponsors && (
+            {/* Direct Organizations Link (when user has Organization permissions but no Sponsor Packages) */}
+            {!canAccessSponsorPackagesSection && canAccessOrganizations && (
+              <div className="mb-1">
+                <Link
+                  to="/admin-control-site/sponsors?tab=sponsors"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-normal transition-colors ${
+                    isSponsorsActive && (currentTab === 'sponsors' || currentTab === 'organizations' || !currentTab)
+                      ? 'shadow-xs text-white'
+                      : 'text-slate-700 hover:bg-slate-100/80 hover:text-slate-900'
+                  }`}
+                  style={
+                    isSponsorsActive && (currentTab === 'sponsors' || currentTab === 'organizations' || !currentTab)
+                      ? { backgroundColor: '#ea580c', color: '#ffffff' }
+                      : {}
+                  }
+                >
+                  <Building2 className="w-4 h-4 shrink-0" />
+                  <span>Organizations</span>
+                </Link>
+              </div>
+            )}
+
+            {/* Dedicated Sponsor Management Dropdown Accordion (when user has Sponsor Packages / Types access) */}
+            {canAccessSponsorPackagesSection && (
               <div className="space-y-0.5 mb-1">
                 <button
                   type="button"
@@ -617,81 +739,89 @@ export default function AdminLayout() {
                 {/* Collapsible Sub-Items for Sponsors */}
                 {sponsorMgmtOpen && (
                   <div className="space-y-0.5 pl-3 ml-2.5 border-l border-slate-100 py-0.5">
-                    {/* Organizations (formerly Sponsors Directory) */}
-                    <Link
-                      to="/admin-control-site/sponsors?tab=sponsors"
-                      onClick={() => setMobileMenuOpen(false)}
-                      className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-normal transition-all ${
-                        isSponsorsActive && (currentTab === 'sponsors' || currentTab === 'organizations')
-                          ? 'shadow-xs text-white'
-                          : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-                      }`}
-                      style={
-                        isSponsorsActive && (currentTab === 'sponsors' || currentTab === 'organizations')
-                          ? { backgroundColor: '#ea580c', color: '#ffffff' }
-                          : {}
-                      }
-                    >
-                      <Building2 className="w-3.5 h-3.5 shrink-0" />
-                      <span>Organizations</span>
-                    </Link>
+                    {/* Organizations */}
+                    {canAccessOrganizations && (
+                      <Link
+                        to="/admin-control-site/sponsors?tab=sponsors"
+                        onClick={() => setMobileMenuOpen(false)}
+                        className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-normal transition-all ${
+                          isSponsorsActive && (currentTab === 'sponsors' || currentTab === 'organizations')
+                            ? 'shadow-xs text-white'
+                            : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                        }`}
+                        style={
+                          isSponsorsActive && (currentTab === 'sponsors' || currentTab === 'organizations')
+                            ? { backgroundColor: '#ea580c', color: '#ffffff' }
+                            : {}
+                        }
+                      >
+                        <Building2 className="w-3.5 h-3.5 shrink-0" />
+                        <span>Organizations</span>
+                      </Link>
+                    )}
 
                     {/* Sponsor Packages */}
-                    <Link
-                      to="/admin-control-site/sponsors?tab=packages"
-                      onClick={() => setMobileMenuOpen(false)}
-                      className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-normal transition-all ${
-                        isSponsorsActive && currentTab === 'packages'
-                          ? 'shadow-xs text-white'
-                          : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-                      }`}
-                      style={
-                        isSponsorsActive && currentTab === 'packages'
-                          ? { backgroundColor: '#ea580c', color: '#ffffff' }
-                          : {}
-                      }
-                    >
-                      <Package className="w-3.5 h-3.5 shrink-0" />
-                      <span>Sponsor Packages</span>
-                    </Link>
+                    {canAccessSponsorPackages && (
+                      <Link
+                        to="/admin-control-site/sponsors?tab=packages"
+                        onClick={() => setMobileMenuOpen(false)}
+                        className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-normal transition-all ${
+                          isSponsorsActive && currentTab === 'packages'
+                            ? 'shadow-xs text-white'
+                            : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                        }`}
+                        style={
+                          isSponsorsActive && currentTab === 'packages'
+                            ? { backgroundColor: '#ea580c', color: '#ffffff' }
+                            : {}
+                        }
+                      >
+                        <Package className="w-3.5 h-3.5 shrink-0" />
+                        <span>Sponsor Packages</span>
+                      </Link>
+                    )}
 
                     {/* Package Types */}
-                    <Link
-                      to="/admin-control-site/sponsors?tab=types"
-                      onClick={() => setMobileMenuOpen(false)}
-                      className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-normal transition-all ${
-                        isSponsorsActive && currentTab === 'types'
-                          ? 'shadow-xs text-white'
-                          : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-                      }`}
-                      style={
-                        isSponsorsActive && currentTab === 'types'
-                          ? { backgroundColor: '#ea580c', color: '#ffffff' }
-                          : {}
-                      }
-                    >
-                      <Layers className="w-3.5 h-3.5 shrink-0" />
-                      <span>Package Types</span>
-                    </Link>
+                    {canAccessSponsorPackageTypes && (
+                      <Link
+                        to="/admin-control-site/sponsors?tab=types"
+                        onClick={() => setMobileMenuOpen(false)}
+                        className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-normal transition-all ${
+                          isSponsorsActive && currentTab === 'types'
+                            ? 'shadow-xs text-white'
+                            : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                        }`}
+                        style={
+                          isSponsorsActive && currentTab === 'types'
+                            ? { backgroundColor: '#ea580c', color: '#ffffff' }
+                            : {}
+                        }
+                      >
+                        <Layers className="w-3.5 h-3.5 shrink-0" />
+                        <span>Package Types</span>
+                      </Link>
+                    )}
 
                     {/* Sponsorship Breakdown */}
-                    <Link
-                      to="/admin-control-site/sponsors?tab=breakdown"
-                      onClick={() => setMobileMenuOpen(false)}
-                      className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-normal transition-all ${
-                        isSponsorsActive && currentTab === 'breakdown'
-                          ? 'shadow-xs text-white'
-                          : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-                      }`}
-                      style={
-                        isSponsorsActive && currentTab === 'breakdown'
-                          ? { backgroundColor: '#ea580c', color: '#ffffff' }
-                          : {}
-                      }
-                    >
-                      <PieChart className="w-3.5 h-3.5 shrink-0" />
-                      <span>Sponsorship Breakdown</span>
-                    </Link>
+                    {canAccessSponsorshipBreakdown && (
+                      <Link
+                        to="/admin-control-site/sponsors?tab=breakdown"
+                        onClick={() => setMobileMenuOpen(false)}
+                        className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-normal transition-all ${
+                          isSponsorsActive && currentTab === 'breakdown'
+                            ? 'shadow-xs text-white'
+                            : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                        }`}
+                        style={
+                          isSponsorsActive && currentTab === 'breakdown'
+                            ? { backgroundColor: '#ea580c', color: '#ffffff' }
+                            : {}
+                        }
+                      >
+                        <PieChart className="w-3.5 h-3.5 shrink-0" />
+                        <span>Sponsorship Breakdown</span>
+                      </Link>
+                    )}
                   </div>
                 )}
               </div>
@@ -744,7 +874,7 @@ export default function AdminLayout() {
             )}
 
             {/* User Management Dropdown Accordion */}
-            {canAccessUserMgmt && (
+            {canAccessUserMgmtDropdown && (
               <div className="space-y-0.5">
                 <button
                   type="button"
@@ -831,7 +961,7 @@ export default function AdminLayout() {
                     )}
 
                     {/* Departments */}
-                    {canAccessUserMgmt && (
+                    {canAccessDepartments && (
                       <Link
                         to="/admin-control-site/users?tab=departments"
                         onClick={() => setMobileMenuOpen(false)}
@@ -1015,28 +1145,14 @@ export default function AdminLayout() {
                 className="flex items-center gap-2.5 flex-1 min-w-0 text-left group hover:opacity-85 transition"
                 title="Click to view & edit your personal profile (/api/v1/users/profile/)"
               >
-                {profilePicUrl ? (
-                  <img
-                    src={profilePicUrl}
-                    alt={displayName}
-                    className="w-9 h-9 rounded-full object-cover shrink-0 shadow-xs border border-slate-200 group-hover:border-[#e8622a]"
-                    onError={(e) => {
-                      e.currentTarget.style.display = 'none';
-                      if (e.currentTarget.nextSibling) {
-                        e.currentTarget.nextSibling.style.display = 'flex';
-                      }
-                    }}
-                  />
-                ) : null}
-                <div
-                  className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0 shadow-xs"
-                  style={{
-                    backgroundColor: '#e8622a',
-                    display: profilePicUrl ? 'none' : 'flex'
+                <img
+                  src={profilePicUrl}
+                  alt={displayName}
+                  className="w-9 h-9 rounded-full object-cover shrink-0 shadow-xs border border-slate-200 group-hover:border-[#e8622a] bg-slate-100"
+                  onError={(e) => {
+                    e.currentTarget.src = DEFAULT_USER_AVATAR;
                   }}
-                >
-                  {initials}
-                </div>
+                />
                 <div className="flex-1 min-w-0">
                   <div className="text-xs font-bold truncate text-slate-900 flex items-center gap-1">
                     <span>{displayName}</span>
@@ -1137,21 +1253,21 @@ export default function AdminLayout() {
                   {/* Hackathon Management */}
                   <Route
                     path="hackathons"
-                    element={canAccessHackathons ? <HackathonManagement /> : <Navigate to="/admin-control-site" replace />}
+                    element={canAccessHackathonsDropdown ? <HackathonManagement /> : <Navigate to="/admin-control-site" replace />}
                   />
                   <Route
                     path="hackathons/*"
-                    element={canAccessHackathons ? <HackathonManagement /> : <Navigate to="/admin-control-site" replace />}
+                    element={canAccessHackathonsDropdown ? <HackathonManagement /> : <Navigate to="/admin-control-site" replace />}
                   />
 
                   {/* Sponsors & Packages Management */}
                   <Route
                     path="sponsors"
-                    element={canAccessSponsors ? <SponsorManagement /> : <Navigate to="/admin-control-site" replace />}
+                    element={canAccessSponsorsDropdown ? <SponsorManagement /> : <Navigate to="/admin-control-site" replace />}
                   />
                   <Route
                     path="sponsors/*"
-                    element={canAccessSponsors ? <SponsorManagement /> : <Navigate to="/admin-control-site" replace />}
+                    element={canAccessSponsorsDropdown ? <SponsorManagement /> : <Navigate to="/admin-control-site" replace />}
                   />
 
                   {/* Schedule Management */}
@@ -1167,11 +1283,11 @@ export default function AdminLayout() {
                   {/* User Management */}
                   <Route
                     path="users"
-                    element={canAccessUsers ? <UserManagement /> : <Navigate to="/admin-control-site" replace />}
+                    element={canAccessUserMgmtDropdown ? <UserManagement /> : <Navigate to="/admin-control-site" replace />}
                   />
                   <Route
                     path="users/*"
-                    element={canAccessUsers ? <UserManagement /> : <Navigate to="/admin-control-site" replace />}
+                    element={canAccessUserMgmtDropdown ? <UserManagement /> : <Navigate to="/admin-control-site" replace />}
                   />
 
                   {/* Participant Directory */}
@@ -1264,6 +1380,16 @@ export default function AdminLayout() {
                               </Link>
                             )}
 
+                            {!canAccessSponsorPackages && canAccessOrganizations && (
+                              <Link
+                                to="/admin-control-site/sponsors?tab=sponsors"
+                                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition"
+                              >
+                                <Building2 className="w-4 h-4 text-[#ea580c]" />
+                                <span>Organizations</span>
+                              </Link>
+                            )}
+
                             {canAccessUsers && (
                               <Link
                                 to="/admin-control-site/users"
@@ -1271,6 +1397,26 @@ export default function AdminLayout() {
                               >
                                 <UserCheck className="w-4 h-4 text-[#e8622a]" />
                                 <span>User Management</span>
+                              </Link>
+                            )}
+
+                            {canAccessDepartments && (
+                              <Link
+                                to="/admin-control-site/users?tab=departments"
+                                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition"
+                              >
+                                <Building2 className="w-4 h-4 text-[#e8622a]" />
+                                <span>Departments</span>
+                              </Link>
+                            )}
+
+                            {canAccessOrganizerTasks && (
+                              <Link
+                                to="/admin-control-site/organizer-tasks"
+                                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition"
+                              >
+                                <ClipboardList className="w-4 h-4 text-[#e8622a]" />
+                                <span>Organizer Tasks</span>
                               </Link>
                             )}
 
@@ -1315,7 +1461,7 @@ export default function AdminLayout() {
                             </Link>
                           )}
 
-                          {canAccessSponsors && (
+                          {canAccessSponsorPackages && (
                             <Link
                               to="/admin-control-site/sponsors"
                               className="p-5 rounded-2xl bg-white border border-slate-200/80 hover:border-orange-300 hover:shadow-md transition-all group"
@@ -1328,6 +1474,23 @@ export default function AdminLayout() {
                               </h3>
                               <p className="text-xs text-slate-500 mt-1 leading-relaxed">
                                 Manage corporate sponsors, packages, perks, and tier allocation breakdown.
+                              </p>
+                            </Link>
+                          )}
+
+                          {!canAccessSponsorPackages && canAccessOrganizations && (
+                            <Link
+                              to="/admin-control-site/sponsors?tab=sponsors"
+                              className="p-5 rounded-2xl bg-white border border-slate-200/80 hover:border-orange-300 hover:shadow-md transition-all group"
+                            >
+                              <div className="w-10 h-10 rounded-xl bg-orange-50 text-[#ea580c] flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
+                                <Building2 className="w-5 h-5" />
+                              </div>
+                              <h3 className="font-bold text-slate-900 text-sm group-hover:text-[#ea580c] transition-colors">
+                                Organizations Directory
+                              </h3>
+                              <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                                Manage partner organizations, logos, contact information, and corporate profiles via <code className="text-[11px] font-mono text-slate-700">/api/v1/organizations/</code>.
                               </p>
                             </Link>
                           )}
@@ -1345,6 +1508,40 @@ export default function AdminLayout() {
                               </h3>
                               <p className="text-xs text-slate-500 mt-1 leading-relaxed">
                                 Manage user accounts, role allocations, and security credentials.
+                              </p>
+                            </Link>
+                          )}
+
+                          {canAccessDepartments && (
+                            <Link
+                              to="/admin-control-site/users?tab=departments"
+                              className="p-5 rounded-2xl bg-white border border-slate-200/80 hover:border-orange-300 hover:shadow-md transition-all group"
+                            >
+                              <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
+                                <Building2 className="w-5 h-5" />
+                              </div>
+                              <h3 className="font-bold text-slate-900 text-sm group-hover:text-[#e8622a] transition-colors">
+                                Department Management
+                              </h3>
+                              <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                                Manage organizational departments, teams, and administrative divisions.
+                              </p>
+                            </Link>
+                          )}
+
+                          {canAccessOrganizerTasks && (
+                            <Link
+                              to="/admin-control-site/organizer-tasks"
+                              className="p-5 rounded-2xl bg-white border border-slate-200/80 hover:border-orange-300 hover:shadow-md transition-all group"
+                            >
+                              <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
+                                <ClipboardList className="w-5 h-5" />
+                              </div>
+                              <h3 className="font-bold text-slate-900 text-sm group-hover:text-[#e8622a] transition-colors">
+                                Organizer Tasks
+                              </h3>
+                              <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                                Track assigned tasks, execution status, priorities, and deadlines.
                               </p>
                             </Link>
                           )}

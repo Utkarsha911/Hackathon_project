@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { api, getMediaUrl, getSelectedAdminHackathon, setSelectedAdminHackathon } from '../../services/api';
+import { api, getMediaUrl, getUserAvatarUrl, DEFAULT_USER_AVATAR, getSelectedAdminHackathon, setSelectedAdminHackathon, getAdminUser } from '../../services/api';
 import { useHackathon } from '../../context/HackathonContext';
 import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
 import {
@@ -92,9 +92,59 @@ const EMPTY_FORM = {
 };
 
 export default function HackathonManagement() {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = searchParams.get('tab') || 'hackathons';
   const { showToast, hackathon: currentHackathon } = useHackathon();
+
+  // Permission resolution
+  const currentUser = getAdminUser();
+  const isSuperOrStaff = Boolean(
+    currentUser?.is_superuser === true ||
+    currentUser?.is_staff === true ||
+    ['admin', 'administrator', 'super admin'].includes((currentUser?.role || '').toLowerCase())
+  );
+
+  const checkHasPermission = (scopes) => {
+    if (isSuperOrStaff) return true;
+    const userGroupsList = Array.isArray(currentUser?.groups) ? currentUser.groups : [];
+    if (!userGroupsList || userGroupsList.length === 0) return false;
+    const scopeList = (Array.isArray(scopes) ? scopes : [scopes]).map((s) => s.toLowerCase());
+
+    for (const group of userGroupsList) {
+      if (!group || typeof group !== 'object') continue;
+      if (group.permissions_name && typeof group.permissions_name === 'object') {
+        for (const [category, perms] of Object.entries(group.permissions_name)) {
+          const catLower = category.toLowerCase();
+          if (scopeList.includes(catLower)) return true;
+          if (Array.isArray(perms)) {
+            for (const perm of perms) {
+              const pStr = (perm?.codename || perm?.name || '').toLowerCase();
+              if (scopeList.some((s) => pStr === s || pStr.endsWith(`_${s}`))) return true;
+            }
+          }
+        }
+      }
+    }
+    return false;
+  };
+
+  const canAccessHackathons = checkHasPermission(['hackathon']);
+  const canAccessOrganizers = checkHasPermission(['organizer']);
+  const canAccessTeams = checkHasPermission(['team']);
+  const canAccessHackathonCrm = isSuperOrStaff;
+
+  // Auto redirect unauthorized tab requests
+  useEffect(() => {
+    if (activeTab === 'teams' && !canAccessTeams) {
+      setSearchParams({ tab: canAccessHackathons ? 'hackathons' : 'organizers' }, { replace: true });
+    } else if (['prizes', 'faqs', 'contacts'].includes(activeTab) && !canAccessHackathonCrm) {
+      setSearchParams({ tab: canAccessHackathons ? 'hackathons' : 'organizers' }, { replace: true });
+    } else if (activeTab === 'organizers' && !canAccessOrganizers && canAccessHackathons) {
+      setSearchParams({ tab: 'hackathons' }, { replace: true });
+    } else if (activeTab === 'hackathons' && !canAccessHackathons && canAccessOrganizers) {
+      setSearchParams({ tab: 'organizers' }, { replace: true });
+    }
+  }, [activeTab, canAccessHackathons, canAccessOrganizers, canAccessTeams, canAccessHackathonCrm, setSearchParams]);
 
   // Primary data state (Hackathons)
   const [hackathons, setHackathons] = useState(() => {
@@ -859,7 +909,7 @@ export default function HackathonManagement() {
                   <tbody className="divide-y divide-slate-100 text-xs text-slate-700">
                     {organizers.map((org) => {
                       const user = org.user || {};
-                      const avatarUrl = user.profile_picture ? getMediaUrl(user.profile_picture) : null;
+                      const avatarUrl = getUserAvatarUrl(user.profile_picture);
                       const displayName =
                         user.full_name ||
                         `${user.first_name || ''} ${user.last_name || ''}`.trim() ||
@@ -879,20 +929,14 @@ export default function HackathonManagement() {
                           {/* Organizer Name & Avatar */}
                           <td className="py-3.5 px-4">
                             <div className="flex items-center gap-3">
-                              {avatarUrl ? (
-                                <img
-                                  src={avatarUrl}
-                                  alt={displayName}
-                                  className="w-9 h-9 rounded-full object-cover border border-slate-200 shadow-xs shrink-0"
-                                  onError={(e) => {
-                                    e.currentTarget.style.display = 'none';
-                                  }}
-                                />
-                              ) : (
-                                <div className="w-9 h-9 rounded-full bg-orange-100 text-[#c2410c] font-bold text-xs flex items-center justify-center shrink-0 border border-orange-200">
-                                  {initial}
-                                </div>
-                              )}
+                              <img
+                                src={avatarUrl}
+                                alt={displayName}
+                                className="w-9 h-9 rounded-full object-cover border border-slate-200 shadow-xs shrink-0 bg-slate-50"
+                                onError={(e) => {
+                                  e.currentTarget.src = DEFAULT_USER_AVATAR;
+                                }}
+                              />
                               <div className="min-w-0">
                                 <div className="font-semibold text-slate-900 truncate flex items-center gap-1.5">
                                   <span>{displayName}</span>
@@ -2446,17 +2490,14 @@ export default function HackathonManagement() {
             {/* Profile Info */}
             <div className="p-6 space-y-4">
               <div className="flex items-center gap-4 p-4 rounded-xl bg-slate-50 border border-slate-200">
-                {viewingOrg.user?.profile_picture ? (
-                  <img
-                    src={getMediaUrl(viewingOrg.user.profile_picture)}
-                    alt={viewingOrg.user.full_name}
-                    className="w-16 h-16 rounded-full object-cover border-2 border-white shadow-sm"
-                  />
-                ) : (
-                  <div className="w-16 h-16 rounded-full bg-orange-100 text-[#ea580c] font-bold text-xl flex items-center justify-center border-2 border-white shadow-sm">
-                    {(viewingOrg.user?.first_name?.[0] || viewingOrg.user?.full_name?.[0] || 'O').toUpperCase()}
-                  </div>
-                )}
+                <img
+                  src={getUserAvatarUrl(viewingOrg.user?.profile_picture)}
+                  alt={viewingOrg.user?.full_name || 'Organizer'}
+                  className="w-16 h-16 rounded-full object-cover border-2 border-white shadow-sm bg-white shrink-0"
+                  onError={(e) => {
+                    e.currentTarget.src = DEFAULT_USER_AVATAR;
+                  }}
+                />
                 <div>
                   <h4 className="text-base font-bold text-slate-900 flex items-center gap-1.5">
                     {viewingOrg.user?.full_name || `${viewingOrg.user?.first_name || ''} ${viewingOrg.user?.last_name || ''}`.trim() || 'Unnamed User'}

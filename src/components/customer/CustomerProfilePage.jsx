@@ -21,14 +21,17 @@ import {
   Ban,
   Loader2,
   Code2,
-  Plus
+  Plus,
+  UserPlus,
+  Eye
 } from 'lucide-react';
 import { useHackathon } from '../../context/HackathonContext';
 import CustomerNavbar from './CustomerNavbar';
 import RegistrationModal from './RegistrationModal';
 import UserAuthModal from './UserAuthModal';
+import TeamParticipantsModal from './TeamParticipantsModal';
 import Footer from '../common/Footer';
-import api, { getMediaUrl } from '../../services/api';
+import api, { getMediaUrl, getUserAvatarUrl, DEFAULT_USER_AVATAR } from '../../services/api';
 
 export default function CustomerProfilePage() {
   const { currentUser, hackathon, logoutUser } = useHackathon();
@@ -39,6 +42,8 @@ export default function CustomerProfilePage() {
   const [teamsError, setTeamsError] = useState('');
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
+  const [managingTeam, setManagingTeam] = useState(null);
+  const [isParticipantsOpen, setIsParticipantsOpen] = useState(false);
 
   // Fetch teams registered by the current user from /api/v1/hackathons/teams/
   const fetchUserTeams = async () => {
@@ -163,17 +168,14 @@ export default function CustomerProfilePage() {
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 pb-6 border-b border-slate-100">
                 {/* Avatar & Name */}
                 <div className="flex items-center gap-4">
-                  {currentUser.profile_picture ? (
-                    <img
-                      src={getMediaUrl(currentUser.profile_picture)}
-                      alt={fullName}
-                      className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl object-cover border border-slate-200 shadow-xs shrink-0"
-                    />
-                  ) : (
-                    <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-tr from-[#ea580c] to-amber-500 text-white flex items-center justify-center text-2xl sm:text-3xl font-extrabold shadow-xs shrink-0">
-                      {userInitial}
-                    </div>
-                  )}
+                  <img
+                    src={getUserAvatarUrl(currentUser)}
+                    alt={fullName}
+                    onError={(e) => {
+                      e.currentTarget.src = DEFAULT_USER_AVATAR;
+                    }}
+                    className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl object-cover border border-slate-200 shadow-xs shrink-0 bg-slate-50"
+                  />
 
                   <div>
                     <div className="flex items-center gap-2 flex-wrap">
@@ -309,6 +311,7 @@ export default function CustomerProfilePage() {
                   {registeredTeams.map((team) => {
                     const status = (team.status || 'submitted').toLowerCase();
                     const isApproved = status === 'approved';
+                    const isParticipationConfirmed = status === 'participation_confirmed';
                     const isDisqualified = status === 'disqualified';
                     const isRejected = status === 'rejected';
 
@@ -335,27 +338,32 @@ export default function CustomerProfilePage() {
                             </div>
 
                             {/* Status Badge */}
-                            <span
-                              className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold capitalize shrink-0 ${isApproved
-                                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                                : isDisqualified
-                                  ? 'bg-rose-50 text-rose-700 border border-rose-200'
-                                  : isRejected
-                                    ? 'bg-red-50 text-red-700 border border-red-200'
-                                    : 'bg-amber-50 text-amber-700 border border-amber-200'
-                                }`}
-                            >
-                              {isApproved ? (
+                            {isParticipationConfirmed ? (
+                              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold capitalize shrink-0 bg-blue-50 text-blue-700 border border-blue-200">
+                                <ShieldCheck className="w-3.5 h-3.5 text-blue-600" />
+                                <span>Participation Confirmed</span>
+                              </span>
+                            ) : isApproved ? (
+                              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold capitalize shrink-0 bg-emerald-50 text-emerald-700 border border-emerald-200">
                                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                              ) : isDisqualified ? (
+                                <span>Approved</span>
+                              </span>
+                            ) : isDisqualified ? (
+                              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold capitalize shrink-0 bg-rose-50 text-rose-700 border border-rose-200">
                                 <Ban className="w-3.5 h-3.5 text-rose-600" />
-                              ) : isRejected ? (
+                                <span>Disqualified</span>
+                              </span>
+                            ) : isRejected ? (
+                              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold capitalize shrink-0 bg-red-50 text-red-700 border border-red-200">
                                 <XCircle className="w-3.5 h-3.5 text-red-600" />
-                              ) : (
+                                <span>Rejected</span>
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold capitalize shrink-0 bg-amber-50 text-amber-700 border border-amber-200">
                                 <Clock className="w-3.5 h-3.5 text-amber-600" />
-                              )}
-                              <span>{team.status || 'Submitted'}</span>
-                            </span>
+                                <span>{team.status || 'Submitted'}</span>
+                              </span>
+                            )}
                           </div>
 
                           {/* Team Details Grid */}
@@ -409,6 +417,113 @@ export default function CustomerProfilePage() {
                               </span>
                             </div>
                           )}
+
+                          {/* Participants Roster Section (Allowed after team is approved/accepted) */}
+                          <div className="mt-4 pt-3 border-t border-slate-100">
+                            <div className="flex items-center justify-between gap-2 mb-2">
+                              <div className="flex items-center gap-1.5">
+                                <Users className="w-3.5 h-3.5 text-slate-500" />
+                                <span className="text-xs font-bold text-slate-800">
+                                  Participants Roster
+                                </span>
+                                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-semibold">
+                                  {team.participants?.length || 0} / {team.no_of_members || 1}
+                                </span>
+                              </div>
+
+                              {isParticipationConfirmed ? (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setManagingTeam(team);
+                                    setIsParticipantsOpen(true);
+                                  }}
+                                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200 transition cursor-pointer"
+                                >
+                                  <Eye className="w-3.5 h-3.5 text-slate-500" />
+                                  <span>View Roster</span>
+                                </button>
+                              ) : isApproved ? (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setManagingTeam(team);
+                                    setIsParticipantsOpen(true);
+                                  }}
+                                  className="inline-flex items-center gap-1 px-3 py-1 rounded-xl text-xs font-semibold text-white bg-[#ea580c] hover:bg-orange-600 shadow-xs transition active:scale-95 cursor-pointer"
+                                >
+                                  <UserPlus className="w-3.5 h-3.5" />
+                                  <span>{team.participants?.length > 0 ? 'Update Participants' : 'Add Participants'}</span>
+                                </button>
+                              ) : (
+                                <span className="text-[10px] text-slate-400 font-medium italic">
+                                  Editable once approved
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Participant details / preview */}
+                            {team.participants && team.participants.length > 0 ? (
+                              <div className="space-y-1.5 mt-2">
+                                {team.participants.map((p, pIdx) => (
+                                  <div
+                                    key={p.id || pIdx}
+                                    className="p-2 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-between text-xs"
+                                  >
+                                    <div className="flex items-center gap-2 truncate">
+                                      <div
+                                        className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 ${
+                                          pIdx === 0 ? 'bg-[#ea580c] text-white' : 'bg-slate-200 text-slate-700'
+                                        }`}
+                                      >
+                                        {pIdx + 1}
+                                      </div>
+                                      <div className="truncate">
+                                        <div className="flex items-center gap-1.5">
+                                          <span className="font-semibold text-slate-800 truncate">{p.name}</span>
+                                          {pIdx === 0 && (
+                                            <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-orange-100 text-[#ea580c] font-bold">
+                                              Leader
+                                            </span>
+                                          )}
+                                        </div>
+                                        <span className="text-[11px] text-slate-400 font-mono truncate block">{p.email}</span>
+                                      </div>
+                                    </div>
+
+                                    <div className="flex items-center gap-1.5 shrink-0 text-[10px] font-medium text-slate-500">
+                                      {p.shirt_size && (
+                                        <span className="px-1.5 py-0.5 rounded bg-white border border-slate-200">
+                                          Size: {p.shirt_size}
+                                        </span>
+                                      )}
+                                      {p.food_preference && (
+                                        <span className="px-1.5 py-0.5 rounded bg-white border border-slate-200 capitalize">
+                                          {p.food_preference.replace('_', ' ')}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : null}
+
+                            {/* Status Context Alerts */}
+                            {isParticipationConfirmed ? (
+                              <div className="p-2.5 rounded-xl bg-blue-50/80 border border-blue-200/80 text-[11px] text-blue-900 flex items-center gap-2 mt-2">
+                                <ShieldCheck className="w-4 h-4 text-blue-600 shrink-0" />
+                                <span>Participation confirmed! Squad details and roster are locked and cannot be edited.</span>
+                              </div>
+                            ) : isApproved && (!team.participants || team.participants.length === 0) ? (
+                              <div className="p-2.5 rounded-xl bg-amber-50/70 border border-amber-200/80 text-[11px] text-amber-800 flex items-center justify-between gap-2 mt-2">
+                                <span>Squad approved! Click "Add Participants" to register yourself and teammates.</span>
+                              </div>
+                            ) : !isApproved && !isParticipationConfirmed ? (
+                              <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100 text-[11px] text-slate-400 mt-2">
+                                Squad application submitted. Participant profiles can be submitted after acceptance.
+                              </div>
+                            ) : null}
+                          </div>
                         </div>
 
                         {/* Footer info & Links */}
@@ -462,6 +577,18 @@ export default function CustomerProfilePage() {
           setIsRegisterOpen(false);
           fetchUserTeams();
         }}
+      />
+
+      {/* Team Participants Modal */}
+      <TeamParticipantsModal
+        isOpen={isParticipantsOpen}
+        onClose={() => {
+          setIsParticipantsOpen(false);
+          setManagingTeam(null);
+        }}
+        team={managingTeam}
+        currentUser={currentUser}
+        onSuccess={() => fetchUserTeams()}
       />
 
       {/* Auth Modal for unauthenticated users */}

@@ -1,3 +1,5 @@
+import permissionsData from '../data/json/permissions.json';
+
 // In-memory response cache for GET requests
 const apiCache = new Map();
 // In-flight request deduplication map
@@ -22,6 +24,17 @@ export const API_BASE_URL =
   'http://127.0.0.1:8000/api/v1';
 
 export const BACKEND_URL = API_BASE_URL.replace(/\/api\/v1\/?$/, '');
+
+import defaultUserImage from '../assets/default-image.webp';
+
+export const DEFAULT_USER_AVATAR = defaultUserImage;
+
+export function getUserAvatarUrl(pathOrUser) {
+  if (!pathOrUser) return DEFAULT_USER_AVATAR;
+  const path = typeof pathOrUser === 'string' ? pathOrUser : pathOrUser?.profile_picture;
+  if (!path || path === 'null' || path === 'undefined') return DEFAULT_USER_AVATAR;
+  return getMediaUrl(path);
+}
 
 export function getMediaUrl(path) {
   if (!path) return '';
@@ -74,70 +87,70 @@ export function formatThrottleMessage(errorOrMsg) {
   return msg || 'Request was throttled. Please try again later.';
 }
 
-export function getAuthToken() {
-  return localStorage.getItem('bic_auth_token');
+export function isAdminContext() {
+  if (typeof window === 'undefined') return false;
+  const path = window.location.pathname;
+  return path.startsWith('/admin-control-site') || path.startsWith('/admin');
 }
 
-export function setAuthToken(token) {
+// ---------------------------------------------------------------------
+// Admin Tokens & State (bic_admin_auth_token, bic_admin_refresh_token, bic_admin_user)
+// ---------------------------------------------------------------------
+export function getAdminAuthToken() {
+  if (typeof localStorage === 'undefined') return '';
+  return (
+    localStorage.getItem('bic_admin_auth_token') ||
+    localStorage.getItem('bic_admin_access_token') ||
+    ''
+  );
+}
+
+export function setAdminAuthToken(token) {
+  if (typeof localStorage === 'undefined') return;
   if (token) {
     const cleanToken =
       typeof token === 'string' && token.startsWith('Bearer ')
         ? token.slice(7).trim()
         : token;
-    localStorage.setItem('bic_auth_token', cleanToken);
+    localStorage.setItem('bic_admin_auth_token', cleanToken);
   } else {
-    localStorage.removeItem('bic_auth_token');
+    localStorage.removeItem('bic_admin_auth_token');
+    localStorage.removeItem('bic_admin_access_token');
   }
 }
 
-export function clearAuthToken() {
-  localStorage.removeItem('bic_auth_token');
+export function clearAdminAuthToken() {
+  if (typeof localStorage === 'undefined') return;
+  localStorage.removeItem('bic_admin_auth_token');
+  localStorage.removeItem('bic_admin_access_token');
 }
 
-export function getRefreshToken() {
-  return localStorage.getItem('bic_refresh_token');
+export function getAdminRefreshToken() {
+  if (typeof localStorage === 'undefined') return '';
+  return localStorage.getItem('bic_admin_refresh_token') || '';
 }
 
-export function setRefreshToken(token) {
+export function setAdminRefreshToken(token) {
+  if (typeof localStorage === 'undefined') return;
   if (token) {
     const cleanToken =
       typeof token === 'string' && token.startsWith('Bearer ')
         ? token.slice(7).trim()
         : token;
-    localStorage.setItem('bic_refresh_token', cleanToken);
+    localStorage.setItem('bic_admin_refresh_token', cleanToken);
   } else {
-    localStorage.removeItem('bic_refresh_token');
+    localStorage.removeItem('bic_admin_refresh_token');
   }
 }
 
-export function clearRefreshToken() {
-  localStorage.removeItem('bic_refresh_token');
-}
-
-export function getCurrentUser() {
-  try {
-    const raw = localStorage.getItem('bic_user') || localStorage.getItem('bic_admin_user');
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
-}
-
-export function setCurrentUser(user) {
-  if (user) {
-    localStorage.setItem('bic_user', JSON.stringify(user));
-  } else {
-    localStorage.removeItem('bic_user');
-  }
-}
-
-export function clearCurrentUser() {
-  localStorage.removeItem('bic_user');
+export function clearAdminRefreshToken() {
+  if (typeof localStorage === 'undefined') return;
+  localStorage.removeItem('bic_admin_refresh_token');
 }
 
 export function getAdminUser() {
   try {
-    const raw = localStorage.getItem('bic_admin_user') || localStorage.getItem('bic_user');
+    const raw = localStorage.getItem('bic_admin_user');
     return raw ? JSON.parse(raw) : null;
   } catch {
     return null;
@@ -145,16 +158,201 @@ export function getAdminUser() {
 }
 
 export function setAdminUser(user) {
+  if (typeof localStorage === 'undefined') return;
   if (user) {
     localStorage.setItem('bic_admin_user', JSON.stringify(user));
-    localStorage.setItem('bic_user', JSON.stringify(user));
   } else {
     localStorage.removeItem('bic_admin_user');
   }
 }
 
 export function clearAdminUser() {
+  if (typeof localStorage === 'undefined') return;
   localStorage.removeItem('bic_admin_user');
+}
+
+// ---------------------------------------------------------------------
+// Customer Tokens & State (bic_customer_auth_token, bic_customer_refresh_token, bic_customer_user)
+// ---------------------------------------------------------------------
+export function getCustomerAuthToken() {
+  if (typeof localStorage === 'undefined') return '';
+  return (
+    localStorage.getItem('bic_customer_auth_token') ||
+    localStorage.getItem('bic_auth_token') ||
+    ''
+  );
+}
+
+export function setCustomerAuthToken(token) {
+  if (typeof localStorage === 'undefined') return;
+  if (token) {
+    const cleanToken =
+      typeof token === 'string' && token.startsWith('Bearer ')
+        ? token.slice(7).trim()
+        : token;
+    localStorage.setItem('bic_customer_auth_token', cleanToken);
+    // Legacy fallback mirror for customer
+    localStorage.setItem('bic_auth_token', cleanToken);
+  } else {
+    localStorage.removeItem('bic_customer_auth_token');
+    localStorage.removeItem('bic_auth_token');
+  }
+}
+
+export function clearCustomerAuthToken() {
+  if (typeof localStorage === 'undefined') return;
+  localStorage.removeItem('bic_customer_auth_token');
+  localStorage.removeItem('bic_auth_token');
+}
+
+export function getCustomerRefreshToken() {
+  if (typeof localStorage === 'undefined') return '';
+  return (
+    localStorage.getItem('bic_customer_refresh_token') ||
+    localStorage.getItem('bic_refresh_token') ||
+    ''
+  );
+}
+
+export function setCustomerRefreshToken(token) {
+  if (typeof localStorage === 'undefined') return;
+  if (token) {
+    const cleanToken =
+      typeof token === 'string' && token.startsWith('Bearer ')
+        ? token.slice(7).trim()
+        : token;
+    localStorage.setItem('bic_customer_refresh_token', cleanToken);
+    localStorage.setItem('bic_refresh_token', cleanToken);
+  } else {
+    localStorage.removeItem('bic_customer_refresh_token');
+    localStorage.removeItem('bic_refresh_token');
+  }
+}
+
+export function clearCustomerRefreshToken() {
+  if (typeof localStorage === 'undefined') return;
+  localStorage.removeItem('bic_customer_refresh_token');
+  localStorage.removeItem('bic_refresh_token');
+}
+
+export function getCurrentUser() {
+  try {
+    const raw = localStorage.getItem('bic_customer_user') || localStorage.getItem('bic_user');
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function setCurrentUser(user) {
+  if (typeof localStorage === 'undefined') return;
+  if (user) {
+    localStorage.setItem('bic_customer_user', JSON.stringify(user));
+    localStorage.setItem('bic_user', JSON.stringify(user));
+  } else {
+    localStorage.removeItem('bic_customer_user');
+    localStorage.removeItem('bic_user');
+  }
+}
+
+export function clearCurrentUser() {
+  if (typeof localStorage === 'undefined') return;
+  localStorage.removeItem('bic_customer_user');
+  localStorage.removeItem('bic_user');
+}
+
+// ---------------------------------------------------------------------
+// Scope-Aware General Token Wrappers (Backward Compatible)
+// ---------------------------------------------------------------------
+export function getAuthToken(scope) {
+  const isAdm = scope === 'admin' || (!scope && isAdminContext());
+  return isAdm ? getAdminAuthToken() : getCustomerAuthToken();
+}
+
+export function setAuthToken(token, scope) {
+  const isAdm = scope === 'admin' || (!scope && isAdminContext());
+  if (isAdm) {
+    setAdminAuthToken(token);
+  } else {
+    setCustomerAuthToken(token);
+  }
+}
+
+export function clearAuthToken(scope) {
+  if (scope === 'admin') {
+    clearAdminAuthToken();
+  } else if (scope === 'customer') {
+    clearCustomerAuthToken();
+  } else if (isAdminContext()) {
+    clearAdminAuthToken();
+  } else {
+    clearCustomerAuthToken();
+  }
+}
+
+export function getRefreshToken(scope) {
+  const isAdm = scope === 'admin' || (!scope && isAdminContext());
+  return isAdm ? getAdminRefreshToken() : getCustomerRefreshToken();
+}
+
+export function setRefreshToken(token, scope) {
+  const isAdm = scope === 'admin' || (!scope && isAdminContext());
+  if (isAdm) {
+    setAdminRefreshToken(token);
+  } else {
+    setCustomerRefreshToken(token);
+  }
+}
+
+export function clearRefreshToken(scope) {
+  if (scope === 'admin') {
+    clearAdminRefreshToken();
+  } else if (scope === 'customer') {
+    clearCustomerRefreshToken();
+  } else if (isAdminContext()) {
+    clearAdminRefreshToken();
+  } else {
+    clearCustomerRefreshToken();
+  }
+}
+
+export function adminLogout() {
+  clearAdminAuthToken();
+  clearAdminRefreshToken();
+  clearAdminUser();
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('bic_admin_logout'));
+  }
+}
+
+export function customerLogout() {
+  clearCustomerAuthToken();
+  clearCustomerRefreshToken();
+  clearCurrentUser();
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('bic_customer_logout'));
+    window.dispatchEvent(new CustomEvent('bic_auth_logout'));
+  }
+}
+
+export function logout(scope) {
+  if (scope === 'admin') {
+    adminLogout();
+  } else if (scope === 'customer') {
+    customerLogout();
+  } else if (isAdminContext()) {
+    adminLogout();
+  } else {
+    customerLogout();
+  }
+}
+
+export function isAuthenticated() {
+  return Boolean(getCustomerAuthToken() && getCurrentUser());
+}
+
+export function isAdminAuthenticated() {
+  return Boolean(getAdminAuthToken() || getAdminUser());
 }
 
 export function getSelectedAdminHackathon() {
@@ -208,33 +406,18 @@ function applyAdminHackathonFilter(endpoint) {
   return endpoint;
 }
 
-export function logout() {
-  clearAuthToken();
-  clearRefreshToken();
-  clearAdminUser();
-  clearCurrentUser();
-  if (typeof window !== 'undefined') {
-    window.dispatchEvent(new CustomEvent('bic_auth_logout'));
-  }
-}
-
-export function isAuthenticated() {
-  return Boolean(getAuthToken() && (getCurrentUser() || getAdminUser()));
-}
-
-export function isAdminAuthenticated() {
-  return Boolean(getAuthToken() || getAdminUser());
-}
-
 /**
- * Concurrency-safe token refresh mechanism
+ * Concurrency-safe token refresh mechanism with scope separation
  */
-let refreshPromise = null;
+let refreshPromiseAdmin = null;
+let refreshPromiseCustomer = null;
 
-export async function refreshAccessToken() {
-  const currentRefreshToken = getRefreshToken();
+export async function refreshAccessToken(scope) {
+  const isAdm = scope === 'admin' || (!scope && isAdminContext());
+  const currentRefreshToken = isAdm ? getAdminRefreshToken() : getCustomerRefreshToken();
   if (!currentRefreshToken) {
-    logout();
+    if (isAdm) adminLogout();
+    else customerLogout();
     const error = new Error('Session expired. Please log in again.');
     error.status = 401;
     throw error;
@@ -257,7 +440,8 @@ export async function refreshAccessToken() {
       } catch {
         // ignore json parse error
       }
-      logout();
+      if (isAdm) adminLogout();
+      else customerLogout();
       const err = new Error(errDetail || 'Session expired. Please log in again.');
       err.status = response.status;
       throw err;
@@ -275,29 +459,43 @@ export async function refreshAccessToken() {
       data?.data?.refresh;
 
     if (!newAccessToken) {
-      logout();
+      if (isAdm) adminLogout();
+      else customerLogout();
       throw new Error('No access token returned from refresh endpoint');
     }
 
-    setAuthToken(newAccessToken);
-    if (newRefreshToken) {
-      setRefreshToken(newRefreshToken);
+    if (isAdm) {
+      setAdminAuthToken(newAccessToken);
+      if (newRefreshToken) setAdminRefreshToken(newRefreshToken);
+    } else {
+      setCustomerAuthToken(newAccessToken);
+      if (newRefreshToken) setCustomerRefreshToken(newRefreshToken);
     }
 
     return newAccessToken;
   } catch (err) {
-    logout();
+    if (isAdm) adminLogout();
+    else customerLogout();
     throw err;
   } finally {
-    refreshPromise = null;
+    if (isAdm) refreshPromiseAdmin = null;
+    else refreshPromiseCustomer = null;
   }
 }
 
-function getOrStartTokenRefresh() {
-  if (!refreshPromise) {
-    refreshPromise = refreshAccessToken();
+function getOrStartTokenRefresh(scope) {
+  const isAdm = scope === 'admin' || (!scope && isAdminContext());
+  if (isAdm) {
+    if (!refreshPromiseAdmin) {
+      refreshPromiseAdmin = refreshAccessToken('admin');
+    }
+    return refreshPromiseAdmin;
+  } else {
+    if (!refreshPromiseCustomer) {
+      refreshPromiseCustomer = refreshAccessToken('customer');
+    }
+    return refreshPromiseCustomer;
   }
-  return refreshPromise;
 }
 
 /**
@@ -339,7 +537,8 @@ async function request(endpoint, options = {}) {
 
   const executeRequest = async () => {
     const url = `${API_BASE_URL}${resolvedEndpoint.startsWith('/') ? resolvedEndpoint : `/${resolvedEndpoint}`}`;
-    const token = options.token || getAuthToken();
+    const isAdm = options.scope === 'admin' || (!options.scope && isAdminContext());
+    const token = options.token || (isAdm ? getAdminAuthToken() : getCustomerAuthToken());
 
     const headers = {
       ...options.headers,
@@ -414,16 +613,17 @@ async function request(endpoint, options = {}) {
 
       // If token expired and this is not already a retry or refresh call, attempt refresh
       if ((isTokenNotValid || response.status === 401) && !options._retry && !isAuthEndpoint) {
-        const refreshToken = getRefreshToken();
+        const refreshToken = isAdm ? getAdminRefreshToken() : getCustomerRefreshToken();
         if (!refreshToken) {
-          logout();
+          if (isAdm) adminLogout();
+          else customerLogout();
           const error = new Error('Session expired. Please log in again.');
           error.status = 401;
           throw error;
         }
 
         try {
-          const newAccessToken = await getOrStartTokenRefresh();
+          const newAccessToken = await getOrStartTokenRefresh(isAdm ? 'admin' : 'customer');
           const retryHeaders = {
             ...headers,
             Authorization: `Bearer ${newAccessToken}`,
@@ -767,6 +967,18 @@ export const api = {
       create: (data, options = {}) =>
         request('/hackathons/teams/', {
           method: 'POST',
+          body: JSON.stringify(data),
+          ...options,
+        }),
+      update: (id, data, options = {}) =>
+        request(`/hackathons/teams/${id}/`, {
+          method: 'PUT',
+          body: JSON.stringify(data),
+          ...options,
+        }),
+      patch: (id, data, options = {}) =>
+        request(`/hackathons/teams/${id}/`, {
+          method: 'PATCH',
           body: JSON.stringify(data),
           ...options,
         }),
@@ -1289,11 +1501,13 @@ export const api = {
 
   // --- Users & Groups ---
   users: {
-    login: async (credentials) => {
+    login: async (credentials, options = {}) => {
+      const isAdm = options?.scope === 'admin' || (!options?.scope && isAdminContext());
       const response = await request('/users/login/', {
         method: 'POST',
         body: JSON.stringify(credentials),
         _retry: true,
+        ...options,
       });
 
       // Automatically extract and store Bearer access and refresh token received from backend
@@ -1315,33 +1529,50 @@ export const api = {
         response?.tokens?.refresh;
 
       if (token) {
-        setAuthToken(token);
+        if (isAdm) {
+          setAdminAuthToken(token);
+        } else {
+          setCustomerAuthToken(token);
+        }
       }
       if (refreshToken) {
-        setRefreshToken(refreshToken);
+        if (isAdm) {
+          setAdminRefreshToken(refreshToken);
+        } else {
+          setCustomerRefreshToken(refreshToken);
+        }
       }
 
       const userData =
         response?.user || {
           email: response?.email || credentials?.email,
-          first_name: response?.first_name || (credentials?.email ? credentials.email.split('@')[0] : 'Admin'),
-          last_name: response?.last_name || 'User',
-          role: response?.role || 'Administrator',
-          groups: response?.groups || [0],
+          first_name: response?.first_name || (credentials?.email ? credentials.email.split('@')[0] : (isAdm ? 'Admin' : 'User')),
+          last_name: response?.last_name || (isAdm ? 'User' : ''),
+          role: response?.role || (isAdm ? 'Administrator' : 'User'),
+          groups: response?.groups || (isAdm ? [0] : []),
           ...response,
         };
 
-      setCurrentUser(userData);
-      setAdminUser(userData);
+      if (isAdm) {
+        setAdminUser(userData);
+      } else {
+        setCurrentUser(userData);
+      }
 
       if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('bic_user_updated', { detail: userData }));
-        window.dispatchEvent(new CustomEvent('bic_auth_login', { detail: { user: userData, response } }));
+        if (isAdm) {
+          window.dispatchEvent(new CustomEvent('bic_admin_user_updated', { detail: userData }));
+          window.dispatchEvent(new CustomEvent('bic_admin_login', { detail: { user: userData, response } }));
+        } else {
+          window.dispatchEvent(new CustomEvent('bic_user_updated', { detail: userData }));
+          window.dispatchEvent(new CustomEvent('bic_customer_login', { detail: { user: userData, response } }));
+          window.dispatchEvent(new CustomEvent('bic_auth_login', { detail: { user: userData, response } }));
+        }
       }
 
       return response;
     },
-    googleLogin: async (token) => {
+    googleLogin: async (token, options = {}) => {
       // Handles token string or object payload { token: "string" }
       const tokenString =
         typeof token === 'string'
@@ -1352,11 +1583,14 @@ export const api = {
         throw new Error('Google token is required.');
       }
 
+      const isAdm = options?.scope === 'admin' || (!options?.scope && isAdminContext());
+
       // Calls POST /api/v1/users/google/ with { "token": "string" }
       const response = await request('/users/google/', {
         method: 'POST',
         body: JSON.stringify({ token: tokenString }),
         _retry: true,
+        ...options,
       });
 
       // Extract access and refresh tokens
@@ -1376,10 +1610,18 @@ export const api = {
         response?.data?.refresh;
 
       if (accessToken) {
-        setAuthToken(accessToken);
+        if (isAdm) {
+          setAdminAuthToken(accessToken);
+        } else {
+          setCustomerAuthToken(accessToken);
+        }
       }
       if (refreshToken) {
-        setRefreshToken(refreshToken);
+        if (isAdm) {
+          setAdminRefreshToken(refreshToken);
+        } else {
+          setCustomerRefreshToken(refreshToken);
+        }
       }
 
       // Extract user info
@@ -1389,39 +1631,37 @@ export const api = {
           email: response?.email,
           first_name: response?.first_name || '',
           last_name: response?.last_name || '',
-          role: response?.role || 'User',
+          role: response?.role || (isAdm ? 'Administrator' : 'User'),
           ...response,
         };
 
-      setCurrentUser(userData);
-
-      // Check if user has admin/staff privileges
-      const role = (userData.role || '').toLowerCase();
-      const isStaffOrAdmin =
-        userData.is_staff ||
-        userData.is_superuser ||
-        role.includes('admin') ||
-        role.includes('staff') ||
-        role.includes('organizer') ||
-        (Array.isArray(userData.groups) && (userData.groups.includes(0) || userData.groups.includes('admin')));
-
-      if (isStaffOrAdmin) {
+      if (isAdm) {
         setAdminUser(userData);
+      } else {
+        setCurrentUser(userData);
       }
 
       if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('bic_user_updated', { detail: userData }));
-        window.dispatchEvent(new CustomEvent('bic_auth_login', { detail: { user: userData, response } }));
+        if (isAdm) {
+          window.dispatchEvent(new CustomEvent('bic_admin_user_updated', { detail: userData }));
+          window.dispatchEvent(new CustomEvent('bic_admin_login', { detail: { user: userData, response } }));
+        } else {
+          window.dispatchEvent(new CustomEvent('bic_user_updated', { detail: userData }));
+          window.dispatchEvent(new CustomEvent('bic_customer_login', { detail: { user: userData, response } }));
+          window.dispatchEvent(new CustomEvent('bic_auth_login', { detail: { user: userData, response } }));
+        }
       }
 
       return response;
     },
-    refreshToken: (token) => {
-      const refresh = token || getRefreshToken();
+    refreshToken: (token, options = {}) => {
+      const isAdm = options?.scope === 'admin' || (!options?.scope && isAdminContext());
+      const refresh = token || (isAdm ? getAdminRefreshToken() : getCustomerRefreshToken());
       return request('/users/token/refresh/', {
         method: 'POST',
         body: JSON.stringify({ refresh }),
         _retry: true,
+        ...options,
       });
     },
     register: (userData) =>
@@ -1430,7 +1670,18 @@ export const api = {
         body: JSON.stringify(userData),
       }),
     listGroups: (options = {}) => request('/users/groups/list_groups/', options),
-    listPermissions: (options = {}) => request('/users/groups/list_permissions/', options),
+    listPermissions: async (options = {}) => {
+      try {
+        const res = await request('/users/groups/list_permissions/', options);
+        if (res && typeof res === 'object' && Object.keys(res).length > 0) {
+          return res;
+        }
+        return permissionsData;
+      } catch (err) {
+        console.warn('listPermissions API unavailable, using permissions catalog fallback:', err);
+        return permissionsData;
+      }
+    },
     createGroup: (groupData) =>
       request('/users/groups/create_group/', {
         method: 'POST',

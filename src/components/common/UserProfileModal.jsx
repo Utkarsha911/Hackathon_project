@@ -17,7 +17,7 @@ import {
   Upload,
   Trash2
 } from 'lucide-react';
-import { api, getMediaUrl, getAdminUser, setAdminUser } from '../../services/api';
+import { api, getMediaUrl, getUserAvatarUrl, DEFAULT_USER_AVATAR, getAdminUser, setAdminUser } from '../../services/api';
 import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
 
 export default function UserProfileModal({ isOpen, onClose, onProfileUpdated }) {
@@ -277,28 +277,14 @@ export default function UserProfileModal({ isOpen, onClose, onProfileUpdated }) 
               className="relative shrink-0 cursor-pointer group"
               title="Click to change photo"
             >
-              {imagePreview ? (
-                <img
-                  src={imagePreview}
-                  alt={formData.first_name || 'Profile'}
-                  className="w-14 h-14 rounded-full object-cover border-2 border-orange-300 shadow-md group-hover:brightness-95 transition"
-                  onError={(e) => {
-                    e.currentTarget.style.display = 'none';
-                    if (e.currentTarget.nextSibling) {
-                      e.currentTarget.nextSibling.style.display = 'flex';
-                    }
-                  }}
-                />
-              ) : null}
-              <div
-                className="w-14 h-14 rounded-full flex items-center justify-center font-bold text-base text-white shadow-md group-hover:brightness-95 transition"
-                style={{
-                  backgroundColor: '#e8622a',
-                  display: imagePreview ? 'none' : 'flex'
+              <img
+                src={imagePreview || DEFAULT_USER_AVATAR}
+                alt={formData.first_name || 'Profile'}
+                className="w-14 h-14 rounded-full object-cover border-2 border-orange-300 shadow-md group-hover:brightness-95 transition bg-white"
+                onError={(e) => {
+                  e.currentTarget.src = DEFAULT_USER_AVATAR;
                 }}
-              >
-                {initials || 'U'}
-              </div>
+              />
               <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-white border border-slate-200 shadow-xs flex items-center justify-center text-slate-600 group-hover:text-[#e8622a] transition">
                 <Camera className="w-3 h-3" />
               </div>

@@ -21,56 +21,9 @@ import {
   Save
 } from 'lucide-react';
 
-const FALLBACK_PERMISSIONS = {
-  Category: [
-    { id: 33, name: 'Can add Category', codename: 'add_category' },
-    { id: 34, name: 'Can change Category', codename: 'change_category' },
-    { id: 35, name: 'Can delete Category', codename: 'delete_category' },
-    { id: 36, name: 'Can view Category', codename: 'view_category' }
-  ],
-  Comment: [
-    { id: 45, name: 'Can add Comment', codename: 'add_comment' },
-    { id: 46, name: 'Can change Comment', codename: 'change_comment' },
-    { id: 47, name: 'Can delete Comment', codename: 'delete_comment' },
-    { id: 48, name: 'Can view Comment', codename: 'view_comment' }
-  ],
-  Post: [
-    { id: 41, name: 'Can add Post', codename: 'add_post' },
-    { id: 42, name: 'Can change Post', codename: 'change_post' },
-    { id: 43, name: 'Can delete Post', codename: 'delete_post' },
-    { id: 44, name: 'Can view Post', codename: 'view_post' }
-  ],
-  Tag: [
-    { id: 37, name: 'Can add Tag', codename: 'add_tag' },
-    { id: 38, name: 'Can change Tag', codename: 'change_tag' },
-    { id: 39, name: 'Can delete Tag', codename: 'delete_tag' },
-    { id: 40, name: 'Can view Tag', codename: 'view_tag' }
-  ],
-  Activity: [
-    { id: 49, name: 'Can add Activity', codename: 'add_activity' },
-    { id: 50, name: 'Can change Activity', codename: 'change_activity' },
-    { id: 51, name: 'Can delete Activity', codename: 'delete_activity' },
-    { id: 52, name: 'Can view Activity', codename: 'view_activity' }
-  ],
-  Notification: [
-    { id: 25, name: 'Can add Notification', codename: 'add_notification' },
-    { id: 26, name: 'Can change Notification', codename: 'change_notification' },
-    { id: 27, name: 'Can delete Notification', codename: 'delete_notification' },
-    { id: 28, name: 'Can view Notification', codename: 'view_notification' }
-  ],
-  Notificationpreference: [
-    { id: 29, name: 'Can add Notification Preference', codename: 'add_notificationpreference' },
-    { id: 30, name: 'Can change Notification Preference', codename: 'change_notificationpreference' },
-    { id: 31, name: 'Can delete Notification Preference', codename: 'delete_notificationpreference' },
-    { id: 32, name: 'Can view Notification Preference', codename: 'view_notificationpreference' }
-  ],
-  User: [
-    { id: 21, name: 'Can add User', codename: 'add_user' },
-    { id: 22, name: 'Can change User', codename: 'change_user' },
-    { id: 23, name: 'Can delete User', codename: 'delete_user' },
-    { id: 24, name: 'Can view User', codename: 'view_user' }
-  ]
-};
+import permissionsData from '../../data/json/permissions.json';
+
+const FALLBACK_PERMISSIONS = permissionsData;
 
 // Module-level in-memory cache to retain state across Admin tab switches
 let cachedGroupsList = null;

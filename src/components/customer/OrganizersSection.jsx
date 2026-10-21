@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { useHackathon } from '../../context/HackathonContext';
-import { getMediaUrl } from '../../services/api';
+import { getMediaUrl, getUserAvatarUrl, DEFAULT_USER_AVATAR } from '../../services/api';
 import { CheckCircle, Users } from 'lucide-react';
 
 export default function OrganizersSection() {
@@ -69,8 +69,7 @@ export default function OrganizersSection() {
                 user.username ||
                 'Organizer';
               const rawImage = user.profile_picture || org.profile_picture || org.image;
-              const imageUrl = rawImage ? getMediaUrl(rawImage) : null;
-              const initial = (user.first_name?.[0] || fullName[0] || 'O').toUpperCase();
+              const imageUrl = getUserAvatarUrl(rawImage);
               const designation = org.designation || org.position || 'Organizer';
 
               return (
@@ -80,25 +79,14 @@ export default function OrganizersSection() {
                 >
                   {/* Photo container */}
                   <div className="relative h-64 sm:h-72 w-full overflow-hidden bg-slate-100 flex items-center justify-center">
-                    {imageUrl ? (
-                      <img
-                        src={imageUrl}
-                        alt={fullName}
-                        className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-500"
-                        onError={(e) => {
-                          e.currentTarget.style.display = 'none';
-                          const fb = e.currentTarget.parentElement?.querySelector('.avatar-fallback');
-                          if (fb) fb.classList.remove('hidden');
-                        }}
-                      />
-                    ) : null}
-                    <div
-                      className={`avatar-fallback w-full h-full bg-gradient-to-br from-orange-50 to-orange-100 text-[#ea580c] flex items-center justify-center font-extrabold text-4xl ${
-                        imageUrl ? 'hidden' : 'flex'
-                      }`}
-                    >
-                      {initial}
-                    </div>
+                    <img
+                      src={imageUrl}
+                      alt={fullName}
+                      className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-500"
+                      onError={(e) => {
+                        e.currentTarget.src = DEFAULT_USER_AVATAR;
+                      }}
+                    />
                   </div>
 
                   {/* Profile & Designation Only */}

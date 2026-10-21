@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { api, setAuthToken, setRefreshToken, setAdminUser } from '../../services/api';
+import { api, setAdminAuthToken, setAdminRefreshToken, setAdminUser } from '../../services/api';
 import { useHackathon } from '../../context/HackathonContext';
 import {
   Mail,
@@ -12,7 +12,7 @@ import {
   Shield
 } from 'lucide-react';
 import GoogleAuthButton from '../common/GoogleAuthButton';
-import hackathonLogo from '../../assets/HACKATHON-LOGO.png';
+import HackathonBrand from '../common/HackathonBrand';
 
 export default function AdminLogin({ onLoginSuccess }) {
   const { showToast } = useHackathon();
@@ -109,11 +109,11 @@ export default function AdminLogin({ onLoginSuccess }) {
     setLoading(true);
 
     try {
-      // Calls POST /api/v1/users/login/
+      // Calls POST /api/v1/users/login/ with scope: 'admin'
       const response = await api.users.login({
         email: email.trim(),
         password: password
-      });
+      }, { scope: 'admin' });
 
       // Extract token if present
       const token =
@@ -134,11 +134,11 @@ export default function AdminLogin({ onLoginSuccess }) {
         response?.tokens?.refresh;
 
       if (token) {
-        setAuthToken(token);
+        setAdminAuthToken(token);
       }
 
       if (refreshToken) {
-        setRefreshToken(refreshToken);
+        setAdminRefreshToken(refreshToken);
       }
 
       // Extract user info
@@ -186,7 +186,7 @@ export default function AdminLogin({ onLoginSuccess }) {
       groups: [0],
       is_demo: true
     };
-    setAuthToken('demo_admin_jwt_session_token_xyz');
+    setAdminAuthToken('demo_admin_jwt_session_token_xyz');
     setAdminUser(demoUser);
     showToast('Logged in with Demo Session Mode', 'info');
     if (onLoginSuccess) {
@@ -233,11 +233,14 @@ export default function AdminLogin({ onLoginSuccess }) {
       <div className="w-full max-w-md bg-white rounded-2xl border border-slate-200/80 shadow-xl shadow-slate-200/50 p-6 sm:p-10 relative z-10">
         {/* Heading */}
         <div className="text-center mb-8">
-          <img
-            src={hackathonLogo}
-            alt="BIC Hackathon"
-            className="h-10 w-auto mx-auto mb-4 object-contain"
-          />
+          <div className="flex justify-center mb-4">
+            <HackathonBrand
+              imageClassName="h-10 w-auto max-w-[180px] object-contain"
+              textClassName="text-base font-extrabold text-slate-900"
+              iconSizeClass="w-9 h-9 text-sm"
+              showSubText={false}
+            />
+          </div>
           <h2 className="text-2xl font-bold text-slate-900 tracking-tight">
             Sign in to Hackathon Admin
           </h2>

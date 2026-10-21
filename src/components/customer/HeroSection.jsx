@@ -1,11 +1,35 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useHackathon } from '../../context/HackathonContext';
 import { getMediaUrl } from '../../services/api';
 import { Calendar, MapPin, Trophy, ArrowRight, NepaliRupee } from 'lucide-react';
-import hackathonLogo from '../../assets/HACKATHON-LOGO.png';
+import HackathonBrand from '../common/HackathonBrand';
 
 export default function HeroSection({ onOpenRegister }) {
-  const { hackathon, prizes = [], isLoadingApi } = useHackathon();
+  const { hackathon, prizes = [], schedules = [], scheduleEvents = [], isLoadingApi } = useHackathon();
+
+  const hasScheduleData = useMemo(() => {
+    return (
+      (Array.isArray(schedules) && schedules.length > 0) ||
+      (Array.isArray(scheduleEvents) && scheduleEvents.length > 0) ||
+      (Array.isArray(hackathon?.schedules) && hackathon.schedules.length > 0)
+    );
+  }, [schedules, scheduleEvents, hackathon?.schedules]);
+
+  const hasRulesData = useMemo(() => {
+    const r = hackathon?.rules;
+    if (!r) return false;
+    if (typeof r === 'string') return r.trim().length > 0;
+    if (Array.isArray(r)) return r.length > 0;
+    if (typeof r === 'object') {
+      return (
+        (Array.isArray(r.eligibility) && r.eligibility.length > 0) ||
+        (Array.isArray(r.submission_guidelines) && r.submission_guidelines.length > 0) ||
+        (Array.isArray(r.code_of_conduct) && r.code_of_conduct.length > 0) ||
+        (Array.isArray(r.evaluation_criteria) && r.evaluation_criteria.length > 0)
+      );
+    }
+    return false;
+  }, [hackathon?.rules]);
 
   const totalPrizePool =
     hackathon?.total_prize !== undefined && hackathon?.total_prize !== null
@@ -77,13 +101,14 @@ export default function HeroSection({ onOpenRegister }) {
         </div>
 
         {/* Official Hackathon Logo */}
-        <div className="flex items-center gap-3 mb-5">
-          <img
-            src={hackathonLogo}
-            alt="BIC Hackathon"
-            className="h-11 sm:h-13 w-auto object-contain"
-          />
-        </div>
+        {Boolean(h?.logo || h?.logo_url) && (
+          <div className="flex items-center gap-3 mb-5">
+            <HackathonBrand
+              imageClassName="h-11 sm:h-13 w-auto max-w-[240px] object-contain"
+              showSubText={false}
+            />
+          </div>
+        )}
 
         {/* Main Headline */}
         <h1 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-slate-900 max-w-4xl leading-[1.06]">
@@ -169,18 +194,22 @@ export default function HeroSection({ onOpenRegister }) {
             <span>Register Your Squad</span>
             <ArrowRight className="w-4 h-4" />
           </button>
-          <a
-            href="#schedule"
-            className="btn-secondary justify-center text-center w-full sm:w-auto"
-          >
-            Event Schedule
-          </a>
-          <a
-            href="#rules"
-            className="btn-secondary justify-center text-center w-full sm:w-auto"
-          >
-            Rules & Criteria
-          </a>
+          {hasScheduleData && (
+            <a
+              href="#schedule"
+              className="btn-secondary justify-center text-center w-full sm:w-auto"
+            >
+              Event Schedule
+            </a>
+          )}
+          {hasRulesData && (
+            <a
+              href="#rules"
+              className="btn-secondary justify-center text-center w-full sm:w-auto"
+            >
+              Rules & Criteria
+            </a>
+          )}
         </div>
 
         {/* Stats Bar */}

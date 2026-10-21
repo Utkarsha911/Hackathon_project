@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { Settings, Shield, Server, Database, Key, CheckCircle2, Copy, Check } from 'lucide-react';
-import { getAuthToken } from '../../services/api';
+import { getAdminAuthToken } from '../../services/api';
 
 export default function SystemConfig() {
-  const token = getAuthToken() || 'No active Bearer token';
+  const token = getAdminAuthToken() || 'No active Bearer token';
   const [copied, setCopied] = useState(false);
 
   const handleCopy = () => {

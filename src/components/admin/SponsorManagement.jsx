@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { api, getMediaUrl, getSelectedAdminHackathon } from '../../services/api';
+import { api, getMediaUrl, getSelectedAdminHackathon, getAdminUser } from '../../services/api';
 import { useHackathon } from '../../context/HackathonContext';
 import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
 import {
@@ -27,6 +27,8 @@ import {
   Shield,
   Tag,
   Calendar,
+  Image as ImageIcon,
+  Upload,
   Link as LinkIcon
 } from 'lucide-react';
 
@@ -58,23 +60,79 @@ const EMPTY_PACKAGE = {
 
 const EMPTY_PACKAGE_TYPE = {
   name: '',
-  description: ''
+  description: '',
+  order: 0
 };
 
 export default function SponsorManagement() {
   const { showToast } = useHackathon();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const rawTab = searchParams.get('tab') || 'sponsors';
   const tabFromUrl = rawTab === 'directory' || rawTab === 'organizations' ? 'sponsors' : rawTab;
 
   // Active Tab: 'sponsors' | 'packages' | 'types' | 'breakdown'
   const [activeTab, setActiveTab] = useState(tabFromUrl || 'sponsors');
 
+  // Permission resolution
+  const currentUser = getAdminUser();
+  const isSuperOrStaff = Boolean(
+    currentUser?.is_superuser === true ||
+    currentUser?.is_staff === true ||
+    ['admin', 'administrator', 'super admin'].includes((currentUser?.role || '').toLowerCase())
+  );
+
+  const checkHasPermission = (scopes) => {
+    if (isSuperOrStaff) return true;
+    const userGroupsList = Array.isArray(currentUser?.groups) ? currentUser.groups : [];
+    if (!userGroupsList || userGroupsList.length === 0) return false;
+    const scopeList = (Array.isArray(scopes) ? scopes : [scopes]).map((s) => s.toLowerCase());
+
+    for (const group of userGroupsList) {
+      if (!group || typeof group !== 'object') continue;
+      if (group.permissions_name && typeof group.permissions_name === 'object') {
+        for (const [category, perms] of Object.entries(group.permissions_name)) {
+          const catLower = category.toLowerCase();
+          if (scopeList.includes(catLower)) return true;
+          if (Array.isArray(perms)) {
+            for (const perm of perms) {
+              const pStr = (perm?.codename || perm?.name || '').toLowerCase();
+              if (scopeList.some((s) => pStr === s || pStr.endsWith(`_${s}`))) return true;
+            }
+          }
+        }
+      }
+    }
+    return false;
+  };
+
+  const canAccessOrganizations = checkHasPermission(['organization']);
+  const canAccessSponsorPackages = checkHasPermission(['sponsorpackage']);
+  const canAccessSponsorPackageTypes = checkHasPermission(['sponsorpackagetype']);
+  const canAccessSponsorshipBreakdown = canAccessSponsorPackages;
+
   useEffect(() => {
     if (tabFromUrl && tabFromUrl !== activeTab) {
       setActiveTab(tabFromUrl);
     }
   }, [tabFromUrl]);
+
+  // Tab permission guard: prevent unauthorized tabs from being shown
+  useEffect(() => {
+    if ((activeTab === 'packages' || activeTab === 'breakdown') && !canAccessSponsorPackages) {
+      if (canAccessOrganizations) {
+        setSearchParams({ tab: 'sponsors' }, { replace: true });
+        setActiveTab('sponsors');
+      }
+    } else if (activeTab === 'types' && !canAccessSponsorPackageTypes) {
+      if (canAccessOrganizations) {
+        setSearchParams({ tab: 'sponsors' }, { replace: true });
+        setActiveTab('sponsors');
+      }
+    } else if (activeTab === 'sponsors' && !canAccessOrganizations && canAccessSponsorPackages) {
+      setSearchParams({ tab: 'packages' }, { replace: true });
+      setActiveTab('packages');
+    }
+  }, [activeTab, canAccessOrganizations, canAccessSponsorPackages, canAccessSponsorPackageTypes, setSearchParams]);
 
   // Loading & Refresh State
   const [loading, setLoading] = useState(false);
@@ -99,6 +157,8 @@ export default function SponsorManagement() {
   const [isSponsorModalOpen, setIsSponsorModalOpen] = useState(false);
   const [sponsorForm, setSponsorForm] = useState(EMPTY_SPONSOR);
   const [editingSponsorId, setEditingSponsorId] = useState(null);
+  const [logoFile, setLogoFile] = useState(null);
+  const [logoPreview, setLogoPreview] = useState('');
   const [viewingSponsor, setViewingSponsor] = useState(null);
   const [deletingSponsor, setDeletingSponsor] = useState(null);
 
@@ -174,10 +234,12 @@ export default function SponsorManagement() {
 
   const fetchTypes = async (query = '') => {
     try {
-      const params = {};
+      const params = { ordering: 'order' };
       if (query.trim()) params.search = query.trim();
       const res = await api.sponsors.getPackageTypes(params);
-      setPackageTypes(unwrap(res));
+      const items = unwrap(res);
+      items.sort((a, b) => (Number(a.order) || 0) - (Number(b.order) || 0));
+      setPackageTypes(items);
       if (res?.stats) setTypeStats(res.stats);
     } catch (err) {
       console.warn('Failed to fetch package types:', err);
@@ -197,7 +259,7 @@ export default function SponsorManagement() {
       if (debouncedSearch.trim() && activeTab === 'packages') packageParams.search = debouncedSearch.trim();
       if (selectedHackathonFilter !== 'all' && activeTab === 'packages') packageParams.hackathon = selectedHackathonFilter;
 
-      const typeParams = {};
+      const typeParams = { ordering: 'order' };
       if (debouncedSearch.trim() && (activeTab === 'types')) typeParams.search = debouncedSearch.trim();
 
       const [sponsorsRes, packagesRes, typesRes, hackathonsRes] = await Promise.all([
@@ -207,9 +269,12 @@ export default function SponsorManagement() {
         api.hackathons.getAll().catch(() => ({ results: [] }))
       ]);
 
+      const unwrappedTypes = unwrap(typesRes);
+      unwrappedTypes.sort((a, b) => (Number(a.order) || 0) - (Number(b.order) || 0));
+
       setSponsors(unwrap(sponsorsRes));
       setPackages(unwrap(packagesRes));
-      setPackageTypes(unwrap(typesRes));
+      setPackageTypes(unwrappedTypes);
       setHackathons(unwrap(hackathonsRes));
 
       // Capture API stats if present
@@ -297,6 +362,8 @@ export default function SponsorManagement() {
   const handleOpenCreateSponsor = () => {
     setEditingSponsorId(null);
     setSponsorForm(EMPTY_SPONSOR);
+    setLogoFile(null);
+    setLogoPreview('');
     setIsSponsorModalOpen(true);
   };
 
@@ -317,7 +384,24 @@ export default function SponsorManagement() {
       location: sponsor.location || '',
       service: sponsor.service || ''
     });
+    setLogoFile(null);
+    setLogoPreview(sponsor.logo ? getMediaUrl(sponsor.logo) : '');
     setIsSponsorModalOpen(true);
+  };
+
+  const handleLogoChange = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setLogoFile(file);
+      setLogoPreview(URL.createObjectURL(file));
+      setSponsorForm((prev) => ({ ...prev, logo: file }));
+    }
+  };
+
+  const handleRemoveLogo = () => {
+    setLogoFile(null);
+    setLogoPreview('');
+    setSponsorForm((prev) => ({ ...prev, logo: '' }));
   };
 
   const handleSaveSponsor = async (e) => {
@@ -329,32 +413,63 @@ export default function SponsorManagement() {
 
     setSubmitting(true);
     try {
-      const payload = {
-        name: sponsorForm.name.trim(),
-        description: sponsorForm.description.trim() || null,
-        contact_email: sponsorForm.contact_email.trim() || null,
-        phone_number1: sponsorForm.phone_number1.trim() || null,
-        phone_number2: sponsorForm.phone_number2.trim() || null,
-        location: sponsorForm.location.trim() || null,
-        service: sponsorForm.service.trim() || null,
-        website_link: sponsorForm.website_link.trim() || null,
-        facebook_link: sponsorForm.facebook_link.trim() || null,
-        twitter_link: sponsorForm.twitter_link.trim() || null,
-        linkedin_link: sponsorForm.linkedin_link.trim() || null,
-        instagram_link: sponsorForm.instagram_link.trim() || null
-      };
+      if (logoFile instanceof File) {
+        const formData = new FormData();
+        formData.append('name', sponsorForm.name.trim());
+        if (sponsorForm.description?.trim()) formData.append('description', sponsorForm.description.trim());
+        if (sponsorForm.contact_email?.trim()) formData.append('contact_email', sponsorForm.contact_email.trim());
+        if (sponsorForm.phone_number1?.trim()) formData.append('phone_number1', sponsorForm.phone_number1.trim());
+        if (sponsorForm.phone_number2?.trim()) formData.append('phone_number2', sponsorForm.phone_number2.trim());
+        if (sponsorForm.location?.trim()) formData.append('location', sponsorForm.location.trim());
+        if (sponsorForm.service?.trim()) formData.append('service', sponsorForm.service.trim());
+        if (sponsorForm.website_link?.trim()) formData.append('website_link', sponsorForm.website_link.trim());
+        if (sponsorForm.facebook_link?.trim()) formData.append('facebook_link', sponsorForm.facebook_link.trim());
+        if (sponsorForm.twitter_link?.trim()) formData.append('twitter_link', sponsorForm.twitter_link.trim());
+        if (sponsorForm.linkedin_link?.trim()) formData.append('linkedin_link', sponsorForm.linkedin_link.trim());
+        if (sponsorForm.instagram_link?.trim()) formData.append('instagram_link', sponsorForm.instagram_link.trim());
+        formData.append('logo', logoFile);
 
-      if (editingSponsorId) {
-        await api.sponsors.patch(editingSponsorId, payload);
-        showToast('Sponsor updated successfully', 'success');
+        if (editingSponsorId) {
+          await api.sponsors.patch(editingSponsorId, formData);
+          showToast('Sponsor organization updated successfully', 'success');
+        } else {
+          await api.sponsors.create(formData);
+          showToast('Sponsor organization registered successfully', 'success');
+        }
       } else {
-        await api.sponsors.create(payload);
-        showToast('Sponsor registered successfully', 'success');
+        const payload = {
+          name: sponsorForm.name.trim(),
+          description: sponsorForm.description?.trim() || null,
+          contact_email: sponsorForm.contact_email?.trim() || null,
+          phone_number1: sponsorForm.phone_number1?.trim() || null,
+          phone_number2: sponsorForm.phone_number2?.trim() || null,
+          location: sponsorForm.location?.trim() || null,
+          service: sponsorForm.service?.trim() || null,
+          website_link: sponsorForm.website_link?.trim() || null,
+          facebook_link: sponsorForm.facebook_link?.trim() || null,
+          twitter_link: sponsorForm.twitter_link?.trim() || null,
+          linkedin_link: sponsorForm.linkedin_link?.trim() || null,
+          instagram_link: sponsorForm.instagram_link?.trim() || null
+        };
+
+        if (!logoPreview && editingSponsorId) {
+          payload.logo = null;
+        }
+
+        if (editingSponsorId) {
+          await api.sponsors.patch(editingSponsorId, payload);
+          showToast('Sponsor organization updated successfully', 'success');
+        } else {
+          await api.sponsors.create(payload);
+          showToast('Sponsor organization registered successfully', 'success');
+        }
       }
 
       setIsSponsorModalOpen(false);
       setEditingSponsorId(null);
       setSponsorForm(EMPTY_SPONSOR);
+      setLogoFile(null);
+      setLogoPreview('');
       fetchData();
     } catch (err) {
       console.warn('Save sponsor error:', err);
@@ -490,7 +605,14 @@ export default function SponsorManagement() {
   // -------------------------------------------------------------
   const handleOpenCreateType = () => {
     setEditingTypeId(null);
-    setTypeForm(EMPTY_PACKAGE_TYPE);
+    const maxOrder = packageTypes.reduce((max, t) => {
+      const ord = Number(t.order);
+      return !isNaN(ord) && ord > max ? ord : max;
+    }, -1);
+    setTypeForm({
+      ...EMPTY_PACKAGE_TYPE,
+      order: maxOrder + 1
+    });
     setIsTypeModalOpen(true);
   };
 
@@ -498,7 +620,8 @@ export default function SponsorManagement() {
     setEditingTypeId(typeItem.id);
     setTypeForm({
       name: typeItem.name || '',
-      description: typeItem.description || ''
+      description: typeItem.description || '',
+      order: typeItem.order !== undefined && typeItem.order !== null ? typeItem.order : 0
     });
     setIsTypeModalOpen(true);
   };
@@ -510,11 +633,14 @@ export default function SponsorManagement() {
       return;
     }
 
+    const orderNum = parseInt(typeForm.order, 10);
+
     setSubmitting(true);
     try {
       const payload = {
         name: typeForm.name.trim(),
-        description: typeForm.description.trim() || null
+        description: typeForm.description.trim() || null,
+        order: isNaN(orderNum) ? 0 : orderNum
       };
 
       if (editingTypeId) {
@@ -1326,9 +1452,17 @@ export default function SponsorManagement() {
                 >
                   <div>
                     <div className="flex items-center justify-between gap-2 mb-2">
-                      <span className="px-2.5 py-1 rounded-lg bg-orange-50 text-[#ea580c] border border-orange-200/70 text-xs font-bold font-mono">
-                        {t.name}
-                      </span>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="px-2.5 py-1 rounded-lg bg-orange-50 text-[#ea580c] border border-orange-200/70 text-xs font-bold font-mono">
+                          {t.name}
+                        </span>
+                        <span
+                          className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 border border-slate-200 text-[11px] font-semibold font-mono"
+                          title="Display Sequence Order"
+                        >
+                          Order: {t.order ?? 0}
+                        </span>
+                      </div>
                       <div className="flex items-center gap-1">
                         <button
                           type="button"
@@ -1504,6 +1638,47 @@ export default function SponsorManagement() {
                     placeholder="e.g. Apex Neural Labs / Global IME Bank"
                     className="w-full text-xs px-3.5 py-2 rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-[#ea580c]"
                   />
+                </div>
+
+                {/* Organization Logo Upload & Preview */}
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Organization Logo
+                  </label>
+                  <div className="flex items-center gap-4 p-3 rounded-xl border border-dashed border-slate-200 bg-slate-50">
+                    {logoPreview ? (
+                      <div className="relative group shrink-0">
+                        <img
+                          src={logoPreview}
+                          alt="Logo Preview"
+                          className="w-16 h-16 rounded-xl object-contain border border-slate-200 bg-white p-1 shadow-xs"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleRemoveLogo}
+                          className="absolute -top-1.5 -right-1.5 p-1 rounded-full bg-red-500 hover:bg-red-600 text-white shadow-xs transition cursor-pointer"
+                          title="Remove Logo"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="w-16 h-16 rounded-xl bg-white border border-slate-200 text-slate-300 flex items-center justify-center shrink-0">
+                        <ImageIcon className="w-6 h-6 text-slate-300" />
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleLogoChange}
+                        className="text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-orange-50 file:text-[#ea580c] hover:file:bg-orange-100 cursor-pointer"
+                      />
+                      <p className="text-[11px] text-slate-400 mt-1">
+                        Upload official organization logo (PNG, JPG, SVG, WEBP - square or transparent recommended)
+                      </p>
+                    </div>
+                  </div>
                 </div>
 
                 <div>
@@ -2271,19 +2446,39 @@ export default function SponsorManagement() {
             </div>
 
             <form onSubmit={handleSaveType} className="p-5 space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Tier Name <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={typeForm.name}
-                  onChange={(e) => setTypeForm({ ...typeForm, name: e.target.value })}
-                  placeholder="e.g. Title Partner / Platinum Tier"
-                  className="w-full text-xs px-3.5 py-2 rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-[#ea580c]"
-                />
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Tier Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={typeForm.name}
+                    onChange={(e) => setTypeForm({ ...typeForm, name: e.target.value })}
+                    placeholder="e.g. Title Partner / Platinum Tier"
+                    className="w-full text-xs px-3.5 py-2 rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-[#ea580c]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Display Order <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    required
+                    value={typeForm.order ?? 0}
+                    onChange={(e) => setTypeForm({ ...typeForm, order: e.target.value })}
+                    placeholder="0"
+                    className="w-full text-xs px-3.5 py-2 rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-[#ea580c]"
+                  />
+                </div>
               </div>
+              <p className="text-[11px] text-slate-500 -mt-2">
+                Order controls tier hierarchy and positioning (e.g. 0 displays before 1, 2, etc.).
+              </p>
 
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">

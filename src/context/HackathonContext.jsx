@@ -119,26 +119,30 @@ export function HackathonProvider({ children }) {
       showToast(`Welcome back, ${u?.first_name || u?.email || 'Hacker'}!`, 'success');
     };
 
+    window.addEventListener('bic_customer_logout', handleAuthLogout);
     window.addEventListener('bic_auth_logout', handleAuthLogout);
     window.addEventListener('bic_user_updated', handleUserUpdated);
     window.addEventListener('bic_auth_login', handleAuthLogin);
+    window.addEventListener('bic_customer_login', handleAuthLogin);
 
     return () => {
+      window.removeEventListener('bic_customer_logout', handleAuthLogout);
       window.removeEventListener('bic_auth_logout', handleAuthLogout);
       window.removeEventListener('bic_user_updated', handleUserUpdated);
       window.removeEventListener('bic_auth_login', handleAuthLogin);
+      window.removeEventListener('bic_customer_login', handleAuthLogin);
     };
   }, [showToast]);
 
   const loginWithGoogle = async (token) => {
-    const res = await api.users.googleLogin(token);
+    const res = await api.users.googleLogin(token, { scope: 'customer' });
     const u = res?.user || getCurrentUser();
     setCurrentUserState(u);
     return res;
   };
 
   const logoutUser = () => {
-    logout();
+    logout('customer');
     setCurrentUserState(null);
   };
 
@@ -189,7 +193,20 @@ export function HackathonProvider({ children }) {
           hasEmbeddedRelations = true;
         }
 
-        if (Array.isArray(currentDetails.sponsorships) && currentDetails.sponsorships.length > 0) {
+        if (Array.isArray(currentDetails.sponsor_packages) && currentDetails.sponsor_packages.length > 0) {
+          const extractedSponsors = currentDetails.sponsor_packages
+            .filter(sp => sp && sp.organization)
+            .map(sp => ({
+              ...sp.organization,
+              sponsor_package_id: sp.id,
+              sponsor_type_name: sp.sponsor_type_name,
+              tier: sp.sponsor_type_name || 'Partner',
+            }));
+          if (extractedSponsors.length > 0) {
+            setSponsors(extractedSponsors);
+          }
+          hasEmbeddedRelations = true;
+        } else if (Array.isArray(currentDetails.sponsorships) && currentDetails.sponsorships.length > 0) {
           setSponsorships(currentDetails.sponsorships);
           const extractedSponsors = currentDetails.sponsorships
             .filter(sp => sp.sponsor)

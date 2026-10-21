@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import CustomerNavbar from './CustomerNavbar';
 import HeroSection from './HeroSection';
 import PrizesSection from './PrizesSection';
@@ -20,12 +20,76 @@ import { FileText, Shield, X } from 'lucide-react';
 
 export default function CustomerPortal() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { terms, currentUser } = useHackathon();
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [authReason, setAuthReason] = useState('login'); // 'login' | 'register'
   const [showTermsModal, setShowTermsModal] = useState(false);
+
+  // Smooth animated scrolling for all section navigation links
+  useEffect(() => {
+    const handleAnchorClick = (e) => {
+      const anchor = e.target.closest('a[href*="#"]');
+      if (!anchor) return;
+
+      const rawHref = anchor.getAttribute('href');
+      if (!rawHref || rawHref === '#') return;
+
+      const hashIndex = rawHref.indexOf('#');
+      if (hashIndex === -1) return;
+      const hash = rawHref.substring(hashIndex);
+      const path = rawHref.substring(0, hashIndex);
+
+      if (path && path !== '/' && path !== window.location.pathname) return;
+
+      const targetEl = document.querySelector(hash);
+      if (targetEl) {
+        e.preventDefault();
+        const navHeight = 72; // Account for the sticky navbar height
+        const elementPosition = targetEl.getBoundingClientRect().top + window.pageYOffset;
+        const targetScrollTop = elementPosition - navHeight;
+
+        window.scrollTo({
+          top: targetScrollTop,
+          behavior: 'smooth'
+        });
+
+        // Sync URL hash without triggering default jump
+        window.history.pushState(null, '', hash);
+      }
+    };
+
+    document.addEventListener('click', handleAnchorClick);
+    return () => document.removeEventListener('click', handleAnchorClick);
+  }, []);
+
+  // Handle direct hash navigation on initial page load and router transitions
+  useEffect(() => {
+    const hash = location.hash || window.location.hash;
+    if (hash) {
+      const scrollToHash = () => {
+        const targetEl = document.querySelector(hash);
+        if (targetEl) {
+          const navHeight = 72;
+          const elementPosition = targetEl.getBoundingClientRect().top + window.pageYOffset;
+          window.scrollTo({
+            top: elementPosition - navHeight,
+            behavior: 'smooth'
+          });
+        }
+      };
+
+      scrollToHash();
+      const t1 = setTimeout(scrollToHash, 150);
+      const t2 = setTimeout(scrollToHash, 400);
+      return () => {
+        clearTimeout(t1);
+        clearTimeout(t2);
+      };
+    }
+  }, [location.hash]);
 
   // Disable background scrolling when terms modal is opened
   useBodyScrollLock(showTermsModal);

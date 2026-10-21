@@ -1,0 +1,106 @@
+{
+  "Category": [
+    { "id": 33, "name": "Can add Category", "codename": "add_category" },
+    { "id": 34, "name": "Can change Category", "codename": "change_category" },
+    { "id": 35, "name": "Can delete Category", "codename": "delete_category" },
+    { "id": 36, "name": "Can view Category", "codename": "view_category" }
+  ],
+  "Comment": [
+    { "id": 37, "name": "Can add Comment", "codename": "add_comment" },
+    { "id": 38, "name": "Can change Comment", "codename": "change_comment" },
+    { "id": 39, "name": "Can delete Comment", "codename": "delete_comment" },
+    { "id": 40, "name": "Can view Comment", "codename": "view_comment" }
+  ],
+  "Post": [
+    { "id": 41, "name": "Can add Post", "codename": "add_post" },
+    { "id": 42, "name": "Can change Post", "codename": "change_post" },
+    { "id": 43, "name": "Can delete Post", "codename": "delete_post" },
+    { "id": 44, "name": "Can view Post", "codename": "view_post" }
+  ],
+  "Tag": [
+    { "id": 45, "name": "Can add Tag", "codename": "add_tag" },
+    { "id": 46, "name": "Can change Tag", "codename": "change_tag" },
+    { "id": 47, "name": "Can delete Tag", "codename": "delete_tag" },
+    { "id": 48, "name": "Can view Tag", "codename": "view_tag" }
+  ],
+  "Department": [
+    { "id": 95, "name": "Can add department", "codename": "add_department" },
+    { "id": 96, "name": "Can change department", "codename": "change_department" },
+    { "id": 97, "name": "Can delete department", "codename": "delete_department" },
+    { "id": 98, "name": "Can view department", "codename": "view_department" }
+  ],
+  "Hackathon": [
+    { "id": 53, "name": "Can add hackathon", "codename": "add_hackathon" },
+    { "id": 54, "name": "Can change hackathon", "codename": "change_hackathon" },
+    { "id": 55, "name": "Can delete hackathon", "codename": "delete_hackathon" },
+    { "id": 56, "name": "Can view hackathon", "codename": "view_hackathon" }
+  ],
+  "Organization": [
+    { "id": 65, "name": "Can add organization", "codename": "add_organization" },
+    { "id": 66, "name": "Can change organization", "codename": "change_organization" },
+    { "id": 67, "name": "Can delete organization", "codename": "delete_organization" },
+    { "id": 68, "name": "Can view organization", "codename": "view_organization" }
+  ],
+  "Organizer": [
+    { "id": 74, "name": "Can add organizer", "codename": "add_organizer" },
+    { "id": 75, "name": "Can change organizer", "codename": "change_organizer" },
+    { "id": 76, "name": "Can delete organizer", "codename": "delete_organizer" },
+    { "id": 77, "name": "Can view organizer", "codename": "view_organizer" }
+  ],
+  "Organizertasks": [
+    { "id": 99, "name": "Can add organizer tasks", "codename": "add_organizertasks" },
+    { "id": 100, "name": "Can change organizer tasks", "codename": "change_organizertasks" },
+    { "id": 101, "name": "Can delete organizer tasks", "codename": "delete_organizertasks" },
+    { "id": 102, "name": "Can view organizer tasks", "codename": "view_organizertasks" }
+  ],
+  "Schedule": [
+    { "id": 69, "name": "Can add schedule", "codename": "add_schedule" },
+    { "id": 73, "name": "Can update schedule execution status", "codename": "can_update_schedule_status" },
+    { "id": 70, "name": "Can change schedule", "codename": "change_schedule" },
+    { "id": 71, "name": "Can delete schedule", "codename": "delete_schedule" },
+    { "id": 72, "name": "Can view schedule", "codename": "view_schedule" }
+  ],
+  "Sponsorpackage": [
+    { "id": 61, "name": "Can add sponsor package", "codename": "add_sponsorpackage" },
+    { "id": 62, "name": "Can change sponsor package", "codename": "change_sponsorpackage" },
+    { "id": 63, "name": "Can delete sponsor package", "codename": "delete_sponsorpackage" },
+    { "id": 64, "name": "Can view sponsor package", "codename": "view_sponsorpackage" }
+  ],
+  "Sponsorpackagetype": [
+    { "id": 57, "name": "Can add sponsor package type", "codename": "add_sponsorpackagetype" },
+    { "id": 58, "name": "Can change sponsor package type", "codename": "change_sponsorpackagetype" },
+    { "id": 59, "name": "Can delete sponsor package type", "codename": "delete_sponsorpackagetype" },
+    { "id": 60, "name": "Can view sponsor package type", "codename": "view_sponsorpackagetype" }
+  ],
+  "Team": [
+    { "id": 78, "name": "Can add team", "codename": "add_team" },
+    { "id": 82, "name": "Can update team status", "codename": "can_update_team_status" },
+    { "id": 79, "name": "Can change team", "codename": "change_team" },
+    { "id": 80, "name": "Can delete team", "codename": "delete_team" },
+    { "id": 81, "name": "Can view team", "codename": "view_team" }
+  ],
+  "Activity": [
+    { "id": 49, "name": "Can add Activity", "codename": "add_activity" },
+    { "id": 50, "name": "Can change Activity", "codename": "change_activity" },
+    { "id": 51, "name": "Can delete Activity", "codename": "delete_activity" },
+    { "id": 52, "name": "Can view Activity", "codename": "view_activity" }
+  ],
+  "Notification": [
+    { "id": 25, "name": "Can add Notification", "codename": "add_notification" },
+    { "id": 26, "name": "Can change Notification", "codename": "change_notification" },
+    { "id": 27, "name": "Can delete Notification", "codename": "delete_notification" },
+    { "id": 28, "name": "Can view Notification", "codename": "view_notification" }
+  ],
+  "Notificationpreference": [
+    { "id": 29, "name": "Can add Notification Preference", "codename": "add_notificationpreference" },
+    { "id": 30, "name": "Can change Notification Preference", "codename": "change_notificationpreference" },
+    { "id": 31, "name": "Can delete Notification Preference", "codename": "delete_notificationpreference" },
+    { "id": 32, "name": "Can view Notification Preference", "codename": "view_notificationpreference" }
+  ],
+  "User": [
+    { "id": 21, "name": "Can add User", "codename": "add_user" },
+    { "id": 22, "name": "Can change User", "codename": "change_user" },
+    { "id": 23, "name": "Can delete User", "codename": "delete_user" },
+    { "id": 24, "name": "Can view User", "codename": "view_user" }
+  ]
+}

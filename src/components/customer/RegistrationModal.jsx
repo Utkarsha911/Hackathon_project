@@ -14,9 +14,10 @@ import {
   Users,
   CheckCircle2,
   AlertCircle,
-  Loader2
+  Loader2,
+  ShieldCheck
 } from 'lucide-react';
-import hackathonLogo from '../../assets/HACKATHON-LOGO.png';
+import HackathonBrand from '../common/HackathonBrand';
 
 function formatTeamRegistrationError(err) {
   if (!err) return 'Failed to register team. Please try again.';
@@ -68,10 +69,12 @@ function formatTeamRegistrationError(err) {
 
 export default function RegistrationModal({ isOpen, onClose }) {
   const navigate = useNavigate();
-  const { registerTeam, hackathon, currentUser } = useHackathon();
+  const { registerTeam, hackathon, currentUser, terms } = useHackathon();
 
   const minTeamSize = hackathon?.minimum_team_size || 1;
   const maxTeamSize = hackathon?.maximum_team_size || 4;
+
+  const [showTermsModal, setShowTermsModal] = useState(false);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -175,10 +178,11 @@ export default function RegistrationModal({ isOpen, onClose }) {
           {/* Header */}
           <div className="mb-6">
             <div className="flex items-center gap-3 mb-2.5">
-              <img
-                src={hackathonLogo}
-                alt="BIC Hackathon"
-                className="h-7 w-auto object-contain"
+              <HackathonBrand
+                imageClassName="h-7 w-auto max-w-[140px] object-contain"
+                textClassName="text-xs font-bold text-slate-800"
+                showSubText={false}
+                iconSizeClass="w-6 h-6 text-[10px]"
               />
               <span className="text-xs font-mono font-bold uppercase tracking-widest text-[#ea580c]">
                 Team Enrollment
@@ -401,8 +405,24 @@ export default function RegistrationModal({ isOpen, onClose }) {
               </div>
             </div>
 
+            {/* Terms and Conditions Signing Notice */}
+            <div className="flex items-start gap-2.5 p-3 rounded-xl bg-slate-50 border border-slate-200/90 text-xs text-slate-600">
+              <ShieldCheck className="w-4 h-4 text-[#ea580c] shrink-0 mt-0.5" />
+              <p className="leading-relaxed">
+                By clicking <span className="font-semibold text-slate-900">"Submit Team Registration"</span>, you confirm that you are agreeing to and signing the{' '}
+                <button
+                  type="button"
+                  onClick={() => setShowTermsModal(true)}
+                  className="font-semibold text-[#ea580c] hover:underline cursor-pointer inline-flex items-center gap-0.5"
+                >
+                  <span>Terms and Conditions</span>
+                </button>{' '}
+                and hackathon rules on behalf of your team.
+              </p>
+            </div>
+
             {/* Modal Actions */}
-            <div className="flex items-center gap-3 pt-2">
+            <div className="flex items-center gap-3 pt-1">
               <button
                 type="button"
                 onClick={onClose}
@@ -432,6 +452,45 @@ export default function RegistrationModal({ isOpen, onClose }) {
           </form>
         </div>
       </div>
+
+      {/* Terms & Conditions Viewer Modal */}
+      {showTermsModal && (
+        <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
+          <div className="max-w-lg w-full bg-white rounded-2xl border border-slate-200 shadow-2xl p-6 relative">
+            <button
+              type="button"
+              onClick={() => setShowTermsModal(false)}
+              className="absolute top-4 right-4 p-1.5 rounded-lg text-slate-400 hover:text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <div className="flex items-center gap-2.5 mb-3 text-slate-900 font-bold text-base">
+              <div className="w-8 h-8 rounded-xl bg-orange-50 text-[#ea580c] flex items-center justify-center">
+                <ShieldCheck className="w-4 h-4" />
+              </div>
+              <h4>Terms & Conditions</h4>
+            </div>
+
+            <div className="text-xs text-slate-600 leading-relaxed max-h-72 overflow-y-auto space-y-3 pr-2 py-2 border-y border-slate-100 my-4">
+              <p>
+                {terms?.[0]?.content ||
+                  'By participating in this hackathon, all team members agree to uphold academic integrity, original work, and community safety. Unauthorized plagiarism, offensive material, or unfair practices will result in instant disqualification. Participants retain full ownership of intellectual property produced during the event. Organizers reserve the right to photograph, record, and report on hackathon presentations for promotional purposes.'}
+              </p>
+            </div>
+
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={() => setShowTermsModal(false)}
+                className="px-4 py-2 rounded-xl text-xs font-semibold text-white bg-[#ea580c] hover:bg-[#c2410c] transition cursor-pointer"
+              >
+                I Understand & Agree
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

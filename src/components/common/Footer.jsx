@@ -1,10 +1,64 @@
 import React from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useHackathon } from '../../context/HackathonContext';
 import { Code2, Globe, Share2 } from 'lucide-react';
-import hackathonLogo from '../../assets/HACKATHON-LOGO.png';
+import HackathonBrand from './HackathonBrand';
 
 export default function Footer() {
-  const { hackathon } = useHackathon();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { hackathon, schedules = [], scheduleEvents = [] } = useHackathon();
+
+  const hasScheduleData =
+    (Array.isArray(schedules) && schedules.length > 0) ||
+    (Array.isArray(scheduleEvents) && scheduleEvents.length > 0) ||
+    (Array.isArray(hackathon?.schedules) && hackathon.schedules.length > 0);
+
+  const hasRulesData = (() => {
+    const r = hackathon?.rules;
+    if (!r) return false;
+    if (typeof r === 'string') return r.trim().length > 0;
+    if (Array.isArray(r)) return r.length > 0;
+    if (typeof r === 'object') {
+      return (
+        (Array.isArray(r.eligibility) && r.eligibility.length > 0) ||
+        (Array.isArray(r.submission_guidelines) && r.submission_guidelines.length > 0) ||
+        (Array.isArray(r.code_of_conduct) && r.code_of_conduct.length > 0) ||
+        (Array.isArray(r.evaluation_criteria) && r.evaluation_criteria.length > 0)
+      );
+    }
+    return false;
+  })();
+
+  const navLinks = [
+    { label: 'Prizes', href: '/#prizes' },
+    ...(hasScheduleData ? [{ label: 'Schedule', href: '/#schedule' }] : []),
+    { label: 'Partners', href: '/#sponsors' },
+    ...(hasRulesData ? [{ label: 'Rules & Guidelines', href: '/#rules' }] : []),
+    { label: 'FAQ', href: '/#faq' }
+  ];
+
+  const handleSectionClick = (e, targetHref) => {
+    e.preventDefault();
+    const hashIndex = targetHref.indexOf('#');
+    if (hashIndex === -1) return;
+    const hash = targetHref.substring(hashIndex);
+
+    if (location.pathname === '/') {
+      const targetEl = document.querySelector(hash);
+      if (targetEl) {
+        const navHeight = 72;
+        const elementPosition = targetEl.getBoundingClientRect().top + window.pageYOffset;
+        window.scrollTo({
+          top: elementPosition - navHeight,
+          behavior: 'smooth'
+        });
+        window.history.pushState(null, '', hash);
+      }
+    } else {
+      navigate(`/${hash}`);
+    }
+  };
 
   return (
     <footer className="border-t border-slate-200 text-xs bg-slate-50 text-slate-600">
@@ -14,10 +68,9 @@ export default function Footer() {
           {/* Brand Column */}
           <div className="md:col-span-2">
             <div className="flex items-center gap-3 mb-4">
-              <img
-                src={hackathonLogo}
-                alt={hackathon?.title || 'BIC Hackathon'}
-                className="h-9 w-auto object-contain"
+              <HackathonBrand
+                imageClassName="h-9 w-auto max-w-[160px] object-contain"
+                textClassName="text-sm font-extrabold text-slate-900"
               />
             </div>
             <p className="text-slate-500 max-w-sm leading-relaxed text-xs mb-5">
@@ -49,16 +102,17 @@ export default function Footer() {
               Event Navigation
             </h4>
             <ul className="space-y-2.5">
-              {['Challenges', 'Prizes', 'Schedule', 'Squads Directory', 'Partners', 'Rules & Guidelines', 'FAQ'].map((item, i) => {
-                const hrefs = ['#tracks', '#prizes', '#schedule', '#squads', '#sponsors', '#rules', '#faq'];
-                return (
-                  <li key={item}>
-                    <a href={hrefs[i]} className="text-slate-500 hover:text-coral-600 transition-colors">
-                      {item}
-                    </a>
-                  </li>
-                );
-              })}
+              {navLinks.map((item) => (
+                <li key={item.label}>
+                  <a
+                    href={item.href}
+                    onClick={(e) => handleSectionClick(e, item.href)}
+                    className="text-slate-500 hover:text-coral-600 transition-colors"
+                  >
+                    {item.label}
+                  </a>
+                </li>
+              ))}
             </ul>
           </div>
 
@@ -76,7 +130,11 @@ export default function Footer() {
                 </a>
               </li>
               <li>
-                <a href="#faq" className="hover:text-coral-600 transition-colors">
+                <a
+                  href="/#faq"
+                  onClick={(e) => handleSectionClick(e, '/#faq')}
+                  className="hover:text-coral-600 transition-colors"
+                >
                   Frequently Asked Questions
                 </a>
               </li>
