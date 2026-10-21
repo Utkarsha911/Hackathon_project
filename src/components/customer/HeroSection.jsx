@@ -35,8 +35,8 @@ export default function HeroSection({ onOpenRegister }) {
     hackathon?.total_prize !== undefined && hackathon?.total_prize !== null
       ? Number(hackathon.total_prize) || 0
       : (prizes.length > 0
-          ? prizes.reduce((acc, curr) => acc + (Number(curr.prize_money) || 0), 0)
-          : 0);
+        ? prizes.reduce((acc, curr) => acc + (Number(curr.prize_money) || 0), 0)
+        : 0);
 
   const formatDateRange = () => {
     if (!hackathon?.start_date || !hackathon?.end_date) {

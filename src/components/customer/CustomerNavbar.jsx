@@ -16,7 +16,18 @@ export default function CustomerNavbar({ onOpenRegister, onOpenLogin, onOpenProf
     (Array.isArray(scheduleEvents) && scheduleEvents.length > 0) ||
     (Array.isArray(hackathon?.schedules) && hackathon.schedules.length > 0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const dropdownRef = useRef(null);
+
+  // Monitor scroll position to apply dynamic blur effect when moving downward
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 10);
+    };
+    handleScroll();
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -66,9 +77,18 @@ export default function CustomerNavbar({ onOpenRegister, onOpenLogin, onOpenProf
   };
 
   return (
-    <header className="sticky top-0 z-40 w-full transition-all">
-      {/* Main Navbar */}
-      <div className="w-full bg-white/95 backdrop-blur-md border-b border-slate-200/70">
+    <header className="sticky top-0 z-40 w-full transition-all duration-300">
+      {/* Main Navbar with dynamic frosted blur on scroll */}
+      <div
+        className={`w-full transition-all duration-300 ${scrolled
+          ? 'bg-white/45 backdrop-blur-3xl backdrop-saturate-150 border-b border-slate-200/60 shadow-md shadow-slate-900/[0.04]'
+          : 'bg-white/85 backdrop-blur-md border-b border-slate-200/40'
+          }`}
+        style={{
+          backdropFilter: scrolled ? 'blur(28px) saturate(180%)' : 'blur(10px)',
+          WebkitBackdropFilter: scrolled ? 'blur(28px) saturate(180%)' : 'blur(10px)'
+        }}
+      >
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
 
           {/* Brand */}
@@ -82,168 +102,168 @@ export default function CustomerNavbar({ onOpenRegister, onOpenLogin, onOpenProf
 
           {/* Desktop Nav Links */}
           <nav className="hidden lg:flex items-center gap-1 text-[13px] font-medium text-slate-600">
-          <a
-            href="/#prizes"
-            onClick={(e) => handleSectionClick(e, '#prizes')}
-            className="px-3 py-1.5 rounded-lg hover:text-slate-900 hover:bg-slate-100/70 transition-colors"
-          >
-            Prizes
-          </a>
-          {hasScheduleData && (
             <a
-              href="/#schedule"
-              onClick={(e) => handleSectionClick(e, '#schedule')}
+              href="/#prizes"
+              onClick={(e) => handleSectionClick(e, '#prizes')}
               className="px-3 py-1.5 rounded-lg hover:text-slate-900 hover:bg-slate-100/70 transition-colors"
             >
-              Schedule
+              Prizes
             </a>
-          )}
-          <a
-            href="/#sponsors"
-            onClick={(e) => handleSectionClick(e, '#sponsors')}
-            className="px-3 py-1.5 rounded-lg hover:text-slate-900 hover:bg-slate-100/70 transition-colors"
-          >
-            Sponsors
-          </a>
-          <a
-            href="/#organizers"
-            onClick={(e) => handleSectionClick(e, '#organizers')}
-            className="px-3 py-1.5 rounded-lg hover:text-slate-900 hover:bg-slate-100/70 transition-colors"
-          >
-            Organizers
-          </a>
-          <a
-            href="/#contact"
-            onClick={(e) => handleSectionClick(e, '#contact')}
-            className="px-3 py-1.5 rounded-lg hover:text-slate-900 hover:bg-slate-100/70 transition-colors"
-          >
-            Contact
-          </a>
-          {currentUser && (
-            <Link
-              to="/profile"
-              className="px-3 py-1.5 rounded-lg text-[#ea580c] hover:bg-orange-50 font-semibold transition-colors flex items-center gap-1.5"
-            >
-              <User className="w-3.5 h-3.5" />
-              <span>Profile</span>
-            </Link>
-          )}
-        </nav>
-
-        {/* CTA & User Authentication */}
-        <div className="flex items-center gap-2 sm:gap-2.5">
-          {currentUser ? (
-            /* Logged In User Rounded Circle Profile & Dropdown */
-            <div className="relative" ref={dropdownRef}>
-              <button
-                type="button"
-                onClick={() => setUserDropdownOpen(!userDropdownOpen)}
-                className="relative flex items-center justify-center rounded-full p-0.5 border-2 border-orange-200 hover:border-[#ea580c] transition-all hover:scale-105 active:scale-95 focus:outline-none shadow-xs group cursor-pointer"
-                aria-label="User account and profile menu"
-                title={`${displayName} - View Profile`}
+            {hasScheduleData && (
+              <a
+                href="/#schedule"
+                onClick={(e) => handleSectionClick(e, '#schedule')}
+                className="px-3 py-1.5 rounded-lg hover:text-slate-900 hover:bg-slate-100/70 transition-colors"
               >
-                <img
-                  src={getUserAvatarUrl(currentUser)}
-                  alt={displayName}
-                  onError={(e) => {
-                    e.currentTarget.src = DEFAULT_USER_AVATAR;
-                  }}
-                  className="w-8 h-8 sm:w-9 sm:h-9 rounded-full object-cover"
-                />
-              </button>
+                Schedule
+              </a>
+            )}
+            <a
+              href="/#sponsors"
+              onClick={(e) => handleSectionClick(e, '#sponsors')}
+              className="px-3 py-1.5 rounded-lg hover:text-slate-900 hover:bg-slate-100/70 transition-colors"
+            >
+              Sponsors
+            </a>
+            <a
+              href="/#organizers"
+              onClick={(e) => handleSectionClick(e, '#organizers')}
+              className="px-3 py-1.5 rounded-lg hover:text-slate-900 hover:bg-slate-100/70 transition-colors"
+            >
+              Organizers
+            </a>
+            <a
+              href="/#contact"
+              onClick={(e) => handleSectionClick(e, '#contact')}
+              className="px-3 py-1.5 rounded-lg hover:text-slate-900 hover:bg-slate-100/70 transition-colors"
+            >
+              Contact
+            </a>
+            {currentUser && (
+              <Link
+                to="/profile"
+                className="px-3 py-1.5 rounded-lg text-[#ea580c] hover:bg-orange-50 font-semibold transition-colors flex items-center gap-1.5"
+              >
+                <User className="w-3.5 h-3.5" />
+                <span>Profile</span>
+              </Link>
+            )}
+          </nav>
 
-              {userDropdownOpen && (
-                <div className="absolute right-0 mt-2 w-64 rounded-2xl bg-white border border-slate-200 shadow-xl p-2 z-50 animate-fade-in">
-                  {/* Clickable Profile Summary Header linking to /profile */}
-                  <Link
-                    to="/profile"
-                    onClick={() => setUserDropdownOpen(false)}
-                    className="block px-3 py-2.5 border-b border-slate-100 hover:bg-orange-50/60 rounded-xl transition group"
-                  >
-                    <div className="flex items-center justify-between">
-                      <p className="text-xs font-bold text-slate-900 truncate group-hover:text-[#ea580c]">
-                        {displayName}
-                      </p>
-                      <span className="text-[10px] text-[#ea580c] font-medium flex items-center gap-0.5">
-                        Profile →
-                      </span>
-                    </div>
-                    <p className="text-[11px] font-mono text-slate-400 truncate mt-0.5">{currentUser.email}</p>
-                  </Link>
+          {/* CTA & User Authentication */}
+          <div className="flex items-center gap-2 sm:gap-2.5">
+            {currentUser ? (
+              /* Logged In User Rounded Circle Profile & Dropdown */
+              <div className="relative" ref={dropdownRef}>
+                <button
+                  type="button"
+                  onClick={() => setUserDropdownOpen(!userDropdownOpen)}
+                  className="relative flex items-center justify-center rounded-full p-0.5 border-2 border-orange-200 hover:border-[#ea580c] transition-all hover:scale-105 active:scale-95 focus:outline-none shadow-xs group cursor-pointer"
+                  aria-label="User account and profile menu"
+                  title={`${displayName} - View Profile`}
+                >
+                  <img
+                    src={getUserAvatarUrl(currentUser)}
+                    alt={displayName}
+                    onError={(e) => {
+                      e.currentTarget.src = DEFAULT_USER_AVATAR;
+                    }}
+                    className="w-8 h-8 sm:w-9 sm:h-9 rounded-full object-cover"
+                  />
+                </button>
 
-                  <div className="py-1">
-                    {/* View Profile & Registered Teams action */}
+                {userDropdownOpen && (
+                  <div className="absolute right-0 mt-2 w-64 rounded-2xl bg-white border border-slate-200 shadow-xl p-2 z-50 animate-fade-in">
+                    {/* Clickable Profile Summary Header linking to /profile */}
                     <Link
                       to="/profile"
                       onClick={() => setUserDropdownOpen(false)}
-                      className="w-full text-left px-3 py-2 text-xs text-slate-800 hover:bg-orange-50 hover:text-[#ea580c] rounded-xl flex items-center gap-2 transition font-medium"
+                      className="block px-3 py-2.5 border-b border-slate-100 hover:bg-orange-50/60 rounded-xl transition group"
                     >
-                      <User className="w-3.5 h-3.5 text-[#ea580c]" />
-                      <span>My Profile & Registered Teams</span>
+                      <div className="flex items-center justify-between">
+                        <p className="text-xs font-bold text-slate-900 truncate group-hover:text-[#ea580c]">
+                          {displayName}
+                        </p>
+                        <span className="text-[10px] text-[#ea580c] font-medium flex items-center gap-0.5">
+                          Profile →
+                        </span>
+                      </div>
+                      <p className="text-[11px] font-mono text-slate-400 truncate mt-0.5">{currentUser.email}</p>
                     </Link>
 
+                    <div className="py-1">
+                      {/* View Profile & Registered Teams action */}
+                      <Link
+                        to="/profile"
+                        onClick={() => setUserDropdownOpen(false)}
+                        className="w-full text-left px-3 py-2 text-xs text-slate-800 hover:bg-orange-50 hover:text-[#ea580c] rounded-xl flex items-center gap-2 transition font-medium"
+                      >
+                        <User className="w-3.5 h-3.5 text-[#ea580c]" />
+                        <span>My Profile & Registered Teams</span>
+                      </Link>
 
 
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setUserDropdownOpen(false);
-                        onOpenRegister();
-                      }}
-                      className="w-full text-left px-3 py-2 text-xs text-slate-700 hover:bg-slate-50 rounded-xl flex items-center gap-2 transition cursor-pointer"
-                    >
-                      <Award className="w-3.5 h-3.5 text-slate-400" />
-                      <span>Enroll New Squad</span>
-                    </button>
 
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setUserDropdownOpen(false);
-                        logoutUser();
-                      }}
-                      className="w-full text-left px-3 py-2 text-xs text-red-600 hover:bg-red-50 rounded-xl flex items-center gap-2 transition mt-1 border-t border-slate-100 cursor-pointer"
-                    >
-                      <LogOut className="w-3.5 h-3.5" />
-                      <span>Sign Out</span>
-                    </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setUserDropdownOpen(false);
+                          onOpenRegister();
+                        }}
+                        className="w-full text-left px-3 py-2 text-xs text-slate-700 hover:bg-slate-50 rounded-xl flex items-center gap-2 transition cursor-pointer"
+                      >
+                        <Award className="w-3.5 h-3.5 text-slate-400" />
+                        <span>Enroll New Squad</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setUserDropdownOpen(false);
+                          logoutUser();
+                        }}
+                        className="w-full text-left px-3 py-2 text-xs text-red-600 hover:bg-red-50 rounded-xl flex items-center gap-2 transition mt-1 border-t border-slate-100 cursor-pointer"
+                      >
+                        <LogOut className="w-3.5 h-3.5" />
+                        <span>Sign Out</span>
+                      </button>
+                    </div>
                   </div>
-                </div>
-              )}
-            </div>
-          ) : (
-            /* Sign In Button for unauthenticated visitors */
+                )}
+              </div>
+            ) : (
+              /* Sign In Button for unauthenticated visitors */
+              <button
+                type="button"
+                onClick={onOpenLogin}
+                className="hidden sm:inline-flex items-center gap-1.5 text-xs font-semibold text-slate-700 hover:text-[#ea580c] hover:bg-slate-100/80 px-3 py-2 rounded-xl transition cursor-pointer"
+              >
+                <User className="w-3.5 h-3.5" />
+                <span>Sign In</span>
+              </button>
+            )}
+
+            {/* Register Squad CTA */}
+            <button
+              onClick={onOpenRegister}
+              className="btn-primary flex items-center gap-1.5 text-xs py-2 px-3 sm:px-4 shadow-sm"
+            >
+              <span>Register Squad</span>
+              <ArrowUpRight className="w-3.5 h-3.5" />
+            </button>
+
+            {/* Mobile Menu Hamburger Button */}
             <button
               type="button"
-              onClick={onOpenLogin}
-              className="hidden sm:inline-flex items-center gap-1.5 text-xs font-semibold text-slate-700 hover:text-[#ea580c] hover:bg-slate-100/80 px-3 py-2 rounded-xl transition cursor-pointer"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="lg:hidden p-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 border border-slate-200/80 transition"
+              aria-label="Toggle navigation menu"
             >
-              <User className="w-3.5 h-3.5" />
-              <span>Sign In</span>
+              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
-          )}
-
-          {/* Register Squad CTA */}
-          <button
-            onClick={onOpenRegister}
-            className="btn-primary flex items-center gap-1.5 text-xs py-2 px-3 sm:px-4 shadow-sm"
-          >
-            <span>Register Squad</span>
-            <ArrowUpRight className="w-3.5 h-3.5" />
-          </button>
-
-          {/* Mobile Menu Hamburger Button */}
-          <button
-            type="button"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="lg:hidden p-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 border border-slate-200/80 transition"
-            aria-label="Toggle navigation menu"
-          >
-            {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-          </button>
+          </div>
         </div>
       </div>
-    </div>
 
       {/* Mobile Navigation Dropdown Menu */}
       {mobileMenuOpen && (

@@ -26,7 +26,6 @@ import {
   ClipboardList,
   FolderTree,
   Shield,
-  LayoutDashboard,
   LogOut,
   Layers,
   ChevronRight,
@@ -451,7 +450,7 @@ export default function AdminLayout() {
   const canAccessLogs = isSuperOrStaff || hasPermission(['activity']);
 
   // Header Title mapping
-  let pageTitle = 'Admin Workspace';
+  let pageTitle = 'Hackathon Management';
   if (isHackathonOrganizersActive) pageTitle = 'Hackathon Organizers';
   else if (isHackathonPrizesActive) pageTitle = 'Prize Management';
   else if (isHackathonFaqsActive) pageTitle = 'FAQ Management';
@@ -492,7 +491,7 @@ export default function AdminLayout() {
         >
           {/* Logo */}
           <div className="h-16 flex items-center justify-between px-6" style={{ borderBottom: '1px solid #e8e9ef' }}>
-            <Link to="/admin-control-site" className="flex items-center gap-2.5 group min-w-0">
+            <Link to="/admin-control-site/hackathons" className="flex items-center gap-2.5 group min-w-0">
               <HackathonBrand
                 hackathon={
                   adminHackathons.find((h) => h.id === selectedHackathonId) ||
@@ -519,25 +518,6 @@ export default function AdminLayout() {
 
           {/* Navigation */}
           <div className="flex-1 py-4 px-3 space-y-1 overflow-y-auto">
-            {/* Admin Workspace / Dashboard */}
-            <Link
-              to="/admin-control-site"
-              onClick={() => setMobileMenuOpen(false)}
-              className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-normal transition-all mb-1.5 ${
-                isDashboardActive
-                  ? 'shadow-xs text-white'
-                  : 'text-slate-600 hover:bg-slate-100/80 hover:text-slate-900'
-              }`}
-              style={
-                isDashboardActive
-                  ? { backgroundColor: '#ea580c', color: '#ffffff' }
-                  : {}
-              }
-            >
-              <LayoutDashboard className="w-4 h-4 shrink-0" />
-              <span>Admin Workspace</span>
-            </Link>
-
             {/* Hackathon Management Dropdown Accordion */}
             {canAccessHackathonsDropdown && (
               <div className="space-y-0.5 mb-1">
@@ -1178,8 +1158,7 @@ export default function AdminLayout() {
         <div className="flex-1 flex flex-col min-w-0" style={{ backgroundColor: '#f5f6fa' }}>
           {/* Top Bar */}
           <header
-            className="h-16 px-3 sm:px-8 flex items-center justify-between shrink-0 sticky top-0 z-30"
-            style={{ backgroundColor: '#ffffff', borderBottom: '1px solid #e8e9ef' }}
+            className="h-16 px-3 sm:px-8 flex items-center justify-between shrink-0 sticky top-0 z-30 bg-white/85 backdrop-blur-xl border-b border-[#e8e9ef] transition-all duration-300"
           >
             <div className="flex items-center gap-2 sm:gap-3 min-w-0">
               <button
@@ -1338,267 +1317,14 @@ export default function AdminLayout() {
                     element={canAccessLogs ? <LogViewer /> : <Navigate to="/admin-control-site" replace />}
                   />
 
-                  {/* Default Admin Workspace Overview */}
+                  {/* Default redirect to Hackathon Management */}
+                  <Route
+                    path=""
+                    element={<Navigate to="/admin-control-site/hackathons" replace />}
+                  />
                   <Route
                     path="*"
-                    element={
-                      <div className="max-w-4xl mx-auto py-6 space-y-6">
-                        {/* Hero Welcome Card */}
-                        <div
-                          className="rounded-2xl p-8 sm:p-10 border shadow-sm relative overflow-hidden"
-                          style={{ backgroundColor: '#ffffff', borderColor: '#e8e9ef' }}
-                        >
-                          <div
-                            className="w-14 h-14 mb-4 rounded-2xl flex items-center justify-center shadow-inner"
-                            style={{ backgroundColor: '#fff3ef' }}
-                          >
-                            <Trophy className="w-7 h-7" style={{ color: '#e8622a' }} />
-                          </div>
-
-                          <h2 className="text-2xl font-bold mb-2 tracking-tight" style={{ color: '#1a1a2e' }}>
-                            Welcome, {displayName}!
-                          </h2>
-
-                          <p className="text-sm max-w-xl text-slate-600 mb-6 leading-relaxed">
-                            You are authenticated via{' '}
-                            <code className="text-[#e8622a] font-mono text-xs bg-orange-50 px-1.5 py-0.5 rounded border border-orange-100">
-                              /api/v1/users/login/
-                            </code>
-                            . Access administration tools using the navigation menu on the left.
-                          </p>
-
-                          <div className="flex flex-wrap items-center gap-3">
-                            {canAccessHackathons && (
-                              <Link
-                                to="/admin-control-site/hackathons"
-                                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white shadow-md shadow-orange-500/20 hover:shadow-orange-500/30 transition-all"
-                                style={{ backgroundColor: '#ea580c' }}
-                              >
-                                <Trophy className="w-4 h-4" />
-                                <span>Hackathons</span>
-                                <ChevronRight className="w-4 h-4" />
-                              </Link>
-                            )}
-
-                            {!canAccessSponsorPackages && canAccessOrganizations && (
-                              <Link
-                                to="/admin-control-site/sponsors?tab=sponsors"
-                                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition"
-                              >
-                                <Building2 className="w-4 h-4 text-[#ea580c]" />
-                                <span>Organizations</span>
-                              </Link>
-                            )}
-
-                            {canAccessUsers && (
-                              <Link
-                                to="/admin-control-site/users"
-                                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition"
-                              >
-                                <UserCheck className="w-4 h-4 text-[#e8622a]" />
-                                <span>User Management</span>
-                              </Link>
-                            )}
-
-                            {canAccessDepartments && (
-                              <Link
-                                to="/admin-control-site/users?tab=departments"
-                                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition"
-                              >
-                                <Building2 className="w-4 h-4 text-[#e8622a]" />
-                                <span>Departments</span>
-                              </Link>
-                            )}
-
-                            {canAccessOrganizerTasks && (
-                              <Link
-                                to="/admin-control-site/organizer-tasks"
-                                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition"
-                              >
-                                <ClipboardList className="w-4 h-4 text-[#e8622a]" />
-                                <span>Organizer Tasks</span>
-                              </Link>
-                            )}
-
-                            {canAccessGroups && (
-                              <Link
-                                to="/admin-control-site/groups"
-                                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition"
-                              >
-                                <Users className="w-4 h-4 text-[#e8622a]" />
-                                <span>View Groups</span>
-                              </Link>
-                            )}
-
-                            {canAccessTeams && (
-                              <Link
-                                to="/admin-control-site/hackathons?tab=teams"
-                                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition"
-                              >
-                                <Users className="w-4 h-4 text-[#e8622a]" />
-                                <span>View Teams</span>
-                              </Link>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Feature Summary Grid */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          {canAccessHackathons && (
-                            <Link
-                              to="/admin-control-site/hackathons"
-                              className="p-5 rounded-2xl bg-white border border-slate-200/80 hover:border-orange-300 hover:shadow-md transition-all group"
-                            >
-                              <div className="w-10 h-10 rounded-xl bg-orange-50 text-[#e8622a] flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
-                                <Trophy className="w-5 h-5" />
-                              </div>
-                              <h3 className="font-bold text-slate-900 text-sm group-hover:text-[#e8622a] transition-colors">
-                                Hackathon Management
-                              </h3>
-                              <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-                                Inspect editions, registration timelines, team sizes, and banner images via <code className="text-[11px] font-mono text-slate-700">/api/v1/hackathons/</code>.
-                              </p>
-                            </Link>
-                          )}
-
-                          {canAccessSponsorPackages && (
-                            <Link
-                              to="/admin-control-site/sponsors"
-                              className="p-5 rounded-2xl bg-white border border-slate-200/80 hover:border-orange-300 hover:shadow-md transition-all group"
-                            >
-                              <div className="w-10 h-10 rounded-xl bg-orange-50 text-[#ea580c] flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
-                                <Building2 className="w-5 h-5" />
-                              </div>
-                              <h3 className="font-bold text-slate-900 text-sm group-hover:text-[#ea580c] transition-colors">
-                                Sponsors & Package Tiers
-                              </h3>
-                              <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-                                Manage corporate sponsors, packages, perks, and tier allocation breakdown.
-                              </p>
-                            </Link>
-                          )}
-
-                          {!canAccessSponsorPackages && canAccessOrganizations && (
-                            <Link
-                              to="/admin-control-site/sponsors?tab=sponsors"
-                              className="p-5 rounded-2xl bg-white border border-slate-200/80 hover:border-orange-300 hover:shadow-md transition-all group"
-                            >
-                              <div className="w-10 h-10 rounded-xl bg-orange-50 text-[#ea580c] flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
-                                <Building2 className="w-5 h-5" />
-                              </div>
-                              <h3 className="font-bold text-slate-900 text-sm group-hover:text-[#ea580c] transition-colors">
-                                Organizations Directory
-                              </h3>
-                              <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-                                Manage partner organizations, logos, contact information, and corporate profiles via <code className="text-[11px] font-mono text-slate-700">/api/v1/organizations/</code>.
-                              </p>
-                            </Link>
-                          )}
-
-                          {canAccessUsers && (
-                            <Link
-                              to="/admin-control-site/users"
-                              className="p-5 rounded-2xl bg-white border border-slate-200/80 hover:border-orange-300 hover:shadow-md transition-all group"
-                            >
-                              <div className="w-10 h-10 rounded-xl bg-orange-50 text-[#e8622a] flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
-                                <UserCheck className="w-5 h-5" />
-                              </div>
-                              <h3 className="font-bold text-slate-900 text-sm group-hover:text-[#e8622a] transition-colors">
-                                User Management & Registration
-                              </h3>
-                              <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-                                Manage user accounts, role allocations, and security credentials.
-                              </p>
-                            </Link>
-                          )}
-
-                          {canAccessDepartments && (
-                            <Link
-                              to="/admin-control-site/users?tab=departments"
-                              className="p-5 rounded-2xl bg-white border border-slate-200/80 hover:border-orange-300 hover:shadow-md transition-all group"
-                            >
-                              <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
-                                <Building2 className="w-5 h-5" />
-                              </div>
-                              <h3 className="font-bold text-slate-900 text-sm group-hover:text-[#e8622a] transition-colors">
-                                Department Management
-                              </h3>
-                              <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-                                Manage organizational departments, teams, and administrative divisions.
-                              </p>
-                            </Link>
-                          )}
-
-                          {canAccessOrganizerTasks && (
-                            <Link
-                              to="/admin-control-site/organizer-tasks"
-                              className="p-5 rounded-2xl bg-white border border-slate-200/80 hover:border-orange-300 hover:shadow-md transition-all group"
-                            >
-                              <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
-                                <ClipboardList className="w-5 h-5" />
-                              </div>
-                              <h3 className="font-bold text-slate-900 text-sm group-hover:text-[#e8622a] transition-colors">
-                                Organizer Tasks
-                              </h3>
-                              <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-                                Track assigned tasks, execution status, priorities, and deadlines.
-                              </p>
-                            </Link>
-                          )}
-
-                          {canAccessGroups && (
-                            <Link
-                              to="/admin-control-site/groups"
-                              className="p-5 rounded-2xl bg-white border border-slate-200/80 hover:border-orange-300 hover:shadow-md transition-all group"
-                            >
-                              <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
-                                <FolderTree className="w-5 h-5" />
-                              </div>
-                              <h3 className="font-bold text-slate-900 text-sm group-hover:text-[#e8622a] transition-colors">
-                                Group Permissions Catalog
-                              </h3>
-                              <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-                                Live groups and categories directly from <code className="text-[11px] font-mono text-slate-700">/api/v1/users/groups/list_groups/</code>.
-                              </p>
-                            </Link>
-                          )}
-
-                          {canAccessTeams && (
-                            <Link
-                              to="/admin-control-site/hackathons?tab=teams"
-                              className="p-5 rounded-2xl bg-white border border-slate-200/80 hover:border-orange-300 hover:shadow-md transition-all group"
-                            >
-                              <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
-                                <Users className="w-5 h-5" />
-                              </div>
-                              <h3 className="font-bold text-slate-900 text-sm group-hover:text-[#e8622a] transition-colors">
-                                Team Submissions & Tracks
-                              </h3>
-                              <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-                                Review participating teams, assigned projects, and GitHub repository links.
-                              </p>
-                            </Link>
-                          )}
-
-                          {canAccessSystemConfig && (
-                            <Link
-                              to="/admin-control-site/system-config"
-                              className="p-5 rounded-2xl bg-white border border-slate-200/80 hover:border-orange-300 hover:shadow-md transition-all group"
-                            >
-                              <div className="w-10 h-10 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
-                                <Settings className="w-5 h-5" />
-                              </div>
-                              <h3 className="font-bold text-slate-900 text-sm group-hover:text-[#e8622a] transition-colors">
-                                System Configuration & Auth
-                              </h3>
-                              <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-                                Inspect active Bearer token and gateway API endpoints.
-                              </p>
-                            </Link>
-                          )}
-                        </div>
-                      </div>
-                    }
+                    element={<Navigate to="/admin-control-site/hackathons" replace />}
                   />
                 </Routes>
               </Suspense>

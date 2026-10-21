@@ -30,7 +30,8 @@ import {
   UserCheck,
   Mail,
   Shield,
-  Hash
+  Hash,
+  Building2
 } from 'lucide-react';
 import TeamManagement from './TeamManagement';
 import PrizeManagement from './PrizeManagement';
