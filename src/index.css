@@ -165,3 +165,10 @@ main.modal-open-scroll-lock {
   animation-play-state: paused;
 }
 
+
+/* Hackathon landing: logo-derived brand theme (scoped so admin keeps its orange accent) */
+.theme-brand .btn-primary { background-color: #ef7a22; color: #ffffff; box-shadow: 0 1px 2px 0 rgba(239, 122, 34, 0.3); }
+.theme-brand .btn-primary:hover { background-color: #f58a3a; box-shadow: 0 4px 10px 0 rgba(239, 122, 34, 0.35); }
+.theme-brand .btn-primary:active { background-color: #d9680f; }
+.theme-brand .bic-input:focus { border-color: #1975b8; box-shadow: 0 0 0 3px rgba(25, 117, 184, 0.15); }
+.theme-brand .bic-section-label { color: #1975b8; }

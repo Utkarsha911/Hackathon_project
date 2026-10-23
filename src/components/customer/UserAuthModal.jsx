@@ -38,7 +38,7 @@ export default function UserAuthModal({ isOpen, onClose, onOpenRegister, onAuthS
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-fade-in">
       <div className="w-full max-w-sm rounded-2xl relative bg-white border border-slate-200/90 shadow-2xl overflow-hidden">
         {/* Subtle top accent bar */}
-        <div className="h-1.5 w-full bg-[#e8622a]" />
+        <div className="h-1.5 w-full bg-brand-orange" />
 
         {/* Close Button */}
         <button
@@ -52,7 +52,7 @@ export default function UserAuthModal({ isOpen, onClose, onOpenRegister, onAuthS
           {currentUser ? (
             /* Logged in state card */
             <div className="text-center space-y-4">
-              <div className="w-14 h-14 rounded-full bg-coral-50 text-[#e8622a] border border-coral-200 flex items-center justify-center text-xl font-bold mx-auto shadow-xs">
+              <div className="w-14 h-14 rounded-full bg-brand-tint text-brand-blue border border-brand-blue/30 flex items-center justify-center text-xl font-bold mx-auto shadow-xs">
                 {currentUser?.first_name?.[0] || currentUser?.email?.[0] || 'U'}
               </div>
 
@@ -61,7 +61,7 @@ export default function UserAuthModal({ isOpen, onClose, onOpenRegister, onAuthS
                   <UserCheck className="w-3 h-3 text-emerald-600" />
                   <span>Authenticated Session</span>
                 </div>
-                <h3 className="text-lg font-bold text-slate-900">
+                <h3 className="text-lg font-bold text-ink">
                   {currentUser.first_name ? `${currentUser.first_name} ${currentUser.last_name || ''}`.trim() : currentUser.email}
                 </h3>
                 <p className="text-xs text-slate-500 font-mono mt-0.5">{currentUser.email}</p>
@@ -97,7 +97,7 @@ export default function UserAuthModal({ isOpen, onClose, onOpenRegister, onAuthS
             /* Not logged in: Clean Google Sign-in dialog */
             <div className="space-y-4">
               <div className="text-center pt-1">
-                <h3 className="text-xl font-extrabold text-slate-900 tracking-tight">
+                <h3 className="text-xl font-extrabold text-ink tracking-tight">
                   Register Your Squad
                 </h3>
               </div>

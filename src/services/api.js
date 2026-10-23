@@ -317,19 +317,22 @@ export function clearRefreshToken(scope) {
 }
 
 export function adminLogout() {
+  const hadSession = Boolean(getAdminAuthToken() || getAdminRefreshToken() || getAdminUser());
   clearAdminAuthToken();
   clearAdminRefreshToken();
   clearAdminUser();
-  if (typeof window !== 'undefined') {
+  if (hadSession && typeof window !== 'undefined') {
     window.dispatchEvent(new CustomEvent('bic_admin_logout'));
   }
 }
 
 export function customerLogout() {
+  // A visitor who never logged in has nothing to log out of: no event, no "logged out" toast.
+  const hadSession = Boolean(getCustomerAuthToken() || getCustomerRefreshToken() || getCurrentUser());
   clearCustomerAuthToken();
   clearCustomerRefreshToken();
   clearCurrentUser();
-  if (typeof window !== 'undefined') {
+  if (hadSession && typeof window !== 'undefined') {
     window.dispatchEvent(new CustomEvent('bic_customer_logout'));
     window.dispatchEvent(new CustomEvent('bic_auth_logout'));
   }
@@ -1253,14 +1256,14 @@ export const api = {
 
   // --- Schedules & Schedule Events APIs ---
   schedules: {
-    getAll: () => request('/schedules/'),
+    getAll: () => request('/hackathons/schedules/'),
     create: (data) =>
-      request('/schedules/', {
+      request('/hackathons/schedules/', {
         method: 'POST',
         body: JSON.stringify(data),
       }),
     createEvent: (scheduleId, eventData) =>
-      request(`/schedules/${scheduleId}/events`, {
+      request(`/hackathons/schedules/${scheduleId}/events`, {
         method: 'POST',
         body: JSON.stringify(eventData),
       }),

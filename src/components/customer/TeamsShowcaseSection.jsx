@@ -6,13 +6,13 @@ export default function TeamsShowcaseSection() {
   const { teams } = useHackathon();
 
   return (
-    <section id="squads" className="py-20 bg-[#fafafa] border-b border-gray-200/80">
+    <section id="squads" className="py-20 bg-brand-tint border-b border-gray-200/80">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
 
         {/* Section Heading */}
         <div className="max-w-2xl mb-12">
           <div className="bic-section-label mb-2">Participants Directory</div>
-          <h2 className="text-2xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
+          <h2 className="text-2xl sm:text-4xl font-extrabold text-ink tracking-tight">
             Accepted Squads & Projects
           </h2>
           <p className="mt-3 text-slate-600 text-sm leading-relaxed">
@@ -51,7 +51,7 @@ export default function TeamsShowcaseSection() {
                       </span>
                     </div>
 
-                    <h3 className="text-base font-bold text-slate-900">{team.name}</h3>
+                    <h3 className="text-base font-bold text-ink">{team.name}</h3>
 
                     <div className="flex items-center gap-1.5 text-xs text-slate-500 mt-1">
                       <Building2 className="w-3.5 h-3.5 text-slate-400 shrink-0" />
@@ -63,7 +63,7 @@ export default function TeamsShowcaseSection() {
                         <span className="text-slate-400 text-[10px] uppercase font-mono block">Working Prototype</span>
                         <strong className="text-slate-800 mt-0.5 block font-semibold">{team.project_title}</strong>
                         {team.track && (
-                          <span className="text-[11px] text-coral-600 mt-1 block font-mono font-medium">
+                          <span className="text-[11px] text-brand-blue mt-1 block font-mono font-medium">
                             {team.track}
                           </span>
                         )}
@@ -77,7 +77,7 @@ export default function TeamsShowcaseSection() {
                         href={team.github_repo_link}
                         target="_blank"
                         rel="noreferrer"
-                        className="inline-flex items-center gap-1 text-slate-600 hover:text-coral-600 transition-colors font-mono"
+                        className="inline-flex items-center gap-1 text-slate-600 hover:text-brand-blue transition-colors font-mono"
                       >
                         <Code2 className="w-3.5 h-3.5" />
                         <span>Repository</span>

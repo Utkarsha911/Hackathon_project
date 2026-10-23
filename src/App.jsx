@@ -4,6 +4,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 // Lazy loaded page components
 const CustomerPortal = lazy(() => import('./components/customer/CustomerPortal'));
 const CustomerProfilePage = lazy(() => import('./components/customer/CustomerProfilePage'));
+const RegisterTeamPage = lazy(() => import('./components/customer/RegisterTeamPage'));
 const AdminLayout = lazy(() => import('./components/admin/AdminLayout'));
 
 function LoadingFallback() {
@@ -25,6 +26,9 @@ export default function App() {
       <Routes>
         {/* Customer-Facing Public Website on / */}
         <Route path="/" element={<CustomerPortal />} />
+
+        {/* Team registration (full page) */}
+        <Route path="/register" element={<RegisterTeamPage />} />
 
         {/* Customer Profile & Teams Page */}
         <Route path="/profile" element={<CustomerProfilePage />} />

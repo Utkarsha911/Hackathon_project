@@ -205,24 +205,24 @@ export default function AdminLogin({ onLoginSuccess }) {
 
   return (
     <div
-      className="min-h-screen flex flex-col justify-center items-center px-4 py-12 relative overflow-hidden"
-      style={{ backgroundColor: '#f8fafc' }}
+      className="theme-brand min-h-screen flex flex-col justify-center items-center px-4 py-12 relative overflow-hidden"
+      style={{ backgroundColor: '#f3f5fb' }}
     >
       {/* Background Decorative Gradient Blobs */}
       <div
         className="absolute -top-40 -right-40 w-96 h-96 rounded-full blur-3xl opacity-30 pointer-events-none"
-        style={{ background: 'radial-gradient(circle, #e8622a 0%, #ff8c42 100%)' }}
+        style={{ background: 'radial-gradient(circle, #ef7a22 0%, #f7bd0b 100%)' }}
       />
       <div
         className="absolute -bottom-40 -left-40 w-96 h-96 rounded-full blur-3xl opacity-20 pointer-events-none"
-        style={{ background: 'radial-gradient(circle, #3b82f6 0%, #93c5fd 100%)' }}
+        style={{ background: 'radial-gradient(circle, #1975b8 0%, #2c388b 100%)' }}
       />
 
       {/* Return to Public Site Button */}
       <div className="w-full max-w-md flex justify-start mb-4 sm:absolute sm:top-6 sm:left-6 sm:mb-0 z-20">
         <Link
           to="/"
-          className="inline-flex items-center gap-2 text-xs font-semibold px-3.5 py-2 rounded-xl border border-slate-200 bg-white/95 backdrop-blur-md text-slate-700 hover:text-slate-900 hover:bg-white transition-all shadow-xs"
+          className="inline-flex items-center gap-2 text-xs font-semibold px-3.5 py-2 rounded-xl border border-slate-200 bg-white/95 backdrop-blur-md text-slate-700 hover:text-ink hover:bg-white transition-all shadow-xs"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
           <span>Return to Public Site</span>
@@ -236,12 +236,12 @@ export default function AdminLogin({ onLoginSuccess }) {
           <div className="flex justify-center mb-4">
             <HackathonBrand
               imageClassName="h-10 w-auto max-w-[180px] object-contain"
-              textClassName="text-base font-extrabold text-slate-900"
+              textClassName="text-base font-extrabold text-ink"
               iconSizeClass="w-9 h-9 text-sm"
               showSubText={false}
             />
           </div>
-          <h2 className="text-2xl font-bold text-slate-900 tracking-tight">
+          <h2 className="text-2xl font-bold text-ink tracking-tight">
             Sign in to Hackathon Admin
           </h2>
         </div>
@@ -260,7 +260,7 @@ export default function AdminLogin({ onLoginSuccess }) {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="admin@example.com"
-                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-300 text-slate-900 text-sm focus:outline-none focus:border-[#e8622a] focus:ring-2 focus:ring-[#e8622a]/20 transition bg-white"
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-300 text-ink text-sm focus:outline-none focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/20 transition bg-white"
               />
             </div>
           </div>
@@ -277,7 +277,7 @@ export default function AdminLogin({ onLoginSuccess }) {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-slate-300 text-slate-900 text-sm focus:outline-none focus:border-[#e8622a] focus:ring-2 focus:ring-[#e8622a]/20 transition bg-white"
+                className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-slate-300 text-ink text-sm focus:outline-none focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/20 transition bg-white"
               />
               <button
                 type="button"
@@ -294,8 +294,8 @@ export default function AdminLogin({ onLoginSuccess }) {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-2.5 px-4 rounded-xl text-white font-semibold text-sm shadow-md shadow-orange-500/20 hover:shadow-orange-500/30 active:scale-[0.99] transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
-              style={{ backgroundColor: '#e8622a' }}
+              className="w-full py-2.5 px-4 rounded-xl text-white font-semibold text-sm shadow-md shadow-brand-orange/20 hover:shadow-brand-orange/30 active:scale-[0.99] transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+              style={{ backgroundColor: '#ef7a22' }}
             >
               {loading ? (
                 <>
@@ -318,9 +318,9 @@ export default function AdminLogin({ onLoginSuccess }) {
             <button
               type="button"
               onClick={handleOfflineDemoLogin}
-              className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-[#e8622a] transition"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-brand-blue transition"
             >
-              <Shield className="w-3.5 h-3.5 text-[#e8622a]" />
+              <Shield className="w-3.5 h-3.5 text-brand-blue" />
               <span>Backend server offline? Enter via Demo Mode</span>
             </button>
           </div>

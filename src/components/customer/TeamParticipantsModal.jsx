@@ -254,14 +254,14 @@ export default function TeamParticipantsModal({ isOpen, onClose, team, currentUs
         {/* Header */}
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <span className="text-[10px] font-mono uppercase px-2.5 py-0.5 rounded-full bg-orange-50 text-[#ea580c] font-bold border border-orange-200/80">
+            <span className="text-[10px] font-mono uppercase px-2.5 py-0.5 rounded-full bg-brand-tint text-brand-blue font-bold border border-brand-blue/30/80">
               Team Roster
             </span>
             <span className="text-xs text-slate-400 font-mono">
               Squad: <strong className="text-slate-700">{team.name}</strong>
             </span>
           </div>
-          <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">
+          <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-ink">
             {isLocked ? 'Squad Participants Roster' : 'Manage Squad Participants'}
           </h2>
           <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
@@ -310,7 +310,7 @@ export default function TeamParticipantsModal({ isOpen, onClose, team, currentUs
                   onClick={() => setActiveTab(idx)}
                   className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition cursor-pointer ${
                     isActive
-                      ? 'bg-[#ea580c] text-white shadow-xs'
+                      ? 'bg-brand-orange text-white shadow-xs'
                       : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                   }`}
                 >
@@ -327,7 +327,7 @@ export default function TeamParticipantsModal({ isOpen, onClose, team, currentUs
               <button
                 type="button"
                 onClick={handleAddParticipant}
-                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold text-[#ea580c] bg-orange-50 hover:bg-orange-100 border border-dashed border-orange-200 transition cursor-pointer"
+                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold text-brand-blue bg-brand-tint hover:bg-brand-tint border border-dashed border-brand-blue/30 transition cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>Add Member ({participants.length}/{maxMembers})</span>
@@ -340,12 +340,12 @@ export default function TeamParticipantsModal({ isOpen, onClose, team, currentUs
             <div className="mt-5 space-y-4">
               <div className="flex items-center justify-between bg-slate-50 p-3 rounded-2xl border border-slate-200/80">
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-xl bg-orange-100 text-[#ea580c] flex items-center justify-center font-bold text-xs">
+                  <div className="w-8 h-8 rounded-xl bg-brand-tint text-brand-blue flex items-center justify-center font-bold text-xs">
                     {activeTab + 1}
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold text-slate-900">
+                      <span className="text-xs font-bold text-ink">
                         {activeTab === 0 ? 'Team Leader / Primary Contact' : `Squad Member ${activeTab + 1}`}
                       </span>
                       {activeTab === 0 && (
@@ -388,8 +388,8 @@ export default function TeamParticipantsModal({ isOpen, onClose, team, currentUs
                     placeholder="e.g. Alex Morgan"
                     value={currentParticipant.name}
                     onChange={(e) => handleFieldChange(activeTab, 'name', e.target.value)}
-                    className={`w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm placeholder-slate-400 focus:outline-none focus:border-[#ea580c] focus:ring-1 focus:ring-[#ea580c]/20 ${
-                      isLocked ? 'bg-slate-100 text-slate-600 cursor-not-allowed' : 'bg-white text-slate-900'
+                    className={`w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm placeholder-slate-400 focus:outline-none focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20 ${
+                      isLocked ? 'bg-slate-100 text-slate-600 cursor-not-allowed' : 'bg-white text-ink'
                     }`}
                   />
                 </div>
@@ -406,8 +406,8 @@ export default function TeamParticipantsModal({ isOpen, onClose, team, currentUs
                     placeholder="alex@example.com"
                     value={currentParticipant.email}
                     onChange={(e) => handleFieldChange(activeTab, 'email', e.target.value)}
-                    className={`w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm placeholder-slate-400 focus:outline-none focus:border-[#ea580c] focus:ring-1 focus:ring-[#ea580c]/20 ${
-                      isLocked ? 'bg-slate-100 text-slate-600 cursor-not-allowed' : 'bg-white text-slate-900'
+                    className={`w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm placeholder-slate-400 focus:outline-none focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20 ${
+                      isLocked ? 'bg-slate-100 text-slate-600 cursor-not-allowed' : 'bg-white text-ink'
                     }`}
                   />
                 </div>
@@ -423,8 +423,8 @@ export default function TeamParticipantsModal({ isOpen, onClose, team, currentUs
                     placeholder="+977 9800000000"
                     value={currentParticipant.phone_number || ''}
                     onChange={(e) => handleFieldChange(activeTab, 'phone_number', e.target.value)}
-                    className={`w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm placeholder-slate-400 focus:outline-none focus:border-[#ea580c] focus:ring-1 focus:ring-[#ea580c]/20 ${
-                      isLocked ? 'bg-slate-100 text-slate-600 cursor-not-allowed' : 'bg-white text-slate-900'
+                    className={`w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm placeholder-slate-400 focus:outline-none focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20 ${
+                      isLocked ? 'bg-slate-100 text-slate-600 cursor-not-allowed' : 'bg-white text-ink'
                     }`}
                   />
                 </div>
@@ -440,8 +440,8 @@ export default function TeamParticipantsModal({ isOpen, onClose, team, currentUs
                     placeholder="e.g. 6th Semester / Bachelor Year 3"
                     value={currentParticipant.current_grade || ''}
                     onChange={(e) => handleFieldChange(activeTab, 'current_grade', e.target.value)}
-                    className={`w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm placeholder-slate-400 focus:outline-none focus:border-[#ea580c] focus:ring-1 focus:ring-[#ea580c]/20 ${
-                      isLocked ? 'bg-slate-100 text-slate-600 cursor-not-allowed' : 'bg-white text-slate-900'
+                    className={`w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm placeholder-slate-400 focus:outline-none focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20 ${
+                      isLocked ? 'bg-slate-100 text-slate-600 cursor-not-allowed' : 'bg-white text-ink'
                     }`}
                   />
                 </div>
@@ -455,7 +455,7 @@ export default function TeamParticipantsModal({ isOpen, onClose, team, currentUs
                     disabled={isLocked}
                     value={currentParticipant.shirt_size || 'M'}
                     onChange={(e) => handleFieldChange(activeTab, 'shirt_size', e.target.value)}
-                    className={`w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm focus:outline-none focus:border-[#ea580c] ${
+                    className={`w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm focus:outline-none focus:border-brand-blue ${
                       isLocked ? 'bg-slate-100 text-slate-600 cursor-not-allowed' : 'bg-white text-slate-800'
                     }`}
                   >
@@ -476,7 +476,7 @@ export default function TeamParticipantsModal({ isOpen, onClose, team, currentUs
                     disabled={isLocked}
                     value={currentParticipant.food_preference || 'non_vegetarian'}
                     onChange={(e) => handleFieldChange(activeTab, 'food_preference', e.target.value)}
-                    className={`w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm focus:outline-none focus:border-[#ea580c] ${
+                    className={`w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm focus:outline-none focus:border-brand-blue ${
                       isLocked ? 'bg-slate-100 text-slate-600 cursor-not-allowed' : 'bg-white text-slate-800'
                     }`}
                   >
@@ -499,8 +499,8 @@ export default function TeamParticipantsModal({ isOpen, onClose, team, currentUs
                     placeholder="Parent / Guardian (+977...)"
                     value={currentParticipant.emergency_contact || ''}
                     onChange={(e) => handleFieldChange(activeTab, 'emergency_contact', e.target.value)}
-                    className={`w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm placeholder-slate-400 focus:outline-none focus:border-[#ea580c] ${
-                      isLocked ? 'bg-slate-100 text-slate-600 cursor-not-allowed' : 'bg-white text-slate-900'
+                    className={`w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm placeholder-slate-400 focus:outline-none focus:border-brand-blue ${
+                      isLocked ? 'bg-slate-100 text-slate-600 cursor-not-allowed' : 'bg-white text-ink'
                     }`}
                   />
                 </div>
@@ -516,8 +516,8 @@ export default function TeamParticipantsModal({ isOpen, onClose, team, currentUs
                     placeholder="e.g. Peanut allergy, Asthma (None if N/A)"
                     value={currentParticipant.medical_conditions || ''}
                     onChange={(e) => handleFieldChange(activeTab, 'medical_conditions', e.target.value)}
-                    className={`w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm placeholder-slate-400 focus:outline-none focus:border-[#ea580c] ${
-                      isLocked ? 'bg-slate-100 text-slate-600 cursor-not-allowed' : 'bg-white text-slate-900'
+                    className={`w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm placeholder-slate-400 focus:outline-none focus:border-brand-blue ${
+                      isLocked ? 'bg-slate-100 text-slate-600 cursor-not-allowed' : 'bg-white text-ink'
                     }`}
                   />
                 </div>
@@ -533,8 +533,8 @@ export default function TeamParticipantsModal({ isOpen, onClose, team, currentUs
                     placeholder="https://github.com/username"
                     value={currentParticipant.github_profile || ''}
                     onChange={(e) => handleFieldChange(activeTab, 'github_profile', e.target.value)}
-                    className={`w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm placeholder-slate-400 focus:outline-none focus:border-[#ea580c] ${
-                      isLocked ? 'bg-slate-100 text-slate-600 cursor-not-allowed' : 'bg-white text-slate-900'
+                    className={`w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm placeholder-slate-400 focus:outline-none focus:border-brand-blue ${
+                      isLocked ? 'bg-slate-100 text-slate-600 cursor-not-allowed' : 'bg-white text-ink'
                     }`}
                   />
                 </div>
@@ -550,8 +550,8 @@ export default function TeamParticipantsModal({ isOpen, onClose, team, currentUs
                     placeholder="https://linkedin.com/in/username"
                     value={currentParticipant.linkedin_profile || ''}
                     onChange={(e) => handleFieldChange(activeTab, 'linkedin_profile', e.target.value)}
-                    className={`w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm placeholder-slate-400 focus:outline-none focus:border-[#ea580c] ${
-                      isLocked ? 'bg-slate-100 text-slate-600 cursor-not-allowed' : 'bg-white text-slate-900'
+                    className={`w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm placeholder-slate-400 focus:outline-none focus:border-brand-blue ${
+                      isLocked ? 'bg-slate-100 text-slate-600 cursor-not-allowed' : 'bg-white text-ink'
                     }`}
                   />
                 </div>
@@ -567,8 +567,8 @@ export default function TeamParticipantsModal({ isOpen, onClose, team, currentUs
                     placeholder="https://myportfolio.dev"
                     value={currentParticipant.portfolio_website || ''}
                     onChange={(e) => handleFieldChange(activeTab, 'portfolio_website', e.target.value)}
-                    className={`w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm placeholder-slate-400 focus:outline-none focus:border-[#ea580c] ${
-                      isLocked ? 'bg-slate-100 text-slate-600 cursor-not-allowed' : 'bg-white text-slate-900'
+                    className={`w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm placeholder-slate-400 focus:outline-none focus:border-brand-blue ${
+                      isLocked ? 'bg-slate-100 text-slate-600 cursor-not-allowed' : 'bg-white text-ink'
                     }`}
                   />
                 </div>
@@ -606,7 +606,7 @@ export default function TeamParticipantsModal({ isOpen, onClose, team, currentUs
                   type="button"
                   onClick={handleSubmit}
                   disabled={isSubmitting}
-                  className="w-full sm:w-auto px-5 py-2 rounded-xl text-xs font-semibold text-white bg-[#ea580c] hover:bg-orange-600 shadow-md shadow-orange-500/20 active:scale-[0.99] transition disabled:opacity-60 flex items-center justify-center gap-1.5 cursor-pointer"
+                  className="w-full sm:w-auto px-5 py-2 rounded-xl text-xs font-semibold text-white bg-brand-orange hover:bg-brand-orange shadow-md shadow-brand-orange/20 active:scale-[0.99] transition disabled:opacity-60 flex items-center justify-center gap-1.5 cursor-pointer"
                 >
                   {isSubmitting ? (
                     <>

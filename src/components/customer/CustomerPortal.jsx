@@ -2,14 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import CustomerNavbar from './CustomerNavbar';
 import HeroSection from './HeroSection';
-import PrizesSection from './PrizesSection';
+import AboutSection from './AboutSection';
+import ChallengesSection from './ChallengesSection';
+import HighlightsSection from './HighlightsSection';
 import ScheduleSection from './ScheduleSection';
 import RulesSection from './RulesSection';
 import SponsorsSection from './SponsorsSection';
-import OrganizersSection from './OrganizersSection';
 import FaqSection from './FaqSection';
 import ContactSection from './ContactSection';
-import RegistrationModal from './RegistrationModal';
 import CustomerProfileModal from './CustomerProfileModal';
 import UserAuthModal from './UserAuthModal';
 import Footer from '../common/Footer';
@@ -21,8 +21,7 @@ import { FileText, Shield, X } from 'lucide-react';
 export default function CustomerPortal() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { terms, currentUser } = useHackathon();
-  const [isRegisterOpen, setIsRegisterOpen] = useState(false);
+  const { terms } = useHackathon();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [authReason, setAuthReason] = useState('login'); // 'login' | 'register'
@@ -95,14 +94,8 @@ export default function CustomerPortal() {
   useBodyScrollLock(showTermsModal);
 
   // When clicking register team or register squad, first require Google login if not already logged in
-  const handleOpenRegister = () => {
-    if (!currentUser) {
-      setAuthReason('register');
-      setIsAuthOpen(true);
-    } else {
-      setIsRegisterOpen(true);
-    }
-  };
+  // Registering is a full page (it asks for the Google login itself)
+  const handleOpenRegister = () => navigate('/register');
 
   const handleOpenLogin = () => {
     setAuthReason('login');
@@ -110,7 +103,7 @@ export default function CustomerPortal() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#fafafa] text-slate-900">
+    <div className="theme-brand min-h-screen flex flex-col bg-white text-slate-900">
 
       {/* Navbar */}
       <CustomerNavbar
@@ -122,11 +115,12 @@ export default function CustomerPortal() {
       {/* Page Sections */}
       <main className="flex-grow">
         <HeroSection onOpenRegister={handleOpenRegister} />
-        <PrizesSection />
+        <AboutSection />
+        <ChallengesSection />
         <ScheduleSection />
+        <HighlightsSection />
         <RulesSection />
         <SponsorsSection />
-        <OrganizersSection />
         <FaqSection />
         <ContactSection />
 
@@ -134,10 +128,10 @@ export default function CustomerPortal() {
         <div className="py-5 border-t border-slate-200 bg-slate-50 text-center">
           <button
             onClick={() => setShowTermsModal(true)}
-            className="inline-flex items-center gap-2 text-xs font-mono text-slate-600 hover:text-coral-600 transition-colors"
+            className="inline-flex items-center gap-2 text-xs font-mono text-slate-600 hover:text-brand-blue transition-colors"
           >
             <FileText className="w-3.5 h-3.5 text-slate-500" />
-            <span>Official Participation Terms & Code of Conduct</span>
+            <span>Participation terms & code of conduct</span>
           </button>
         </div>
       </main>
@@ -145,19 +139,13 @@ export default function CustomerPortal() {
       {/* Footer */}
       <Footer />
 
-      {/* Registration Modal */}
-      <RegistrationModal
-        isOpen={isRegisterOpen}
-        onClose={() => setIsRegisterOpen(false)}
-      />
-
       {/* Customer User Profile & Registered Teams Modal */}
       <CustomerProfileModal
         isOpen={isProfileOpen}
         onClose={() => setIsProfileOpen(false)}
         onOpenRegister={() => {
           setIsProfileOpen(false);
-          setIsRegisterOpen(true);
+          navigate('/register');
         }}
       />
 
@@ -169,16 +157,14 @@ export default function CustomerPortal() {
         onAuthSuccess={() => {
           setIsAuthOpen(false);
           if (authReason === 'register') {
-            setTimeout(() => {
-              setIsRegisterOpen(true);
-            }, 300);
+            navigate('/register');
           } else {
             navigate('/profile');
           }
         }}
         onOpenRegister={() => {
           setIsAuthOpen(false);
-          setIsRegisterOpen(true);
+          navigate('/register');
         }}
       />
 
@@ -194,15 +180,12 @@ export default function CustomerPortal() {
             </button>
 
             <h3 className="text-base font-bold text-slate-900 mb-4 flex items-center gap-2">
-              <Shield className="w-4 h-4 text-coral-600" />
+              <Shield className="w-4 h-4 text-brand-blue" />
               <span>Official Terms & Code of Conduct</span>
             </h3>
 
             <div className="text-xs text-slate-600 leading-relaxed max-h-72 overflow-y-auto space-y-3 pr-2">
               <p>{terms[0]?.content}</p>
-              <div className="mt-4 pt-4 text-[11px] font-mono text-slate-400 border-t border-slate-200">
-                Model: TermsAndConditions (crm.py)
-              </div>
             </div>
 
             <div className="mt-5 flex justify-end">

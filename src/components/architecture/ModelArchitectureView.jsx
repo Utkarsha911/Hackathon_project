@@ -238,7 +238,7 @@ export default function ModelArchitectureView() {
         │   ├── TeamsShowcaseSection.jsx # Public verified teams
         │   ├── FaqSection.jsx           # Collapsible FAQ accordion
         │   ├── ContactSection.jsx       # Contact form submitting to ContactUs model
-        │   └── RegistrationModal.jsx    # Team registration modal
+        │   └── RegisterTeamPage.jsx     # Team registration page (/register)
         │
         └── admin/                       # ADMIN PANEL (PRIVATE OPERATIONS)
             ├── AdminLayout.jsx          # Admin shell & sidebar navigation

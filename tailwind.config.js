@@ -22,6 +22,19 @@ export default {
           100: '#d5e2f8',
           50:  '#edf3fc',
         },
+        ink: '#2c388b',
+        // Brand palette sampled from the logo
+        brand: {
+          navy: '#2c388b',
+          blue: '#1975b8',
+          orange: '#ef7a22',
+          coral: '#f06739',
+          red: '#e31e25',
+          gold: '#f29619',
+          yellow: '#f7bd0b',
+          dark: '#141a45',
+          tint: '#f3f5fb',
+        },
         coral: {
           700: '#b84a1a',
           600: '#d4541d',

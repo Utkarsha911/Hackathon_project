@@ -122,11 +122,11 @@ export default function CustomerProfileModal({ isOpen, onClose, onOpenRegister }
                 showSubText={false}
                 iconSizeClass="w-6 h-6 text-[10px]"
               />
-              <span className="text-xs font-mono font-bold uppercase tracking-widest text-[#ea580c]">
+              <span className="text-xs font-mono font-bold uppercase tracking-widest text-brand-blue">
                 User Profile
               </span>
             </div>
-            <h3 className="text-2xl sm:text-3xl font-extrabold text-slate-900">
+            <h3 className="text-2xl sm:text-3xl font-extrabold text-ink">
               Account & Hackathon Registrations
             </h3>
             <p className="text-xs sm:text-sm text-slate-500 mt-1">
@@ -147,7 +147,7 @@ export default function CustomerProfileModal({ isOpen, onClose, onOpenRegister }
                   className="w-14 h-14 rounded-2xl object-cover border-2 border-white shadow-sm bg-slate-50"
                 />
                 <div>
-                  <h4 className="text-base sm:text-lg font-bold text-slate-900 leading-tight">
+                  <h4 className="text-base sm:text-lg font-bold text-ink leading-tight">
                     {fullName}
                   </h4>
                   <p className="text-xs font-mono text-slate-500 mt-0.5">{currentUser.email}</p>
@@ -214,8 +214,8 @@ export default function CustomerProfileModal({ isOpen, onClose, onOpenRegister }
           <div className="space-y-3.5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Award className="w-4 h-4 text-[#ea580c]" />
-                <h4 className="text-sm font-bold text-slate-900 uppercase tracking-wider">
+                <Award className="w-4 h-4 text-brand-blue" />
+                <h4 className="text-sm font-bold text-ink uppercase tracking-wider">
                   Registered Hackathons & Teams
                 </h4>
               </div>
@@ -226,7 +226,7 @@ export default function CustomerProfileModal({ isOpen, onClose, onOpenRegister }
 
             {isLoadingTeams ? (
               <div className="p-8 rounded-2xl bg-slate-50 border border-slate-200/80 text-center flex flex-col items-center justify-center gap-2">
-                <Loader2 className="w-6 h-6 text-[#ea580c] animate-spin" />
+                <Loader2 className="w-6 h-6 text-brand-blue animate-spin" />
                 <p className="text-xs text-slate-500 font-medium">
                   Loading registered hackathons and teams...
                 </p>
@@ -237,7 +237,7 @@ export default function CustomerProfileModal({ isOpen, onClose, onOpenRegister }
               </div>
             ) : registeredTeams.length === 0 ? (
               <div className="p-8 rounded-2xl bg-slate-50 border border-dashed border-slate-200 text-center space-y-3">
-                <div className="w-12 h-12 rounded-2xl bg-orange-50 text-[#ea580c] flex items-center justify-center mx-auto">
+                <div className="w-12 h-12 rounded-2xl bg-brand-tint text-brand-blue flex items-center justify-center mx-auto">
                   <Users className="w-6 h-6" />
                 </div>
                 <div>
@@ -249,7 +249,7 @@ export default function CustomerProfileModal({ isOpen, onClose, onOpenRegister }
                 <button
                   type="button"
                   onClick={handleRegisterNewTeam}
-                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-[#ea580c] hover:bg-[#c2410c] px-4 py-2 rounded-xl shadow-xs transition"
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-brand-orange hover:brightness-110 px-4 py-2 rounded-xl shadow-xs transition"
                 >
                   <UserPlus className="w-3.5 h-3.5" />
                   <span>Register Squad Now</span>
@@ -266,20 +266,20 @@ export default function CustomerProfileModal({ isOpen, onClose, onOpenRegister }
                   return (
                     <div
                       key={team.id}
-                      className="p-5 rounded-2xl bg-white border border-slate-200 shadow-xs hover:border-orange-300 transition"
+                      className="p-5 rounded-2xl bg-white border border-slate-200 shadow-xs hover:border-brand-blue/30 transition"
                     >
                       {/* Top Header of Team Card */}
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-100">
                         <div>
                           <div className="flex items-center gap-2">
-                            <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-orange-50 text-[#ea580c] font-bold border border-orange-100">
+                            <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-brand-tint text-brand-blue font-bold border border-brand-blue/30">
                               {hackathon?.title || 'BIC Hackathon'}
                             </span>
                             <span className="text-[10px] font-mono text-slate-400">
                               ID: {String(team.id).slice(0, 8)}...
                             </span>
                           </div>
-                          <h5 className="text-base font-bold text-slate-900 mt-1">
+                          <h5 className="text-base font-bold text-ink mt-1">
                             {team.name}
                           </h5>
                         </div>
@@ -371,7 +371,7 @@ export default function CustomerProfileModal({ isOpen, onClose, onOpenRegister }
                                 href={team.college_website}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1 text-[#ea580c] hover:underline font-mono text-[11px]"
+                                className="inline-flex items-center gap-1 text-brand-blue hover:underline font-mono text-[11px]"
                               >
                                 <Globe className="w-3 h-3" />
                                 <span>Website</span>
@@ -383,7 +383,7 @@ export default function CustomerProfileModal({ isOpen, onClose, onOpenRegister }
                                 href={team.github_repo}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1 text-slate-600 hover:text-slate-900 font-mono text-[11px]"
+                                className="inline-flex items-center gap-1 text-slate-600 hover:text-ink font-mono text-[11px]"
                               >
                                 <ExternalLink className="w-3 h-3" />
                                 <span>Repository</span>

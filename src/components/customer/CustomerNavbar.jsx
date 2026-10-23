@@ -1,9 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { ArrowUpRight, ChevronDown, User, LogOut, Menu, X, Shield, Award } from 'lucide-react';
+import { User, LogOut, Menu, X, Award } from 'lucide-react';
 import { useHackathon } from '../../context/HackathonContext';
 import { getMediaUrl, getUserAvatarUrl, DEFAULT_USER_AVATAR } from '../../services/api';
 import HackathonBrand from '../common/HackathonBrand';
+import Button from '../common/Button';
 
 export default function CustomerNavbar({ onOpenRegister, onOpenLogin, onOpenProfile }) {
   const location = useLocation();
@@ -54,6 +55,16 @@ export default function CustomerNavbar({ onOpenRegister, onOpenLogin, onOpenProf
 
   const userInitial = (currentUser?.first_name?.[0] || currentUser?.email?.[0] || 'U').toUpperCase();
 
+  const navLinks = [
+    { label: 'Home', hash: '#top' },
+    { label: 'About', hash: '#about' },
+    { label: 'Tracks', hash: '#tracks' },
+    ...(hasScheduleData ? [{ label: 'Schedule', hash: '#schedule' }] : []),
+    { label: 'Prizes', hash: '#prizes' },
+    { label: 'Organizers', hash: '#organizers' },
+    { label: 'FAQ', hash: '#faq' },
+  ];
+
   const handleMobileNavClick = () => {
     setMobileMenuOpen(false);
   };
@@ -76,311 +87,144 @@ export default function CustomerNavbar({ onOpenRegister, onOpenLogin, onOpenProf
     }
   };
 
+  const linkCls = 'px-3 py-1.5 text-[13px] font-medium text-slate-300 hover:text-white transition-colors';
+
   return (
-    <header className="sticky top-0 z-40 w-full transition-all duration-300">
-      {/* Main Navbar with dynamic frosted blur on scroll */}
-      <div
-        className={`w-full transition-all duration-300 ${scrolled
-          ? 'bg-white/45 backdrop-blur-3xl backdrop-saturate-150 border-b border-slate-200/60 shadow-md shadow-slate-900/[0.04]'
-          : 'bg-white/85 backdrop-blur-md border-b border-slate-200/40'
-          }`}
-        style={{
-          backdropFilter: scrolled ? 'blur(28px) saturate(180%)' : 'blur(10px)',
-          WebkitBackdropFilter: scrolled ? 'blur(28px) saturate(180%)' : 'blur(10px)'
-        }}
-      >
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+    <header className="sticky top-0 z-40 w-full bg-brand-dark/95 backdrop-blur border-b border-white/10">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
 
-          {/* Brand */}
-          <Link to="/" className="flex items-center gap-2.5 group">
-            <HackathonBrand
-              imageClassName="h-8 sm:h-9 w-auto max-w-[150px] object-contain transition-transform group-hover:scale-102"
-              textClassName="text-sm font-extrabold text-slate-900 group-hover:text-[#ea580c] transition-colors"
-              showSubText={true}
-            />
-          </Link>
+        <Link to="/" className="flex items-center gap-2.5">
+          <HackathonBrand
+            imageClassName="h-8 sm:h-9 w-auto max-w-[170px] object-contain"
+            iconSizeClass="w-10 h-10"
+            textClassName="text-sm font-extrabold text-white"
+            subTextClassName="text-[10px] font-mono font-bold text-brand-yellow"
+            showSubText={true}
+          />
+        </Link>
 
-          {/* Desktop Nav Links */}
-          <nav className="hidden lg:flex items-center gap-1 text-[13px] font-medium text-slate-600">
-            <a
-              href="/#prizes"
-              onClick={(e) => handleSectionClick(e, '#prizes')}
-              className="px-3 py-1.5 rounded-lg hover:text-slate-900 hover:bg-slate-100/70 transition-colors"
-            >
-              Prizes
+        <nav className="hidden lg:flex items-center gap-1">
+          {navLinks.map((l) => (
+            <a key={l.label} href={`/${l.hash}`} onClick={(e) => handleSectionClick(e, l.hash)} className={linkCls}>
+              {l.label}
             </a>
-            {hasScheduleData && (
-              <a
-                href="/#schedule"
-                onClick={(e) => handleSectionClick(e, '#schedule')}
-                className="px-3 py-1.5 rounded-lg hover:text-slate-900 hover:bg-slate-100/70 transition-colors"
+          ))}
+        </nav>
+
+        <div className="flex items-center gap-2 sm:gap-2.5">
+          {currentUser ? (
+            <div className="relative" ref={dropdownRef}>
+              <button
+                type="button"
+                onClick={() => setUserDropdownOpen(!userDropdownOpen)}
+                className="flex items-center justify-center rounded-full p-0.5 border-2 border-white/30 hover:border-brand-orange transition cursor-pointer"
+                aria-label="User account and profile menu"
+                title={`${displayName} - View Profile`}
               >
-                Schedule
-              </a>
-            )}
-            <a
-              href="/#sponsors"
-              onClick={(e) => handleSectionClick(e, '#sponsors')}
-              className="px-3 py-1.5 rounded-lg hover:text-slate-900 hover:bg-slate-100/70 transition-colors"
-            >
-              Sponsors
-            </a>
-            <a
-              href="/#organizers"
-              onClick={(e) => handleSectionClick(e, '#organizers')}
-              className="px-3 py-1.5 rounded-lg hover:text-slate-900 hover:bg-slate-100/70 transition-colors"
-            >
-              Organizers
-            </a>
-            <a
-              href="/#contact"
-              onClick={(e) => handleSectionClick(e, '#contact')}
-              className="px-3 py-1.5 rounded-lg hover:text-slate-900 hover:bg-slate-100/70 transition-colors"
-            >
-              Contact
-            </a>
-            {currentUser && (
-              <Link
-                to="/profile"
-                className="px-3 py-1.5 rounded-lg text-[#ea580c] hover:bg-orange-50 font-semibold transition-colors flex items-center gap-1.5"
-              >
-                <User className="w-3.5 h-3.5" />
-                <span>Profile</span>
-              </Link>
-            )}
-          </nav>
+                <img
+                  src={getUserAvatarUrl(currentUser)}
+                  alt={displayName}
+                  onError={(e) => { e.currentTarget.src = DEFAULT_USER_AVATAR; }}
+                  className="w-8 h-8 sm:w-9 sm:h-9 rounded-full object-cover"
+                />
+              </button>
 
-          {/* CTA & User Authentication */}
-          <div className="flex items-center gap-2 sm:gap-2.5">
-            {currentUser ? (
-              /* Logged In User Rounded Circle Profile & Dropdown */
-              <div className="relative" ref={dropdownRef}>
-                <button
-                  type="button"
-                  onClick={() => setUserDropdownOpen(!userDropdownOpen)}
-                  className="relative flex items-center justify-center rounded-full p-0.5 border-2 border-orange-200 hover:border-[#ea580c] transition-all hover:scale-105 active:scale-95 focus:outline-none shadow-xs group cursor-pointer"
-                  aria-label="User account and profile menu"
-                  title={`${displayName} - View Profile`}
-                >
-                  <img
-                    src={getUserAvatarUrl(currentUser)}
-                    alt={displayName}
-                    onError={(e) => {
-                      e.currentTarget.src = DEFAULT_USER_AVATAR;
-                    }}
-                    className="w-8 h-8 sm:w-9 sm:h-9 rounded-full object-cover"
-                  />
-                </button>
-
-                {userDropdownOpen && (
-                  <div className="absolute right-0 mt-2 w-64 rounded-2xl bg-white border border-slate-200 shadow-xl p-2 z-50 animate-fade-in">
-                    {/* Clickable Profile Summary Header linking to /profile */}
+              {userDropdownOpen && (
+                <div className="absolute right-0 mt-2 w-64 rounded-2xl bg-white border border-slate-200 shadow-xl p-2 z-50 animate-fade-in">
+                  <Link
+                    to="/profile"
+                    onClick={() => setUserDropdownOpen(false)}
+                    className="block px-3 py-2.5 border-b border-slate-100 hover:bg-brand-tint rounded-xl transition"
+                  >
+                    <p className="text-xs font-bold text-slate-900 truncate">{displayName}</p>
+                    <p className="text-[11px] font-mono text-slate-400 truncate mt-0.5">{currentUser.email}</p>
+                  </Link>
+                  <div className="py-1">
                     <Link
                       to="/profile"
                       onClick={() => setUserDropdownOpen(false)}
-                      className="block px-3 py-2.5 border-b border-slate-100 hover:bg-orange-50/60 rounded-xl transition group"
+                      className="w-full text-left px-3 py-2 text-xs text-slate-800 hover:bg-brand-tint rounded-xl flex items-center gap-2 transition font-medium"
                     >
-                      <div className="flex items-center justify-between">
-                        <p className="text-xs font-bold text-slate-900 truncate group-hover:text-[#ea580c]">
-                          {displayName}
-                        </p>
-                        <span className="text-[10px] text-[#ea580c] font-medium flex items-center gap-0.5">
-                          Profile →
-                        </span>
-                      </div>
-                      <p className="text-[11px] font-mono text-slate-400 truncate mt-0.5">{currentUser.email}</p>
+                      <User className="w-3.5 h-3.5 text-brand-blue" />
+                      <span>My Profile & Registered Teams</span>
                     </Link>
-
-                    <div className="py-1">
-                      {/* View Profile & Registered Teams action */}
-                      <Link
-                        to="/profile"
-                        onClick={() => setUserDropdownOpen(false)}
-                        className="w-full text-left px-3 py-2 text-xs text-slate-800 hover:bg-orange-50 hover:text-[#ea580c] rounded-xl flex items-center gap-2 transition font-medium"
-                      >
-                        <User className="w-3.5 h-3.5 text-[#ea580c]" />
-                        <span>My Profile & Registered Teams</span>
-                      </Link>
-
-
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setUserDropdownOpen(false);
-                          onOpenRegister();
-                        }}
-                        className="w-full text-left px-3 py-2 text-xs text-slate-700 hover:bg-slate-50 rounded-xl flex items-center gap-2 transition cursor-pointer"
-                      >
-                        <Award className="w-3.5 h-3.5 text-slate-400" />
-                        <span>Enroll New Squad</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setUserDropdownOpen(false);
-                          logoutUser();
-                        }}
-                        className="w-full text-left px-3 py-2 text-xs text-red-600 hover:bg-red-50 rounded-xl flex items-center gap-2 transition mt-1 border-t border-slate-100 cursor-pointer"
-                      >
-                        <LogOut className="w-3.5 h-3.5" />
-                        <span>Sign Out</span>
-                      </button>
-                    </div>
+                    <button
+                      type="button"
+                      onClick={() => { setUserDropdownOpen(false); onOpenRegister(); }}
+                      className="w-full text-left px-3 py-2 text-xs text-slate-700 hover:bg-slate-50 rounded-xl flex items-center gap-2 transition cursor-pointer"
+                    >
+                      <Award className="w-3.5 h-3.5 text-slate-400" />
+                      <span>Register a new team</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setUserDropdownOpen(false); logoutUser(); }}
+                      className="w-full text-left px-3 py-2 text-xs text-red-600 hover:bg-red-50 rounded-xl flex items-center gap-2 transition mt-1 border-t border-slate-100 cursor-pointer"
+                    >
+                      <LogOut className="w-3.5 h-3.5" />
+                      <span>Sign Out</span>
+                    </button>
                   </div>
-                )}
-              </div>
-            ) : (
-              /* Sign In Button for unauthenticated visitors */
-              <button
-                type="button"
-                onClick={onOpenLogin}
-                className="hidden sm:inline-flex items-center gap-1.5 text-xs font-semibold text-slate-700 hover:text-[#ea580c] hover:bg-slate-100/80 px-3 py-2 rounded-xl transition cursor-pointer"
-              >
-                <User className="w-3.5 h-3.5" />
-                <span>Sign In</span>
-              </button>
-            )}
+                </div>
+              )}
+            </div>
+          ) : (
+            <Button variant="outline" onClick={onOpenLogin} className="hidden sm:inline-flex !px-5 !py-2 !text-xs">
+              Login
+            </Button>
+          )}
 
-            {/* Register Squad CTA */}
-            <button
-              onClick={onOpenRegister}
-              className="btn-primary flex items-center gap-1.5 text-xs py-2 px-3 sm:px-4 shadow-sm"
-            >
-              <span>Register Squad</span>
-              <ArrowUpRight className="w-3.5 h-3.5" />
-            </button>
+          <Button onClick={onOpenRegister} className="!px-5 !py-2 !text-xs">
+            Register
+          </Button>
 
-            {/* Mobile Menu Hamburger Button */}
-            <button
-              type="button"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="lg:hidden p-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 border border-slate-200/80 transition"
-              aria-label="Toggle navigation menu"
-            >
-              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="lg:hidden p-2 rounded-xl text-slate-300 hover:text-white border border-white/20 transition"
+            aria-label="Toggle navigation menu"
+          >
+            {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          </button>
         </div>
       </div>
 
-      {/* Mobile Navigation Dropdown Menu */}
       {mobileMenuOpen && (
-        <div className="lg:hidden bg-white/98 border-b border-slate-200 px-4 pt-2 pb-5 space-y-2 shadow-xl animate-fade-in">
-          {hackathon?.title && (
-            <div className="p-3 rounded-xl bg-slate-900 text-white border border-coral-500/30 mb-2">
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-[10px] font-mono uppercase font-bold text-coral-400 bg-coral-500/20 px-2 py-0.5 rounded-full">
-                  Current Event
-                </span>
-                {hackathon.version && (
-                  <span className="text-[10px] font-mono font-bold text-slate-300">
-                    {hackathon.version}
-                  </span>
-                )}
-              </div>
-              <p className="text-sm font-bold text-white mt-1.5">{hackathon.title}</p>
-              {hackathon.sub_heading && (
-                <p className="text-xs text-slate-400 mt-0.5">{hackathon.sub_heading}</p>
-              )}
-              {hackathon.venue && (
-                <p className="text-[11px] text-slate-400 mt-1 flex items-center gap-1">
-                  <span>📍</span> {hackathon.venue}
-                </p>
-              )}
-            </div>
-          )}
-          <nav className="flex flex-col space-y-1 font-medium text-sm text-slate-700">
-            <a
-              href="/#prizes"
-              onClick={(e) => {
-                handleMobileNavClick();
-                handleSectionClick(e, '#prizes');
-              }}
-              className="px-3 py-2 rounded-xl hover:bg-slate-100 transition"
-            >
-              Prizes & Awards
-            </a>
-            {hasScheduleData && (
+        <div className="lg:hidden bg-brand-dark border-t border-white/10 px-4 pt-2 pb-5 animate-fade-in">
+          <nav className="flex flex-col space-y-1 text-sm font-medium text-slate-200">
+            {navLinks.map((l) => (
               <a
-                href="/#schedule"
-                onClick={(e) => {
-                  handleMobileNavClick();
-                  handleSectionClick(e, '#schedule');
-                }}
-                className="px-3 py-2 rounded-xl hover:bg-slate-100 transition"
+                key={l.label}
+                href={`/${l.hash}`}
+                onClick={(e) => { handleMobileNavClick(); handleSectionClick(e, l.hash); }}
+                className="px-3 py-2 rounded-xl hover:bg-white/10 transition"
               >
-                48-Hour Sprint Schedule
+                {l.label}
               </a>
-            )}
-            <a
-              href="/#sponsors"
-              onClick={(e) => {
-                handleMobileNavClick();
-                handleSectionClick(e, '#sponsors');
-              }}
-              className="px-3 py-2 rounded-xl hover:bg-slate-100 transition"
-            >
-              Sponsors & Partners
-            </a>
-            <a
-              href="/#organizers"
-              onClick={(e) => {
-                handleMobileNavClick();
-                handleSectionClick(e, '#organizers');
-              }}
-              className="px-3 py-2 rounded-xl hover:bg-slate-100 transition"
-            >
-              Organizers & Mentors
-            </a>
-            <a
-              href="/#contact"
-              onClick={(e) => {
-                handleMobileNavClick();
-                handleSectionClick(e, '#contact');
-              }}
-              className="px-3 py-2 rounded-xl hover:bg-slate-100 transition"
-            >
-              Contact Committee
-            </a>
-
+            ))}
             {currentUser ? (
               <>
-                <Link
-                  to="/profile"
-                  onClick={handleMobileNavClick}
-                  className="w-full text-left px-3 py-2 rounded-xl bg-orange-50 text-[#ea580c] hover:bg-orange-100 transition font-semibold flex items-center gap-2 mt-2"
-                >
-                  <User className="w-4 h-4 text-[#ea580c]" />
+                <Link to="/profile" onClick={handleMobileNavClick} className="px-3 py-2 rounded-xl bg-brand-orange/20 text-brand-yellow font-semibold flex items-center gap-2 mt-2">
+                  <User className="w-4 h-4" />
                   <span>My Profile & Registered Teams</span>
                 </Link>
-
-
-
                 <button
                   type="button"
-                  onClick={() => {
-                    handleMobileNavClick();
-                    logoutUser();
-                  }}
-                  className="w-full text-left px-3 py-2 rounded-xl text-red-600 hover:bg-red-50 transition font-medium flex items-center gap-2"
+                  onClick={() => { handleMobileNavClick(); logoutUser(); }}
+                  className="text-left px-3 py-2 rounded-xl text-red-400 hover:bg-white/10 font-medium flex items-center gap-2"
                 >
-                  <LogOut className="w-4 h-4 text-red-500" />
+                  <LogOut className="w-4 h-4" />
                   <span>Sign Out</span>
                 </button>
               </>
             ) : (
               <button
                 type="button"
-                onClick={() => {
-                  handleMobileNavClick();
-                  if (onOpenLogin) onOpenLogin();
-                }}
-                className="w-full text-left px-3 py-2 rounded-xl bg-slate-100 text-slate-800 hover:bg-slate-200 transition font-semibold flex items-center gap-2 mt-2"
+                onClick={() => { handleMobileNavClick(); if (onOpenLogin) onOpenLogin(); }}
+                className="text-left px-3 py-2 rounded-xl bg-white/10 text-white font-semibold flex items-center gap-2 mt-2"
               >
-                <User className="w-4 h-4 text-slate-600" />
-                <span>Sign In / Register</span>
+                <User className="w-4 h-4" />
+                <span>Login / Register</span>
               </button>
             )}
           </nav>

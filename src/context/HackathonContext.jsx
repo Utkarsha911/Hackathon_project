@@ -7,6 +7,7 @@ import api, {
   setRefreshToken,
   clearRefreshToken,
   getCurrentUser,
+  getCustomerAuthToken,
   setCurrentUser,
   clearCurrentUser,
   logout,
@@ -104,8 +105,12 @@ export function HackathonProvider({ children }) {
   }, []);
 
   useEffect(() => {
+    let lastLogoutToast = 0;
     const handleAuthLogout = () => {
       setCurrentUserState(null);
+      // customerLogout() fires two events; show the toast once
+      if (Date.now() - lastLogoutToast < 1000) return;
+      lastLogoutToast = Date.now();
       showToast('You have been logged out.', 'info');
     };
 
@@ -152,6 +157,9 @@ export function HackathonProvider({ children }) {
   const refreshData = useCallback(async () => {
     setIsLoadingApi(true);
     let connected = false;
+    // Teams, registrations, tables, check-ins and users are staff/logged-in endpoints:
+    // anonymous visitors would only get 401s from them.
+    const canReadPrivate = Boolean(getCustomerAuthToken());
 
     try {
       // 0. Primary Call: GET /api/v1/hackathons/current-hackathon/
@@ -359,7 +367,7 @@ export function HackathonProvider({ children }) {
           }
         }
 
-        const teamsRes = await api.teams.getAll().catch(() => null);
+        const teamsRes = (canReadPrivate ? await api.teams.getAll().catch(() => null) : null);
         const teamsList = Array.isArray(teamsRes)
           ? teamsRes
           : Array.isArray(teamsRes?.results)
@@ -370,19 +378,19 @@ export function HackathonProvider({ children }) {
           connected = true;
         }
 
-        const registrationsRes = await api.teams.getRegistrations().catch(() => null);
+        const registrationsRes = (canReadPrivate ? await api.teams.getRegistrations().catch(() => null) : null);
         if (Array.isArray(registrationsRes) && registrationsRes.length > 0) {
           setRegistrations(registrationsRes);
           connected = true;
         }
 
-        const tablesRes = await api.teams.getTables().catch(() => null);
+        const tablesRes = (canReadPrivate ? await api.teams.getTables().catch(() => null) : null);
         if (Array.isArray(tablesRes) && tablesRes.length > 0) {
           setTables(tablesRes);
           connected = true;
         }
 
-        const checkInsRes = await api.teams.getCheckIns().catch(() => null);
+        const checkInsRes = (canReadPrivate ? await api.teams.getCheckIns().catch(() => null) : null);
         if (Array.isArray(checkInsRes) && checkInsRes.length > 0) {
           setCheckIns(checkInsRes);
           connected = true;
@@ -392,7 +400,7 @@ export function HackathonProvider({ children }) {
       // Users sync (if available)
       const unwrapList = (data) => (Array.isArray(data) ? data : (Array.isArray(data?.items) ? data.items : null));
 
-      const usersRes = await api.users.getAll().catch(() => null);
+      const usersRes = (canReadPrivate ? await api.users.getAll().catch(() => null) : null);
       const parsedUsers = unwrapList(usersRes);
       if (parsedUsers && parsedUsers.length > 0) {
         setUsers(parsedUsers);

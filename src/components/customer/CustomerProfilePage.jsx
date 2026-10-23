@@ -27,7 +27,6 @@ import {
 } from 'lucide-react';
 import { useHackathon } from '../../context/HackathonContext';
 import CustomerNavbar from './CustomerNavbar';
-import RegistrationModal from './RegistrationModal';
 import UserAuthModal from './UserAuthModal';
 import TeamParticipantsModal from './TeamParticipantsModal';
 import Footer from '../common/Footer';
@@ -40,7 +39,6 @@ export default function CustomerProfilePage() {
   const [registeredTeams, setRegisteredTeams] = useState([]);
   const [isLoadingTeams, setIsLoadingTeams] = useState(true);
   const [teamsError, setTeamsError] = useState('');
-  const [isRegisterOpen, setIsRegisterOpen] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [managingTeam, setManagingTeam] = useState(null);
   const [isParticipantsOpen, setIsParticipantsOpen] = useState(false);
@@ -106,15 +104,11 @@ export default function CustomerProfilePage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#fafafa] text-slate-900">
+    <div className="theme-brand min-h-screen flex flex-col bg-brand-tint text-ink">
       {/* Top Navbar */}
       <CustomerNavbar
         onOpenRegister={() => {
-          if (!currentUser) {
-            setIsAuthOpen(true);
-          } else {
-            setIsRegisterOpen(true);
-          }
+          navigate('/register');
         }}
         onOpenLogin={() => setIsAuthOpen(true)}
         onOpenProfile={() => {
@@ -127,7 +121,7 @@ export default function CustomerProfilePage() {
         <div className="mb-6">
           <Link
             to="/"
-            className="inline-flex items-center gap-2 text-xs font-semibold text-slate-500 hover:text-[#ea580c] transition-colors group"
+            className="inline-flex items-center gap-2 text-xs font-semibold text-slate-500 hover:text-brand-blue transition-colors group"
           >
             <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
             <span>Back to Hackathon Home</span>
@@ -137,10 +131,10 @@ export default function CustomerProfilePage() {
         {!currentUser ? (
           /* Unauthenticated State */
           <div className="bg-white rounded-3xl border border-slate-200 p-8 sm:p-14 text-center max-w-xl mx-auto shadow-sm">
-            <div className="w-16 h-16 rounded-2xl bg-orange-50 text-[#ea580c] flex items-center justify-center mx-auto mb-4">
+            <div className="w-16 h-16 rounded-2xl bg-brand-tint text-brand-blue flex items-center justify-center mx-auto mb-4">
               <User className="w-8 h-8" />
             </div>
-            <h2 className="text-2xl font-bold text-slate-900">Sign in to view your profile</h2>
+            <h2 className="text-2xl font-bold text-ink">Sign in to view your profile</h2>
             <p className="text-sm text-slate-500 mt-2 max-w-sm mx-auto">
               Please sign in with your account to access your personal profile and manage your registered hackathon squads.
             </p>
@@ -148,7 +142,7 @@ export default function CustomerProfilePage() {
               <button
                 type="button"
                 onClick={() => setIsAuthOpen(true)}
-                className="w-full sm:w-auto px-6 py-2.5 rounded-xl font-semibold text-sm bg-[#ea580c] hover:bg-orange-600 text-white shadow-xs transition"
+                className="w-full sm:w-auto px-6 py-2.5 rounded-xl font-semibold text-sm bg-brand-orange hover:bg-brand-orange text-white shadow-xs transition"
               >
                 Sign In / Register
               </button>
@@ -179,7 +173,7 @@ export default function CustomerProfilePage() {
 
                   <div>
                     <div className="flex items-center gap-2 flex-wrap">
-                      <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
+                      <h1 className="text-xl sm:text-2xl font-extrabold text-ink tracking-tight">
                         {fullName}
                       </h1>
 
@@ -190,17 +184,8 @@ export default function CustomerProfilePage() {
                   </div>
                 </div>
 
-                {/* Actions: Register New Team & Sign Out */}
+                {/* Actions: Sign Out */}
                 <div className="flex items-center gap-3 shrink-0 flex-wrap">
-                  <button
-                    type="button"
-                    onClick={() => setIsRegisterOpen(true)}
-                    className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl font-semibold text-xs sm:text-sm bg-[#ea580c] hover:bg-orange-600 text-white shadow-xs transition active:scale-95 cursor-pointer"
-                  >
-                    <Plus className="w-4 h-4" />
-                    <span>Register New Team</span>
-                  </button>
-
                   <button
                     type="button"
                     onClick={handleSignOut}
@@ -215,7 +200,7 @@ export default function CustomerProfilePage() {
               {/* Info Cards Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 pt-4 border-t border-slate-100 text-xs">
                 <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-orange-100/60 text-[#ea580c] flex items-center justify-center shrink-0">
+                  <div className="w-9 h-9 rounded-xl bg-brand-tint/60 text-brand-blue flex items-center justify-center shrink-0">
                     <Mail className="w-4 h-4" />
                   </div>
                   <div className="truncate">
@@ -225,7 +210,7 @@ export default function CustomerProfilePage() {
                 </div>
 
                 <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-orange-100/60 text-[#ea580c] flex items-center justify-center shrink-0">
+                  <div className="w-9 h-9 rounded-xl bg-brand-tint/60 text-brand-blue flex items-center justify-center shrink-0">
                     <Phone className="w-4 h-4" />
                   </div>
                   <div className="truncate">
@@ -237,7 +222,7 @@ export default function CustomerProfilePage() {
                 </div>
 
                 <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-orange-100/60 text-[#ea580c] flex items-center justify-center shrink-0">
+                  <div className="w-9 h-9 rounded-xl bg-brand-tint/60 text-brand-blue flex items-center justify-center shrink-0">
                     <Calendar className="w-4 h-4" />
                   </div>
                   <div className="truncate">
@@ -261,7 +246,7 @@ export default function CustomerProfilePage() {
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
                 <div>
                   <div className="flex items-center gap-2">
-                    <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+                    <h2 className="text-xl sm:text-2xl font-bold text-ink tracking-tight">
                       My Registered Teams & Hackathons
                     </h2>
                   </div>
@@ -278,7 +263,7 @@ export default function CustomerProfilePage() {
 
               {isLoadingTeams ? (
                 <div className="p-12 rounded-3xl bg-white border border-slate-200 text-center flex flex-col items-center justify-center gap-3 shadow-xs">
-                  <Loader2 className="w-8 h-8 text-[#ea580c] animate-spin" />
+                  <Loader2 className="w-8 h-8 text-brand-blue animate-spin" />
                   <p className="text-xs font-semibold text-slate-600">Loading registered hackathon teams...</p>
                 </div>
               ) : teamsError ? (
@@ -287,7 +272,7 @@ export default function CustomerProfilePage() {
                 </div>
               ) : registeredTeams.length === 0 ? (
                 <div className="p-12 rounded-3xl bg-white border border-dashed border-slate-300 text-center space-y-4 shadow-xs">
-                  <div className="w-16 h-16 rounded-3xl bg-orange-50 text-[#ea580c] flex items-center justify-center mx-auto">
+                  <div className="w-16 h-16 rounded-3xl bg-brand-tint text-brand-blue flex items-center justify-center mx-auto">
                     <Users className="w-8 h-8" />
                   </div>
                   <div>
@@ -299,8 +284,8 @@ export default function CustomerProfilePage() {
                   </div>
                   <button
                     type="button"
-                    onClick={() => setIsRegisterOpen(true)}
-                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-semibold bg-[#ea580c] hover:bg-orange-600 text-white shadow-xs transition cursor-pointer"
+                    onClick={() => navigate('/register')}
+                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-semibold bg-brand-orange hover:bg-brand-orange text-white shadow-xs transition cursor-pointer"
                   >
                     <Plus className="w-4 h-4" />
                     <span>Register a Squad Now</span>
@@ -318,21 +303,21 @@ export default function CustomerProfilePage() {
                     return (
                       <div
                         key={team.id}
-                        className="p-6 rounded-3xl bg-white border border-slate-200/90 shadow-xs hover:border-orange-300 hover:shadow-md transition flex flex-col justify-between"
+                        className="p-6 rounded-3xl bg-white border border-slate-200/90 shadow-xs hover:border-brand-blue/30 hover:shadow-md transition flex flex-col justify-between"
                       >
                         <div>
                           {/* Card Top: Hackathon Tag + Status */}
                           <div className="flex items-start justify-between gap-3 pb-3 border-b border-slate-100">
                             <div>
                               <div className="flex items-center gap-2">
-                                <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-orange-50 text-[#ea580c] font-bold border border-orange-100">
+                                <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-brand-tint text-brand-blue font-bold border border-brand-blue/30">
                                   {hackathon?.title || 'BIC Hackathon'}
                                 </span>
                                 <span className="text-[10px] font-mono text-slate-400">
                                   ID: {String(team.id).slice(0, 8)}...
                                 </span>
                               </div>
-                              <h3 className="text-lg font-bold text-slate-900 mt-2">
+                              <h3 className="text-lg font-bold text-ink mt-2">
                                 {team.name}
                               </h3>
                             </div>
@@ -450,7 +435,7 @@ export default function CustomerProfilePage() {
                                     setManagingTeam(team);
                                     setIsParticipantsOpen(true);
                                   }}
-                                  className="inline-flex items-center gap-1 px-3 py-1 rounded-xl text-xs font-semibold text-white bg-[#ea580c] hover:bg-orange-600 shadow-xs transition active:scale-95 cursor-pointer"
+                                  className="inline-flex items-center gap-1 px-3 py-1 rounded-xl text-xs font-semibold text-white bg-brand-orange hover:bg-brand-orange shadow-xs transition active:scale-95 cursor-pointer"
                                 >
                                   <UserPlus className="w-3.5 h-3.5" />
                                   <span>{team.participants?.length > 0 ? 'Update Participants' : 'Add Participants'}</span>
@@ -473,7 +458,7 @@ export default function CustomerProfilePage() {
                                     <div className="flex items-center gap-2 truncate">
                                       <div
                                         className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 ${
-                                          pIdx === 0 ? 'bg-[#ea580c] text-white' : 'bg-slate-200 text-slate-700'
+                                          pIdx === 0 ? 'bg-brand-orange text-white' : 'bg-slate-200 text-slate-700'
                                         }`}
                                       >
                                         {pIdx + 1}
@@ -482,7 +467,7 @@ export default function CustomerProfilePage() {
                                         <div className="flex items-center gap-1.5">
                                           <span className="font-semibold text-slate-800 truncate">{p.name}</span>
                                           {pIdx === 0 && (
-                                            <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-orange-100 text-[#ea580c] font-bold">
+                                            <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-brand-tint text-brand-blue font-bold">
                                               Leader
                                             </span>
                                           )}
@@ -533,7 +518,7 @@ export default function CustomerProfilePage() {
                               href={team.college_website}
                               target="_blank"
                               rel="noreferrer"
-                              className="inline-flex items-center gap-1 text-slate-500 hover:text-[#ea580c] transition"
+                              className="inline-flex items-center gap-1 text-slate-500 hover:text-brand-blue transition"
                             >
                               <Globe className="w-3.5 h-3.5" />
                               <span className="truncate max-w-[140px]">Campus Site</span>
@@ -547,7 +532,7 @@ export default function CustomerProfilePage() {
                               href={team.github_repo}
                               target="_blank"
                               rel="noreferrer"
-                              className="inline-flex items-center gap-1 text-slate-700 hover:text-[#ea580c] font-semibold transition"
+                              className="inline-flex items-center gap-1 text-slate-700 hover:text-brand-blue font-semibold transition"
                             >
                               <Code2 className="w-3.5 h-3.5" />
                               <span>GitHub Repository</span>
@@ -569,15 +554,6 @@ export default function CustomerProfilePage() {
 
       {/* Footer */}
       <Footer />
-
-      {/* Registration Modal */}
-      <RegistrationModal
-        isOpen={isRegisterOpen}
-        onClose={() => {
-          setIsRegisterOpen(false);
-          fetchUserTeams();
-        }}
-      />
 
       {/* Team Participants Modal */}
       <TeamParticipantsModal

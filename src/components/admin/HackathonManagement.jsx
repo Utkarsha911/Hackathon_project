@@ -1578,7 +1578,7 @@ export default function HackathonManagement() {
                   </label>
                   <input
                     type="text"
-                    placeholder="e.g. V4.0"
+                    placeholder="e.g. V5.0"
                     value={createForm.version}
                     onChange={(e) => setCreateForm({ ...createForm, version: e.target.value })}
                     className="w-full px-3 py-2 rounded-xl border border-slate-200 text-slate-800 bg-slate-50 focus:bg-white focus:outline-none focus:border-[#e8622a]"

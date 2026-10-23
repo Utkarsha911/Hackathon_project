@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useHackathon } from '../../context/HackathonContext';
 import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
 import {
   X,
   UserPlus,
+  ArrowLeft,
   Building2,
   GraduationCap,
   MapPin,
@@ -18,6 +19,10 @@ import {
   ShieldCheck
 } from 'lucide-react';
 import HackathonBrand from '../common/HackathonBrand';
+import Footer from '../common/Footer';
+import Toast from '../common/Toast';
+import CustomerNavbar from './CustomerNavbar';
+import UserAuthModal from './UserAuthModal';
 
 function formatTeamRegistrationError(err) {
   if (!err) return 'Failed to register team. Please try again.';
@@ -67,7 +72,7 @@ function formatTeamRegistrationError(err) {
   return 'Unable to register team. You may already have a squad registered for this edition or the squad name is taken.';
 }
 
-export default function RegistrationModal({ isOpen, onClose }) {
+export default function RegisterTeamPage() {
   const navigate = useNavigate();
   const { registerTeam, hackathon, currentUser, terms } = useHackathon();
 
@@ -75,6 +80,11 @@ export default function RegistrationModal({ isOpen, onClose }) {
   const maxTeamSize = hackathon?.maximum_team_size || 4;
 
   const [showTermsModal, setShowTermsModal] = useState(false);
+  // Logged-in users come from their profile, so "back" goes there; visitors go home
+  const backTo = currentUser ? '/profile' : '/';
+  const backLabel = currentUser ? 'Back to profile' : 'Back to home';
+  const [isAuthOpen, setIsAuthOpen] = useState(false);
+  const [authReason, setAuthReason] = useState('register');
 
   const [formData, setFormData] = useState({
     name: '',
@@ -93,23 +103,24 @@ export default function RegistrationModal({ isOpen, onClose }) {
 
   // Prefill coordinator information if user is logged in
   useEffect(() => {
-    if (isOpen) {
-      setErrorMessage('');
-      setSuccessMessage('');
-      setIsSubmitting(false);
+    setFormData((prev) => ({
+      ...prev,
+      coordinator_email: currentUser?.email || prev.coordinator_email || '',
+      coordinator_phone: currentUser?.phone_number || prev.coordinator_phone || '',
+      no_of_members: prev.no_of_members || maxTeamSize
+    }));
+  }, [currentUser, maxTeamSize]);
 
-      setFormData((prev) => ({
-        ...prev,
-        coordinator_email: currentUser?.email || prev.coordinator_email || '',
-        coordinator_phone: currentUser?.phone_number || prev.coordinator_phone || '',
-        no_of_members: prev.no_of_members || maxTeamSize
-      }));
+  // Registering needs a Google login: ask for it as soon as the page opens
+  useEffect(() => {
+    if (!currentUser) {
+      setAuthReason('register');
+      setIsAuthOpen(true);
     }
-  }, [currentUser, isOpen, maxTeamSize]);
+  }, [currentUser]);
 
-  useBodyScrollLock(isOpen);
-
-  if (!isOpen) return null;
+  // Only the terms viewer is still a modal
+  useBodyScrollLock(showTermsModal);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -149,7 +160,7 @@ export default function RegistrationModal({ isOpen, onClose }) {
       await registerTeam(payload);
       setSuccessMessage(`Team "${payload.name}" has been registered successfully!`);
       setTimeout(() => {
-        onClose();
+        navigate('/profile');
       }, 1200);
     } catch (err) {
       console.error('Team registration error:', err);
@@ -161,20 +172,22 @@ export default function RegistrationModal({ isOpen, onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs overflow-y-auto">
-      <div className="w-full max-w-2xl rounded-2xl relative max-h-[90vh] overflow-y-auto bg-white border border-slate-200 shadow-2xl">
-        <div className="p-6 sm:p-8">
-          {/* Close Button */}
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={isSubmitting}
-            className="absolute top-5 right-5 p-2 rounded-xl text-slate-400 hover:text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors disabled:opacity-50"
-            aria-label="Close modal"
-          >
-            <X className="w-5 h-5" />
-          </button>
+    <div className="theme-brand min-h-screen flex flex-col bg-brand-tint text-ink">
+      <CustomerNavbar
+        onOpenRegister={() => navigate('/register')}
+        onOpenLogin={() => { setAuthReason('login'); setIsAuthOpen(true); }}
+        onOpenProfile={() => navigate('/profile')}
+      />
 
+      <main className="flex-grow py-8 sm:py-12 px-4">
+        <div className="w-full max-w-3xl mx-auto">
+          <Link to={backTo} className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-blue hover:text-brand-navy mb-4">
+            <ArrowLeft className="w-4 h-4" />
+            <span>{backLabel}</span>
+          </Link>
+
+          <div className="rounded-2xl bg-white border border-slate-200/80 shadow-[0_2px_12px_-4px_rgba(15,31,92,0.12)]">
+        <div className="p-6 sm:p-10">
           {/* Header */}
           <div className="mb-6">
             <div className="flex items-center gap-3 mb-2.5">
@@ -184,11 +197,11 @@ export default function RegistrationModal({ isOpen, onClose }) {
                 showSubText={false}
                 iconSizeClass="w-6 h-6 text-[10px]"
               />
-              <span className="text-xs font-mono font-bold uppercase tracking-widest text-[#ea580c]">
+              <span className="text-xs font-mono font-bold uppercase tracking-widest text-brand-blue">
                 Team Enrollment
               </span>
             </div>
-            <h3 className="text-2xl sm:text-3xl font-extrabold text-slate-900">
+            <h3 className="text-2xl sm:text-3xl font-extrabold text-ink">
               Register Team for {hackathon?.title || 'BIC Hackathon'}
             </h3>
             <p className="text-xs sm:text-sm text-slate-500 mt-1.5">
@@ -196,6 +209,19 @@ export default function RegistrationModal({ isOpen, onClose }) {
             </p>
           </div>
 
+          {!currentUser ? (
+            <div className="text-center py-10">
+              <p className="text-slate-600">Sign in with Google to register your team.</p>
+              <button
+                type="button"
+                onClick={() => { setAuthReason('register'); setIsAuthOpen(true); }}
+                className="btn-primary mt-4 justify-center"
+              >
+                Sign in
+              </button>
+            </div>
+          ) : (
+          <>
           {/* Alert Messages */}
           {errorMessage && (
             <div className="mb-6 p-4 rounded-xl bg-red-50 border border-red-200/90 flex items-start gap-3 text-xs text-red-800 shadow-xs">
@@ -206,11 +232,8 @@ export default function RegistrationModal({ isOpen, onClose }) {
                 {errorMessage.includes('already registered') && (
                   <button
                     type="button"
-                    onClick={() => {
-                      onClose();
-                      navigate('/profile');
-                    }}
-                    className="mt-2.5 inline-flex items-center gap-1.5 font-bold text-[#ea580c] hover:text-[#c2410c] hover:underline cursor-pointer transition-colors"
+                    onClick={() => navigate('/profile')}
+                    className="mt-2.5 inline-flex items-center gap-1.5 font-bold text-brand-blue hover:text-brand-navy hover:underline cursor-pointer transition-colors"
                   >
                     <span>View your registered squad in your Profile</span>
                     <span aria-hidden="true">&rarr;</span>
@@ -231,7 +254,7 @@ export default function RegistrationModal({ isOpen, onClose }) {
             {/* SECTION 1: TEAM & ACADEMIC INSTITUTION */}
             <div className="p-5 rounded-xl bg-slate-50/70 border border-slate-200/90 space-y-4">
               <div className="flex items-center justify-between border-b border-slate-200/70 pb-2.5">
-                <span className="text-xs font-bold uppercase tracking-wider text-[#ea580c] flex items-center gap-1.5">
+                <span className="text-xs font-bold uppercase tracking-wider text-brand-blue flex items-center gap-1.5">
                   <Building2 className="w-3.5 h-3.5" />
                   1. Team & Academic Institution
                 </span>
@@ -254,7 +277,7 @@ export default function RegistrationModal({ isOpen, onClose }) {
                       placeholder="e.g. CyberVanguard"
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-300 text-sm text-slate-900 bg-white focus:outline-none focus:border-[#ea580c] focus:ring-1 focus:ring-[#ea580c]/20"
+                      className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-300 text-sm text-ink bg-white focus:outline-none focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20"
                     />
                   </div>
                 </div>
@@ -272,7 +295,7 @@ export default function RegistrationModal({ isOpen, onClose }) {
                       placeholder="e.g. Boston International College"
                       value={formData.college_name}
                       onChange={(e) => setFormData({ ...formData, college_name: e.target.value })}
-                      className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-300 text-sm text-slate-900 bg-white focus:outline-none focus:border-[#ea580c] focus:ring-1 focus:ring-[#ea580c]/20"
+                      className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-300 text-sm text-ink bg-white focus:outline-none focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20"
                     />
                   </div>
                 </div>
@@ -290,7 +313,7 @@ export default function RegistrationModal({ isOpen, onClose }) {
                       placeholder="e.g. Pokhara University"
                       value={formData.affilated_university}
                       onChange={(e) => setFormData({ ...formData, affilated_university: e.target.value })}
-                      className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-300 text-sm text-slate-900 bg-white focus:outline-none focus:border-[#ea580c] focus:ring-1 focus:ring-[#ea580c]/20"
+                      className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-300 text-sm text-ink bg-white focus:outline-none focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20"
                     />
                   </div>
                 </div>
@@ -308,7 +331,7 @@ export default function RegistrationModal({ isOpen, onClose }) {
                       placeholder="e.g. Bharatpur-10, Chitwan, Nepal"
                       value={formData.college_address}
                       onChange={(e) => setFormData({ ...formData, college_address: e.target.value })}
-                      className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-300 text-sm text-slate-900 bg-white focus:outline-none focus:border-[#ea580c] focus:ring-1 focus:ring-[#ea580c]/20"
+                      className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-300 text-sm text-ink bg-white focus:outline-none focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20"
                     />
                   </div>
                 </div>
@@ -325,7 +348,7 @@ export default function RegistrationModal({ isOpen, onClose }) {
                       placeholder="https://bostoncollege.edu.np"
                       value={formData.college_website}
                       onChange={(e) => setFormData({ ...formData, college_website: e.target.value })}
-                      className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-300 text-sm text-slate-900 bg-white focus:outline-none focus:border-[#ea580c] focus:ring-1 focus:ring-[#ea580c]/20"
+                      className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-300 text-sm text-ink bg-white focus:outline-none focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20"
                     />
                   </div>
                 </div>
@@ -344,7 +367,7 @@ export default function RegistrationModal({ isOpen, onClose }) {
                       max={maxTeamSize}
                       value={formData.no_of_members}
                       onChange={(e) => setFormData({ ...formData, no_of_members: e.target.value })}
-                      className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-300 text-sm text-slate-900 bg-white focus:outline-none focus:border-[#ea580c] focus:ring-1 focus:ring-[#ea580c]/20"
+                      className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-300 text-sm text-ink bg-white focus:outline-none focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20"
                     />
                   </div>
                   <span className="text-[10px] text-slate-400 mt-1 block">
@@ -380,7 +403,7 @@ export default function RegistrationModal({ isOpen, onClose }) {
                       placeholder="coordinator@college.edu.np"
                       value={formData.coordinator_email}
                       onChange={(e) => setFormData({ ...formData, coordinator_email: e.target.value })}
-                      className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-300 text-sm text-slate-900 bg-white focus:outline-none focus:border-[#ea580c] focus:ring-1 focus:ring-[#ea580c]/20"
+                      className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-300 text-sm text-ink bg-white focus:outline-none focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20"
                     />
                   </div>
                 </div>
@@ -398,7 +421,7 @@ export default function RegistrationModal({ isOpen, onClose }) {
                       placeholder="+977-9800000000"
                       value={formData.coordinator_phone}
                       onChange={(e) => setFormData({ ...formData, coordinator_phone: e.target.value })}
-                      className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-300 text-sm text-slate-900 bg-white focus:outline-none focus:border-[#ea580c] focus:ring-1 focus:ring-[#ea580c]/20"
+                      className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-300 text-sm text-ink bg-white focus:outline-none focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20"
                     />
                   </div>
                 </div>
@@ -407,13 +430,13 @@ export default function RegistrationModal({ isOpen, onClose }) {
 
             {/* Terms and Conditions Signing Notice */}
             <div className="flex items-start gap-2.5 p-3 rounded-xl bg-slate-50 border border-slate-200/90 text-xs text-slate-600">
-              <ShieldCheck className="w-4 h-4 text-[#ea580c] shrink-0 mt-0.5" />
+              <ShieldCheck className="w-4 h-4 text-brand-blue shrink-0 mt-0.5" />
               <p className="leading-relaxed">
-                By clicking <span className="font-semibold text-slate-900">"Submit Team Registration"</span>, you confirm that you are agreeing to and signing the{' '}
+                By clicking <span className="font-semibold text-ink">"Submit Team Registration"</span>, you confirm that you are agreeing to and signing the{' '}
                 <button
                   type="button"
                   onClick={() => setShowTermsModal(true)}
-                  className="font-semibold text-[#ea580c] hover:underline cursor-pointer inline-flex items-center gap-0.5"
+                  className="font-semibold text-brand-blue hover:underline cursor-pointer inline-flex items-center gap-0.5"
                 >
                   <span>Terms and Conditions</span>
                 </button>{' '}
@@ -421,11 +444,11 @@ export default function RegistrationModal({ isOpen, onClose }) {
               </p>
             </div>
 
-            {/* Modal Actions */}
+            {/* Actions */}
             <div className="flex items-center gap-3 pt-1">
               <button
                 type="button"
-                onClick={onClose}
+                onClick={() => navigate(backTo)}
                 disabled={isSubmitting}
                 className="flex-1 py-2.5 px-4 rounded-xl border border-slate-300 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 transition-colors disabled:opacity-50"
               >
@@ -434,7 +457,7 @@ export default function RegistrationModal({ isOpen, onClose }) {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="flex-[2] py-2.5 px-5 rounded-xl text-xs font-semibold text-white bg-[#ea580c] hover:bg-[#c2410c] shadow-md shadow-orange-500/20 transition-all flex items-center justify-center gap-2 disabled:opacity-60 cursor-pointer"
+                className="flex-[2] py-2.5 px-5 rounded-xl text-xs font-semibold text-white bg-brand-orange hover:brightness-110 shadow-md shadow-brand-orange/20 transition-all flex items-center justify-center gap-2 disabled:opacity-60 cursor-pointer"
               >
                 {isSubmitting ? (
                   <>
@@ -450,8 +473,26 @@ export default function RegistrationModal({ isOpen, onClose }) {
               </button>
             </div>
           </form>
+          </>
+          )}
         </div>
-      </div>
+          </div>
+        </div>
+      </main>
+
+      <Footer />
+
+      <UserAuthModal
+        isOpen={isAuthOpen}
+        reason={authReason}
+        onClose={() => setIsAuthOpen(false)}
+        onAuthSuccess={() => {
+          setIsAuthOpen(false);
+          if (authReason === 'login') navigate('/profile');
+        }}
+        onOpenRegister={() => setIsAuthOpen(false)}
+      />
+      <Toast />
 
       {/* Terms & Conditions Viewer Modal */}
       {showTermsModal && (
@@ -465,8 +506,8 @@ export default function RegistrationModal({ isOpen, onClose }) {
               <X className="w-4 h-4" />
             </button>
 
-            <div className="flex items-center gap-2.5 mb-3 text-slate-900 font-bold text-base">
-              <div className="w-8 h-8 rounded-xl bg-orange-50 text-[#ea580c] flex items-center justify-center">
+            <div className="flex items-center gap-2.5 mb-3 text-ink font-bold text-base">
+              <div className="w-8 h-8 rounded-xl bg-brand-tint text-brand-blue flex items-center justify-center">
                 <ShieldCheck className="w-4 h-4" />
               </div>
               <h4>Terms & Conditions</h4>
@@ -483,7 +524,7 @@ export default function RegistrationModal({ isOpen, onClose }) {
               <button
                 type="button"
                 onClick={() => setShowTermsModal(false)}
-                className="px-4 py-2 rounded-xl text-xs font-semibold text-white bg-[#ea580c] hover:bg-[#c2410c] transition cursor-pointer"
+                className="px-4 py-2 rounded-xl text-xs font-semibold text-white bg-brand-orange hover:brightness-110 transition cursor-pointer"
               >
                 I Understand & Agree
               </button>

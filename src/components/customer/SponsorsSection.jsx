@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useHackathon } from '../../context/HackathonContext';
 import { getMediaUrl } from '../../services/api';
+import Section from '../common/Section';
 import {
   ExternalLink,
   MapPin,
@@ -34,7 +35,7 @@ function getTierConfig(tierName = '') {
   if (t.includes('title') || t.includes('headline')) {
     return {
       label: tierName || 'Title Partner',
-      badgeClass: 'bg-[#ea580c] text-white',
+      badgeClass: 'bg-brand-blue text-white',
       borderAccent: 'border-l-[#ea580c]',
       avatarGradient: 'from-[#ea580c] to-[#c2410c]',
       Icon: Award
@@ -54,7 +55,7 @@ function getTierConfig(tierName = '') {
   if (t.includes('gold')) {
     return {
       label: tierName || 'Gold Partner',
-      badgeClass: 'bg-amber-500 text-slate-950 font-black',
+      badgeClass: 'bg-brand-red text-slate-950 font-black',
       borderAccent: 'border-l-amber-500',
       avatarGradient: 'from-amber-500 to-amber-700',
       Icon: Award
@@ -133,14 +134,14 @@ function SponsorCard({ sponsor, sIdx, brokenImages, setBrokenImages }) {
           </span>
           {sponsor.location && (
             <span className="inline-flex items-center gap-0.5 text-[10px] text-slate-500 font-medium truncate max-w-[120px]">
-              <MapPin className="w-2.5 h-2.5 text-[#ea580c] shrink-0" />
+              <MapPin className="w-2.5 h-2.5 text-brand-blue shrink-0" />
               <span className="truncate">{sponsor.location}</span>
             </span>
           )}
         </div>
 
         {/* Sponsor / Organization Name */}
-        <h4 className="text-xs sm:text-sm font-bold text-slate-900 group-hover:text-[#ea580c] transition-colors truncate leading-tight">
+        <h4 className="text-xs sm:text-sm font-bold text-ink group-hover:text-brand-blue transition-colors truncate leading-tight">
           {sponsor.name}
         </h4>
 
@@ -162,7 +163,7 @@ function SponsorCard({ sponsor, sIdx, brokenImages, setBrokenImages }) {
           href={websiteUrl.startsWith('http') ? websiteUrl : `https://${websiteUrl}`}
           target="_blank"
           rel="noreferrer"
-          className="w-7 h-7 rounded-lg bg-slate-50 group-hover:bg-orange-50 text-slate-400 group-hover:text-[#ea580c] border border-slate-200/60 group-hover:border-orange-200 flex items-center justify-center transition-all shrink-0 cursor-pointer"
+          className="w-7 h-7 rounded-lg bg-slate-50 group-hover:bg-orange-50 text-slate-400 group-hover:text-brand-blue border border-slate-200/60 group-hover:border-orange-200 flex items-center justify-center transition-all shrink-0 cursor-pointer"
           title="Visit Website"
           onClick={(e) => e.stopPropagation()}
         >
@@ -233,57 +234,55 @@ export default function SponsorsSection() {
   }
 
   return (
-    <section id="sponsors" className="py-10 sm:py-12 bg-white border-b border-slate-200 overflow-hidden">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        
-        {/* Single-Screen Header - Clean & Focused */}
-        <div className="text-center max-w-xl mx-auto mb-6">
-          <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">
-            Ecosystem Backers & Sponsors
-          </h2>
-          <p className="mt-1 text-xs sm:text-sm text-slate-500">
-            Leading industry innovators and organizations powering BIC Hackathon 2026.
-          </p>
-        </div>
-
-        {/* Dual-Track Smooth Moving Conveyor Belts (Fits in Single Screen) */}
-        <div className="space-y-3 relative">
-          {/* Row 1: Moving Left */}
-          {row1List.length > 0 && (
-            <div className="relative w-full overflow-hidden py-1">
-              <div className="animate-marquee-left">
-                {row1List.map((sponsor, sIdx) => (
-                  <SponsorCard
-                    key={`r1-${sponsor.id || sponsor.sponsor_package_id}-${sIdx}`}
-                    sponsor={sponsor}
-                    sIdx={`r1-${sIdx}`}
-                    brokenImages={brokenImages}
-                    setBrokenImages={setBrokenImages}
-                  />
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Row 2: Moving Right */}
-          {row2List.length > 0 && (
-            <div className="relative w-full overflow-hidden py-1">
-              <div className="animate-marquee-right">
-                {row2List.map((sponsor, sIdx) => (
-                  <SponsorCard
-                    key={`r2-${sponsor.id || sponsor.sponsor_package_id}-${sIdx}`}
-                    sponsor={sponsor}
-                    sIdx={`r2-${sIdx}`}
-                    brokenImages={brokenImages}
-                    setBrokenImages={setBrokenImages}
-                  />
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-
+    <Section id="sponsors" tone="tint" py="py-12" width="max-w-7xl" className="overflow-hidden">
+      
+      {/* Single-Screen Header - Clean & Focused */}
+      <div className="text-center max-w-xl mx-auto mb-6">
+        <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-ink">
+          Our sponsors
+        </h2>
+        <p className="mt-1 text-sm text-slate-600">
+          They paid for the prizes, the food and the wifi.
+        </p>
       </div>
-    </section>
+
+      {/* Dual-Track Smooth Moving Conveyor Belts (Fits in Single Screen) */}
+      <div className="space-y-3 relative">
+        {/* Row 1: Moving Left */}
+        {row1List.length > 0 && (
+          <div className="relative w-full overflow-hidden py-1">
+            <div className="animate-marquee-left">
+              {row1List.map((sponsor, sIdx) => (
+                <SponsorCard
+                  key={`r1-${sponsor.id || sponsor.sponsor_package_id}-${sIdx}`}
+                  sponsor={sponsor}
+                  sIdx={`r1-${sIdx}`}
+                  brokenImages={brokenImages}
+                  setBrokenImages={setBrokenImages}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Row 2: Moving Right */}
+        {row2List.length > 0 && (
+          <div className="relative w-full overflow-hidden py-1">
+            <div className="animate-marquee-right">
+              {row2List.map((sponsor, sIdx) => (
+                <SponsorCard
+                  key={`r2-${sponsor.id || sponsor.sponsor_package_id}-${sIdx}`}
+                  sponsor={sponsor}
+                  sIdx={`r2-${sIdx}`}
+                  brokenImages={brokenImages}
+                  setBrokenImages={setBrokenImages}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+    </Section>
   );
 }
