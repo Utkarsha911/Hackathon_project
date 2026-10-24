@@ -25,8 +25,10 @@ import {
   UserCheck,
   Ban,
   Loader2,
-  ShieldCheck
+  ShieldCheck,
+  QrCode
 } from 'lucide-react';
+import QrBadgeModal, { QrThumbnail } from '../common/QrBadgeModal';
 
 export default function TeamManagement() {
   const [teams, setTeams] = useState([]);
@@ -48,6 +50,10 @@ export default function TeamManagement() {
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [teamToDelete, setTeamToDelete] = useState(null);
+
+  // QR Credential Badge Modal
+  const [qrAttendee, setQrAttendee] = useState(null);
+  const [qrModalOpen, setQrModalOpen] = useState(false);
 
   // Form State
   const initialFormState = {
@@ -71,8 +77,28 @@ export default function TeamManagement() {
   const [formSuccess, setFormSuccess] = useState('');
 
   // Lock scroll when any modal is open
-  const isAnyModalOpen = createModalOpen || editModalOpen || detailModalOpen || deleteModalOpen;
+  const isAnyModalOpen =
+    createModalOpen ||
+    editModalOpen ||
+    detailModalOpen ||
+    deleteModalOpen ||
+    qrModalOpen;
   useBodyScrollLock(isAnyModalOpen);
+
+  const handleOpenDetailModal = (team) => {
+    setSelectedTeam(team);
+    setDetailModalOpen(true);
+    if (team?.id) {
+      api.teams
+        .getById(team.id)
+        .then((fullTeam) => {
+          if (fullTeam && fullTeam.id) {
+            setSelectedTeam(fullTeam);
+          }
+        })
+        .catch((err) => console.warn('Failed to load full team details:', err));
+    }
+  };
 
   // Fetch Hackathons and Users on mount for dropdowns
   useEffect(() => {
@@ -695,10 +721,7 @@ export default function TeamManagement() {
                   <div className="flex items-center gap-1">
                     <button
                       type="button"
-                      onClick={() => {
-                        setSelectedTeam(team);
-                        setDetailModalOpen(true);
-                      }}
+                      onClick={() => handleOpenDetailModal(team)}
                       title="View Details"
                       className="p-1.5 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition"
                     >
@@ -1335,43 +1358,88 @@ export default function TeamManagement() {
                   <div className="space-y-3">
                     {selectedTeam.participants.map((p, idx) => {
                       const isLeader = idx === 0;
+                      const attendeeData = {
+                        id: p.id || `p-${idx + 1}`,
+                        type: 'participant',
+                        name: p.name || 'Participant',
+                        role: isLeader ? 'Team Leader' : 'Participant',
+                        email: p.email,
+                        phone: p.phone_number,
+                        team_id: selectedTeam.id,
+                        team_name: selectedTeam.name,
+                        college_name: selectedTeam.college_name,
+                        hackathon_id: selectedTeam.hackathon,
+                        shirt_size: p.shirt_size,
+                        food_preference: p.food_preference,
+                        current_grade: p.current_grade,
+                        emergency_contact: p.emergency_contact,
+                        medical_conditions: p.medical_conditions
+                      };
+
                       return (
                         <div
                           key={p.id || idx}
-                          className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2"
+                          className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2.5 transition hover:bg-slate-50/90"
                         >
-                          <div className="flex items-center justify-between">
+                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                             <div className="flex items-center gap-2">
                               <span
-                                className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
+                                className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold ${
                                   isLeader ? 'bg-[#ea580c] text-white' : 'bg-slate-200 text-slate-700'
                                 }`}
                               >
                                 {idx + 1}
                               </span>
-                              <span className="font-bold text-slate-900 text-xs">{p.name}</span>
-                              {isLeader && (
-                                <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-orange-100 text-[#ea580c] font-bold">
-                                  Team Leader
-                                </span>
-                              )}
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <span className="font-bold text-slate-900 text-xs sm:text-sm">{p.name}</span>
+                                  {isLeader && (
+                                    <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-orange-100 text-[#ea580c] font-bold">
+                                      Team Leader
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-1.5 text-[10px] text-slate-500 mt-0.5">
+                                  {p.shirt_size && (
+                                    <span className="px-1.5 py-0.2 rounded bg-white border border-slate-200">
+                                      T-Shirt: {p.shirt_size}
+                                    </span>
+                                  )}
+                                  {p.food_preference && (
+                                    <span className="px-1.5 py-0.2 rounded bg-white border border-slate-200 capitalize">
+                                      Meal: {p.food_preference.replace('_', ' ')}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
                             </div>
 
-                            <div className="flex items-center gap-1.5 text-[10px] font-medium text-slate-600">
-                              {p.shirt_size && (
-                                <span className="px-1.5 py-0.5 rounded bg-white border border-slate-200">
-                                  T-Shirt: {p.shirt_size}
-                                </span>
-                              )}
-                              {p.food_preference && (
-                                <span className="px-1.5 py-0.5 rounded bg-white border border-slate-200 capitalize">
-                                  {p.food_preference.replace('_', ' ')}
-                                </span>
-                              )}
+                            {/* Participant QR Code Action & Preview */}
+                            <div className="flex items-center gap-2 self-end sm:self-auto">
+                              <QrThumbnail
+                                attendee={attendeeData}
+                                size={44}
+                                onClick={() => {
+                                  setQrAttendee(attendeeData);
+                                  setQrModalOpen(true);
+                                }}
+                              />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setQrAttendee(attendeeData);
+                                  setQrModalOpen(true);
+                                }}
+                                title="View QR Credential Badge"
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-white border border-slate-200 hover:border-[#ea580c] hover:bg-orange-50 text-slate-700 hover:text-[#ea580c] shadow-2xs transition cursor-pointer"
+                              >
+                                <QrCode className="w-3.5 h-3.5 text-[#ea580c]" />
+                                <span>QR Badge</span>
+                              </button>
                             </div>
                           </div>
 
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] text-slate-600 pt-1 border-t border-slate-200/60">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] text-slate-600 pt-2 border-t border-slate-200/60">
                             <div>
                               <span className="text-slate-400 text-[10px] uppercase font-mono block">Email</span>
                               <span className="font-mono text-slate-800 break-all">{p.email || 'N/A'}</span>
@@ -1505,6 +1573,13 @@ export default function TeamManagement() {
           </div>
         </div>
       )}
+
+      {/* 9. ATTENDEE QR BADGE MODAL */}
+      <QrBadgeModal
+        isOpen={qrModalOpen}
+        onClose={() => setQrModalOpen(false)}
+        attendee={qrAttendee}
+      />
     </div>
   );
 }

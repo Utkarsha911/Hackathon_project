@@ -18,7 +18,10 @@ export default function ScheduleSection() {
   const { schedules = [], isLoadingApi } = useHackathon();
 
   const steps = useMemo(
-    () => [...schedules].sort((a, b) => new Date(a.start_time || 0) - new Date(b.start_time || 0)),
+    () =>
+      [...schedules]
+        .filter((s) => !s.type || s.type === 'hackathon')
+        .sort((a, b) => new Date(a.start_time || 0) - new Date(b.start_time || 0)),
     [schedules]
   );
 

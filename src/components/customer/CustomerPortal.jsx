@@ -21,7 +21,7 @@ import { FileText, Shield, X } from 'lucide-react';
 export default function CustomerPortal() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { terms } = useHackathon();
+  const { terms, isRegistrationOpen } = useHackathon();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [authReason, setAuthReason] = useState('login'); // 'login' | 'register'
@@ -93,9 +93,12 @@ export default function CustomerPortal() {
   // Disable background scrolling when terms modal is opened
   useBodyScrollLock(showTermsModal);
 
-  // When clicking register team or register squad, first require Google login if not already logged in
   // Registering is a full page (it asks for the Google login itself)
-  const handleOpenRegister = () => navigate('/register');
+  const handleOpenRegister = () => {
+    if (isRegistrationOpen) {
+      navigate('/register');
+    }
+  };
 
   const handleOpenLogin = () => {
     setAuthReason('login');
@@ -145,7 +148,9 @@ export default function CustomerPortal() {
         onClose={() => setIsProfileOpen(false)}
         onOpenRegister={() => {
           setIsProfileOpen(false);
-          navigate('/register');
+          if (isRegistrationOpen) {
+            navigate('/register');
+          }
         }}
       />
 
@@ -156,7 +161,7 @@ export default function CustomerPortal() {
         onClose={() => setIsAuthOpen(false)}
         onAuthSuccess={() => {
           setIsAuthOpen(false);
-          if (authReason === 'register') {
+          if (authReason === 'register' && isRegistrationOpen) {
             navigate('/register');
           } else {
             navigate('/profile');
@@ -164,7 +169,9 @@ export default function CustomerPortal() {
         }}
         onOpenRegister={() => {
           setIsAuthOpen(false);
-          navigate('/register');
+          if (isRegistrationOpen) {
+            navigate('/register');
+          }
         }}
       />
 

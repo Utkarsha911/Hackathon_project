@@ -5,7 +5,7 @@ import { useHackathon } from '../../context/HackathonContext';
 import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
 
 export default function UserAuthModal({ isOpen, onClose, onOpenRegister, onAuthSuccess, reason = 'login' }) {
-  const { currentUser, logoutUser } = useHackathon();
+  const { currentUser, logoutUser, isRegistrationOpen } = useHackathon();
 
   useBodyScrollLock(isOpen);
 
@@ -19,7 +19,7 @@ export default function UserAuthModal({ isOpen, onClose, onOpenRegister, onAuthS
     role.includes('staff') ||
     role.includes('organizer');
 
-  const isForRegister = reason === 'register';
+  const isForRegister = reason === 'register' && Boolean(isRegistrationOpen);
 
   const handleSuccess = (user, response) => {
     if (onAuthSuccess) {
@@ -73,16 +73,18 @@ export default function UserAuthModal({ isOpen, onClose, onOpenRegister, onAuthS
               </div>
 
               <div className="pt-3 border-t border-slate-100 flex flex-col gap-2">
-                <button
-                  onClick={() => {
-                    onClose();
-                    if (onOpenRegister) onOpenRegister();
-                  }}
-                  className="w-full btn-primary py-2.5 text-xs flex items-center justify-center gap-2"
-                >
-                  <span>Continue to Register Squad</span>
-                  <ArrowUpRight className="w-3.5 h-3.5" />
-                </button>
+                {isRegistrationOpen && (
+                  <button
+                    onClick={() => {
+                      onClose();
+                      if (onOpenRegister) onOpenRegister();
+                    }}
+                    className="w-full btn-primary py-2.5 text-xs flex items-center justify-center gap-2"
+                  >
+                    <span>Continue to Register Squad</span>
+                    <ArrowUpRight className="w-3.5 h-3.5" />
+                  </button>
+                )}
 
                 <button
                   onClick={logoutUser}
@@ -98,14 +100,15 @@ export default function UserAuthModal({ isOpen, onClose, onOpenRegister, onAuthS
             <div className="space-y-4">
               <div className="text-center pt-1">
                 <h3 className="text-xl font-extrabold text-ink tracking-tight">
-                  Register Your Squad
+                  {isForRegister ? 'Register Your Squad' : 'Sign in to BIC Hackathon'}
                 </h3>
               </div>
 
-              {/* Black Note: Login Required */}
-              <div className="w-full bg-black text-white px-4 py-2.5 rounded-xl text-xs font-semibold text-center shadow-sm">
-                Note: Login Required for registering your team
-              </div>
+              {isForRegister && (
+                <div className="w-full bg-black text-white px-4 py-2.5 rounded-xl text-xs font-semibold text-center shadow-sm">
+                  Note: Login Required for registering your team
+                </div>
+              )}
 
               {/* Google Sign In Button Only */}
               <div className="pt-1">

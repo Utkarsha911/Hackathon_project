@@ -9,13 +9,13 @@ import Button from '../common/Button';
 export default function CustomerNavbar({ onOpenRegister, onOpenLogin, onOpenProfile }) {
   const location = useLocation();
   const navigate = useNavigate();
-  const { hackathon, currentUser, logoutUser, schedules = [], scheduleEvents = [] } = useHackathon();
+  const { hackathon, currentUser, logoutUser, isRegistrationOpen, schedules = [], scheduleEvents = [] } = useHackathon();
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
 
   const hasScheduleData =
-    (Array.isArray(schedules) && schedules.length > 0) ||
+    (Array.isArray(schedules) && schedules.some((s) => !s.type || s.type === 'hackathon')) ||
     (Array.isArray(scheduleEvents) && scheduleEvents.length > 0) ||
-    (Array.isArray(hackathon?.schedules) && hackathon.schedules.length > 0);
+    (Array.isArray(hackathon?.schedules) && hackathon.schedules.some((s) => !s.type || s.type === 'hackathon'));
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const dropdownRef = useRef(null);
@@ -148,14 +148,16 @@ export default function CustomerNavbar({ onOpenRegister, onOpenLogin, onOpenProf
                       <User className="w-3.5 h-3.5 text-brand-blue" />
                       <span>My Profile & Registered Teams</span>
                     </Link>
-                    <button
-                      type="button"
-                      onClick={() => { setUserDropdownOpen(false); onOpenRegister(); }}
-                      className="w-full text-left px-3 py-2 text-xs text-slate-700 hover:bg-slate-50 rounded-xl flex items-center gap-2 transition cursor-pointer"
-                    >
-                      <Award className="w-3.5 h-3.5 text-slate-400" />
-                      <span>Register a new team</span>
-                    </button>
+                    {isRegistrationOpen && (
+                      <button
+                        type="button"
+                        onClick={() => { setUserDropdownOpen(false); onOpenRegister(); }}
+                        className="w-full text-left px-3 py-2 text-xs text-slate-700 hover:bg-slate-50 rounded-xl flex items-center gap-2 transition cursor-pointer"
+                      >
+                        <Award className="w-3.5 h-3.5 text-slate-400" />
+                        <span>Register a new team</span>
+                      </button>
+                    )}
                     <button
                       type="button"
                       onClick={() => { setUserDropdownOpen(false); logoutUser(); }}
@@ -169,14 +171,20 @@ export default function CustomerNavbar({ onOpenRegister, onOpenLogin, onOpenProf
               )}
             </div>
           ) : (
-            <Button variant="outline" onClick={onOpenLogin} className="hidden sm:inline-flex !px-5 !py-2 !text-xs">
+            <Button
+              variant="outline"
+              onClick={onOpenLogin}
+              className={`${isRegistrationOpen ? 'hidden sm:inline-flex' : 'inline-flex'} !px-5 !py-2 !text-xs`}
+            >
               Login
             </Button>
           )}
 
-          <Button onClick={onOpenRegister} className="!px-5 !py-2 !text-xs">
-            Register
-          </Button>
+          {isRegistrationOpen && (
+            <Button onClick={onOpenRegister} className="!px-5 !py-2 !text-xs">
+              Register
+            </Button>
+          )}
 
           <button
             type="button"
@@ -224,7 +232,7 @@ export default function CustomerNavbar({ onOpenRegister, onOpenLogin, onOpenProf
                 className="text-left px-3 py-2 rounded-xl bg-white/10 text-white font-semibold flex items-center gap-2 mt-2"
               >
                 <User className="w-4 h-4" />
-                <span>Login / Register</span>
+                <span>{isRegistrationOpen ? 'Login / Register' : 'Login'}</span>
               </button>
             )}
           </nav>

@@ -16,13 +16,15 @@ import {
   CheckCircle2,
   AlertCircle,
   Loader2,
-  ShieldCheck
+  ShieldCheck,
+  Clock
 } from 'lucide-react';
 import HackathonBrand from '../common/HackathonBrand';
 import Footer from '../common/Footer';
 import Toast from '../common/Toast';
 import CustomerNavbar from './CustomerNavbar';
 import UserAuthModal from './UserAuthModal';
+import RegistrationCountdownPage from './RegistrationCountdownPage';
 
 function formatTeamRegistrationError(err) {
   if (!err) return 'Failed to register team. Please try again.';
@@ -74,7 +76,12 @@ function formatTeamRegistrationError(err) {
 
 export default function RegisterTeamPage() {
   const navigate = useNavigate();
-  const { registerTeam, hackathon, currentUser, terms } = useHackathon();
+  const { registerTeam, hackathon, currentUser, terms, isRegistrationOpen, registrationStatus } = useHackathon();
+
+  // If registration dates are not currently active, display the countdown / days left page
+  if (!isRegistrationOpen) {
+    return <RegistrationCountdownPage />;
+  }
 
   const minTeamSize = hackathon?.minimum_team_size || 1;
   const maxTeamSize = hackathon?.maximum_team_size || 4;
@@ -111,13 +118,13 @@ export default function RegisterTeamPage() {
     }));
   }, [currentUser, maxTeamSize]);
 
-  // Registering needs a Google login: ask for it as soon as the page opens
+  // Registering needs a Google login: ask for it as soon as the page opens (only if registration is active)
   useEffect(() => {
-    if (!currentUser) {
+    if (!currentUser && isRegistrationOpen) {
       setAuthReason('register');
       setIsAuthOpen(true);
     }
-  }, [currentUser]);
+  }, [currentUser, isRegistrationOpen]);
 
   // Only the terms viewer is still a modal
   useBodyScrollLock(showTermsModal);

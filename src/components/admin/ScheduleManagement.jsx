@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   CalendarClock,
   Calendar,
@@ -18,11 +19,13 @@ import {
   ChevronRight,
   SlidersHorizontal,
   LayoutGrid,
-  Table as TableIcon
+  Table as TableIcon,
+  QrCode
 } from 'lucide-react';
 import { api, getSelectedAdminHackathon } from '../../services/api';
 import { useHackathon } from '../../context/HackathonContext';
 import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
+import ScheduleEventManagement from './ScheduleEventManagement';
 
 // Execution status options matching backend ExecutionStatus choices
 export const EXECUTION_STATUS_OPTIONS = [
@@ -33,6 +36,14 @@ export const EXECUTION_STATUS_OPTIONS = [
 ];
 
 export default function ScheduleManagement() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get('tab') || 'schedules';
+
+  // If user clicked 'Schedule Events' sub-item in sidebar, render ScheduleEventManagement
+  if (activeTab === 'events') {
+    return <ScheduleEventManagement />;
+  }
+
   const { showToast, hackathon: currentHackathon } = useHackathon();
 
   // Data states
@@ -49,6 +60,7 @@ export default function ScheduleManagement() {
 
   // Filters & search
   const [searchQuery, setSearchQuery] = useState('');
+  const [typeFilter, setTypeFilter] = useState('all'); // 'all' | 'hackathon' | 'pre_event'
   const [executionStatusFilter, setExecutionStatusFilter] = useState('all');
   const [activeFilter, setActiveFilter] = useState('all');
   const [viewMode, setViewMode] = useState('table'); // 'table' | 'cards'
@@ -73,6 +85,7 @@ export default function ScheduleManagement() {
   const initialForm = {
     hackathon: getActiveHackathonId(),
     hackathon_id: getActiveHackathonId(),
+    type: 'hackathon',
     title: '',
     description: '',
     start_time: '',
@@ -118,6 +131,7 @@ export default function ScheduleManagement() {
           p.hackathon_id = activeHackId;
         }
         if (debouncedSearch.trim()) p.search = debouncedSearch.trim();
+        if (typeFilter !== 'all') p.type = typeFilter;
         if (executionStatusFilter !== 'all') p.execution_status = executionStatusFilter;
         if (activeFilter === 'active') p.is_active = 'true';
         if (activeFilter === 'inactive') p.is_active = 'false';
@@ -155,12 +169,13 @@ export default function ScheduleManagement() {
   useEffect(() => {
     const params = {};
     if (debouncedSearch.trim()) params.search = debouncedSearch.trim();
+    if (typeFilter !== 'all') params.type = typeFilter;
     if (executionStatusFilter !== 'all') params.execution_status = executionStatusFilter;
     if (activeFilter === 'active') params.is_active = 'true';
     if (activeFilter === 'inactive') params.is_active = 'false';
 
     fetchSchedules(params);
-  }, [debouncedSearch, executionStatusFilter, activeFilter]);
+  }, [debouncedSearch, typeFilter, executionStatusFilter, activeFilter]);
 
   // Re-fetch whenever global hackathon edition changes in AdminLayout top bar
   useEffect(() => {
@@ -285,6 +300,7 @@ export default function ScheduleManagement() {
     setCreateForm({
       hackathon: activeHackId,
       hackathon_id: activeHackId,
+      type: 'hackathon',
       title: '',
       description: '',
       start_time: '',
@@ -303,6 +319,7 @@ export default function ScheduleManagement() {
     setEditForm({
       hackathon: hackId,
       hackathon_id: hackId,
+      type: schedule.type || 'hackathon',
       title: schedule.title || '',
       description: schedule.description || '',
       start_time: toLocalInputValue(schedule.start_time),
@@ -357,6 +374,7 @@ export default function ScheduleManagement() {
       const payload = {
         hackathon: activeHackId,
         hackathon_id: activeHackId,
+        type: createForm.type || 'hackathon',
         title: createForm.title.trim(),
         description: createForm.description.trim(),
         start_time: new Date(createForm.start_time).toISOString(),
@@ -400,6 +418,7 @@ export default function ScheduleManagement() {
       const payload = {
         hackathon: activeHackId,
         hackathon_id: activeHackId,
+        type: editForm.type || 'hackathon',
         title: editForm.title.trim(),
         description: editForm.description.trim(),
         start_time: new Date(editForm.start_time).toISOString(),
@@ -473,7 +492,16 @@ export default function ScheduleManagement() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5 w-full sm:w-auto">
+        <div className="flex flex-col sm:flex-row items-center gap-2.5 w-full sm:w-auto">
+          <button
+            type="button"
+            onClick={() => setSearchParams({ tab: 'events' })}
+            className="w-full sm:w-auto justify-center inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-white border border-slate-200 text-slate-800 hover:border-[#ea580c] hover:bg-orange-50 hover:text-[#ea580c] shadow-xs transition cursor-pointer"
+          >
+            <QrCode className="w-4 h-4 text-[#ea580c]" />
+            <span>Record Event via QR</span>
+          </button>
+
           <button
             type="button"
             onClick={handleOpenCreateModal}
@@ -591,11 +619,22 @@ export default function ScheduleManagement() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5">
+            {/* Schedule Type Filter */}
+            <select
+              value={typeFilter}
+              onChange={(e) => setTypeFilter(e.target.value)}
+              className="text-xs px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-slate-700 focus:bg-white focus:outline-none focus:border-[#ea580c] transition cursor-pointer font-medium"
+            >
+              <option value="all">All Types</option>
+              <option value="hackathon">Hackathon Only</option>
+              <option value="pre_event">Pre-Event Only</option>
+            </select>
+
             {/* Active Status Filter */}
             <select
               value={activeFilter}
               onChange={(e) => setActiveFilter(e.target.value)}
-              className="text-xs px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-slate-700 focus:bg-white focus:outline-none focus:border-[#ea580c] transition"
+              className="text-xs px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-slate-700 focus:bg-white focus:outline-none focus:border-[#ea580c] transition cursor-pointer font-medium"
             >
               <option value="all">All States</option>
               <option value="active">Active Only</option>
@@ -730,8 +769,17 @@ export default function ScheduleManagement() {
                     >
                       {/* Title & Description */}
                       <td className="py-3.5 px-4 max-w-sm">
-                        <div className="font-bold text-slate-900 text-xs sm:text-sm group-hover:text-[#ea580c] transition-colors">
-                          {schedule.title}
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-slate-900 text-xs sm:text-sm group-hover:text-[#ea580c] transition-colors">
+                            {schedule.title}
+                          </span>
+                          <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold border ${
+                            schedule.type === 'pre_event'
+                              ? 'bg-purple-50 text-purple-700 border-purple-200/60'
+                              : 'bg-blue-50 text-blue-700 border-blue-200/60'
+                          }`}>
+                            {schedule.type === 'pre_event' ? 'Pre-Event' : 'Hackathon'}
+                          </span>
                         </div>
                         {schedule.description && (
                           <p className="text-slate-500 text-[11px] line-clamp-1 mt-0.5">
@@ -848,7 +896,13 @@ export default function ScheduleManagement() {
               >
                 <div>
                   <div className="flex items-start justify-between gap-2 mb-2">
-                    <span />
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold border ${
+                      schedule.type === 'pre_event'
+                        ? 'bg-purple-50 text-purple-700 border-purple-200/60'
+                        : 'bg-blue-50 text-blue-700 border-blue-200/60'
+                    }`}>
+                      {schedule.type === 'pre_event' ? 'Pre-Event' : 'Hackathon'}
+                    </span>
 
                     {schedule.is_active !== false ? (
                       <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
@@ -968,6 +1022,21 @@ export default function ScheduleManagement() {
               {/* Hidden Hackathon ID (auto-bound to current hackathon) */}
               <input type="hidden" name="hackathon" value={createForm.hackathon} />
               <input type="hidden" name="hackathon_id" value={createForm.hackathon_id || createForm.hackathon} />
+
+              {/* Schedule Type */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Schedule Type <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={createForm.type || 'hackathon'}
+                  onChange={(e) => setCreateForm({ ...createForm, type: e.target.value })}
+                  className="w-full text-xs px-3 py-2 rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-[#ea580c] transition text-slate-800"
+                >
+                  <option value="hackathon">Hackathon (Public participant sprints & milestones)</option>
+                  <option value="pre_event">Pre-Event (Pre-hackathon workshops & sessions)</option>
+                </select>
+              </div>
 
               {/* Title */}
               <div>
@@ -1092,6 +1161,21 @@ export default function ScheduleManagement() {
               {/* Hidden Hackathon ID (preserved on edit) */}
               <input type="hidden" name="hackathon" value={editForm.hackathon} />
               <input type="hidden" name="hackathon_id" value={editForm.hackathon_id || editForm.hackathon} />
+
+              {/* Schedule Type */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Schedule Type <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={editForm.type || 'hackathon'}
+                  onChange={(e) => setEditForm({ ...editForm, type: e.target.value })}
+                  className="w-full text-xs px-3 py-2 rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-[#ea580c] transition text-slate-800"
+                >
+                  <option value="hackathon">Hackathon (Public participant sprints & milestones)</option>
+                  <option value="pre_event">Pre-Event (Pre-hackathon workshops & sessions)</option>
+                </select>
+              </div>
 
               {/* Title */}
               <div>
@@ -1328,6 +1412,17 @@ export default function ScheduleManagement() {
             </div>
 
             <div className="mt-4 space-y-4 text-xs">
+              <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                <span className="text-slate-500">Schedule Type:</span>
+                <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold border ${
+                  selectedSchedule.type === 'pre_event'
+                    ? 'bg-purple-50 text-purple-700 border-purple-200/60'
+                    : 'bg-blue-50 text-blue-700 border-blue-200/60'
+                }`}>
+                  {selectedSchedule.type === 'pre_event' ? 'Pre-Event' : 'Hackathon'}
+                </span>
+              </div>
+
               <div>
                 <span className="text-[11px] text-slate-400 uppercase tracking-wider font-semibold">
                   Title

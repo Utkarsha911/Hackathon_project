@@ -868,6 +868,37 @@ export const api = {
         }),
     },
 
+    // --- Admin Schedule Events APIs (/api/v1/hackathons/admin/schedule-events/) ---
+    adminScheduleEvents: {
+      getAll: (params = {}, options = {}) =>
+        request(`/hackathons/admin/schedule-events/${buildQueryString(params)}`, options),
+      getById: (id, options = {}) =>
+        request(`/hackathons/admin/schedule-events/${id}/`, options),
+      create: (data, options = {}) =>
+        request('/hackathons/admin/schedule-events/', {
+          method: 'POST',
+          body: JSON.stringify(data),
+          ...options,
+        }),
+      update: (id, data, options = {}) =>
+        request(`/hackathons/admin/schedule-events/${id}/`, {
+          method: 'PUT',
+          body: JSON.stringify(data),
+          ...options,
+        }),
+      patch: (id, data, options = {}) =>
+        request(`/hackathons/admin/schedule-events/${id}/`, {
+          method: 'PATCH',
+          body: JSON.stringify(data),
+          ...options,
+        }),
+      delete: (id, options = {}) =>
+        request(`/hackathons/admin/schedule-events/${id}/`, {
+          method: 'DELETE',
+          ...options,
+        }),
+    },
+
     // --- Hackathon Committee Organizers APIs (/hackathons/organizers/) ---
     organizers: {
       getAll: (params = {}, options = {}) =>
@@ -1256,7 +1287,8 @@ export const api = {
 
   // --- Schedules & Schedule Events APIs ---
   schedules: {
-    getAll: () => request('/hackathons/schedules/'),
+    getAll: (params = {}, options = {}) =>
+      request(`/hackathons/schedules/${buildQueryString(params)}`, options),
     create: (data) =>
       request('/hackathons/schedules/', {
         method: 'POST',
@@ -1304,6 +1336,68 @@ export const api = {
         body: JSON.stringify(data),
         ...options,
       }),
+  },
+
+  // --- Admin Schedule Events APIs (/api/v1/hackathons/admin/schedule-events/) ---
+  adminScheduleEvents: {
+    getAll: (params = {}, options = {}) =>
+      request(`/hackathons/admin/schedule-events/${buildQueryString(params)}`, options),
+    getById: (id, options = {}) =>
+      request(`/hackathons/admin/schedule-events/${id}/`, options),
+    create: (data, options = {}) =>
+      request('/hackathons/admin/schedule-events/', {
+        method: 'POST',
+        body: JSON.stringify(data),
+        ...options,
+      }),
+    update: (id, data, options = {}) =>
+      request(`/hackathons/admin/schedule-events/${id}/`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+        ...options,
+      }),
+    patch: (id, data, options = {}) =>
+      request(`/hackathons/admin/schedule-events/${id}/`, {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+        ...options,
+      }),
+    delete: (id, options = {}) =>
+      request(`/hackathons/admin/schedule-events/${id}/`, {
+        method: 'DELETE',
+        ...options,
+      }),
+  },
+
+  // --- Guests APIs (/api/v1/users/guests/) ---
+  guests: {
+    getAll: (params = {}, options = {}) =>
+      request(`/users/guests/${buildQueryString(params)}`, options),
+    getById: (id, options = {}) =>
+      request(`/users/guests/${id}/`, options),
+    create: (data, options = {}) =>
+      request('/users/guests/', {
+        method: 'POST',
+        body: JSON.stringify(data),
+        ...options,
+      }),
+    patch: (id, data, options = {}) =>
+      request(`/users/guests/${id}/`, {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+        ...options,
+      }),
+    delete: (id, options = {}) =>
+      request(`/users/guests/${id}/`, {
+        method: 'DELETE',
+        ...options,
+      }),
+  },
+
+  // --- Participants APIs (/api/v1/users/participants/) ---
+  participants: {
+    getAll: (params = {}, options = {}) =>
+      request(`/users/participants/${buildQueryString(params)}`, options),
   },
 
   // --- Teams, Participants, Registrations, Check-Ins, Tables ---

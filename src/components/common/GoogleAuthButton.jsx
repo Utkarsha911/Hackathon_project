@@ -164,6 +164,7 @@ export default function GoogleAuthButton({
 
   // Direct trigger if user clicks the button
   const handleCustomGoogleClick = () => {
+    setErrorMsg('');
     if (window.google?.accounts?.id) {
       try {
         window.google.accounts.id.prompt((notification) => {
@@ -171,22 +172,22 @@ export default function GoogleAuthButton({
             if (showDirectTokenInput) {
               setShowTokenMode(true);
             } else {
-              handleDemoLogin();
+              setErrorMsg('Google Sign-In prompt was dismissed or not displayed. Please try again.');
             }
           }
         });
-      } catch {
+      } catch (err) {
         if (showDirectTokenInput) {
           setShowTokenMode(true);
         } else {
-          handleDemoLogin();
+          setErrorMsg('Failed to open Google Sign-In. Please try again.');
         }
       }
     } else {
       if (showDirectTokenInput) {
         setShowTokenMode(true);
       } else {
-        handleDemoLogin();
+        setErrorMsg('Google authentication service is still initializing. Please wait a moment and try again.');
       }
     }
   };

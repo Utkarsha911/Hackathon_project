@@ -1,12 +1,12 @@
 import React from 'react';
 import { useHackathon } from '../../context/HackathonContext';
 import { getMediaUrl } from '../../services/api';
-import { ArrowRight, Calendar, MapPin, Users } from 'lucide-react';
+import { ArrowRight, Calendar, MapPin, Users, Clock } from 'lucide-react';
 import { EVENT_VERSION, EVENT_YEAR } from '../../config/event';
 import Button from '../common/Button';
 
 export default function HeroSection({ onOpenRegister }) {
-  const { hackathon, isLoadingApi } = useHackathon();
+  const { hackathon, isLoadingApi, isRegistrationOpen, registrationStatus } = useHackathon();
 
   // Month/day come from the API; the year is the event year (the stored dates still carry 2024).
   const formatDateRange = () => {
@@ -86,10 +86,24 @@ export default function HeroSection({ onOpenRegister }) {
         </div>
 
         <div className="mt-9 flex flex-wrap items-center gap-3">
-          <Button onClick={onOpenRegister}>
-            <span>Register Now</span>
-            <ArrowRight className="w-4 h-4" />
-          </Button>
+          {isRegistrationOpen ? (
+            <Button onClick={onOpenRegister}>
+              <span>Register Now</span>
+              <ArrowRight className="w-4 h-4" />
+            </Button>
+          ) : registrationStatus?.reason === 'not_started' ? (
+            <Button
+              onClick={onOpenRegister}
+              className="!bg-brand-orange/20 !text-brand-yellow !border !border-brand-orange/40 hover:!bg-brand-orange/30 !shadow-xs"
+            >
+              <Clock className="w-4 h-4 text-brand-yellow" />
+              <span>
+                Registration Starting in {registrationStatus.daysUntilStart || 1}{' '}
+                {(registrationStatus.daysUntilStart || 1) === 1 ? 'Day' : 'Days Left'}
+              </span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Button>
+          ) : null}
           <Button variant="outline" href="#about">Learn More</Button>
         </div>
       </div>

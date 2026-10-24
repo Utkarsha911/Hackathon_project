@@ -22,6 +22,8 @@ import rolesData from '../data/json/roles.json';
 import teamMembersData from '../data/json/team_members.json';
 import notificationsData from '../data/json/notifications.json';
 
+import { isRegistrationOpen, getRegistrationStatus, getTimeRemaining } from '../utils/registration';
+
 const HackathonContext = createContext();
 
 export function HackathonProvider({ children }) {
@@ -61,22 +63,7 @@ export function HackathonProvider({ children }) {
   const [notifications, setNotifications] = useState(notificationsData || []);
 
   // Schedule Event Attendances state (tracking checkins per schedule event session)
-  const [eventAttendances, setEventAttendances] = useState([
-    {
-      id: 'att-001',
-      schedule_event_id: 'sev-01',
-      user_id: 'usr-005',
-      scanned_at: '2026-11-14T08:30:00Z',
-      notes: 'Gate 1 QR Scan Verified'
-    },
-    {
-      id: 'att-002',
-      schedule_event_id: 'sev-01',
-      user_id: 'usr-006',
-      scanned_at: '2026-11-14T08:45:00Z',
-      notes: 'Gate 2 QR Scan Verified'
-    }
-  ]);
+  const [eventAttendances, setEventAttendances] = useState([]);
 
   // Global Toast Alert State
   const [toast, setToast] = useState(null);
@@ -188,9 +175,11 @@ export function HackathonProvider({ children }) {
         }
 
         if (Array.isArray(currentDetails.schedules) && currentDetails.schedules.length > 0) {
-          setSchedules(currentDetails.schedules);
+          // On customer site: only show schedules with type 'hackathon' (or untyped default)
+          const hackathonSchedules = currentDetails.schedules.filter(s => !s.type || s.type === 'hackathon');
+          setSchedules(hackathonSchedules);
           const extractedEvents = [];
-          currentDetails.schedules.forEach(s => {
+          hackathonSchedules.forEach(s => {
             if (Array.isArray(s.events)) {
               extractedEvents.push(...s.events);
             }
@@ -352,10 +341,17 @@ export function HackathonProvider({ children }) {
         // Only fetch generic schedules if current-hackathon did not embed schedules
         if (!currentDetails?.schedules || currentDetails.schedules.length === 0) {
           const schedulesRes = await api.schedules.getAll().catch(() => null);
-          if (Array.isArray(schedulesRes) && schedulesRes.length > 0) {
-            setSchedules(schedulesRes);
+          const list = Array.isArray(schedulesRes)
+            ? schedulesRes
+            : Array.isArray(schedulesRes?.results)
+            ? schedulesRes.results
+            : [];
+          if (list.length > 0) {
+            // Customer site only displays schedules of type 'hackathon'
+            const hackathonSchedules = list.filter(s => !s.type || s.type === 'hackathon');
+            setSchedules(hackathonSchedules);
             const extractedEvents = [];
-            schedulesRes.forEach(s => {
+            hackathonSchedules.forEach(s => {
               if (Array.isArray(s.events)) {
                 extractedEvents.push(...s.events);
               }
@@ -851,6 +847,8 @@ export function HackathonProvider({ children }) {
     // Datasets
     hackathon,
     setHackathon,
+    isRegistrationOpen: isRegistrationOpen(hackathon),
+    registrationStatus: getRegistrationStatus(hackathon),
     prizes,
     challenges,
     schedules,
@@ -911,3 +909,6 @@ export function useHackathon() {
   }
   return context;
 }
+
+export { isRegistrationOpen, getRegistrationStatus, getTimeRemaining };
+

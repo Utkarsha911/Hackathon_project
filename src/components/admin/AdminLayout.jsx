@@ -43,7 +43,8 @@ import {
   HelpCircle,
   Mail,
   Clock,
-  CheckCircle2
+  CheckCircle2,
+  ShieldCheck
 } from 'lucide-react';
 import HackathonBrand from '../common/HackathonBrand';
 import permissionsData from '../../data/json/permissions.json';
@@ -272,9 +273,12 @@ export default function AdminLayout() {
   const currentTab = new URLSearchParams(location.search).get('tab') || 'sponsors';
   const userTab = new URLSearchParams(location.search).get('tab') || 'users';
   const hackathonTab = new URLSearchParams(location.search).get('tab') || 'hackathons';
+  const participantTab = new URLSearchParams(location.search).get('tab') || 'participants';
+  const scheduleTab = new URLSearchParams(location.search).get('tab') || 'schedules';
   const isDashboardActive = pathname === '/admin-control-site' || pathname === '/admin-control-site/';
   const isHackathonsActive = pathname.startsWith('/admin-control-site/hackathons');
   const isHackathonOrganizersActive = isHackathonsActive && hackathonTab === 'organizers';
+  const isHackathonGuestsActive = isHackathonsActive && hackathonTab === 'guests';
   const isHackathonTeamsActive = (isHackathonsActive && hackathonTab === 'teams') || pathname === '/admin-control-site/teams';
   const isHackathonPrizesActive = isHackathonsActive && (hackathonTab === 'prizes' || hackathonTab === 'prizes-faqs');
   const isHackathonFaqsActive = isHackathonsActive && hackathonTab === 'faqs';
@@ -283,12 +287,17 @@ export default function AdminLayout() {
     isHackathonsActive &&
     hackathonTab !== 'organizers' &&
     hackathonTab !== 'teams' &&
+    hackathonTab !== 'guests' &&
     !isHackathonPrizesActive &&
     !isHackathonFaqsActive &&
     !isHackathonContactsActive;
   const isSponsorsActive = pathname.startsWith('/admin-control-site/sponsors');
   const isSchedulesActive = pathname.startsWith('/admin-control-site/schedules');
+  const isScheduleEventsActive = isSchedulesActive && scheduleTab === 'events';
+  const isScheduleMilestonesActive = isSchedulesActive && scheduleTab !== 'events';
   const isCustomersActive = pathname.startsWith('/admin-control-site/participants') || pathname.startsWith('/admin-control-site/customers');
+  const isParticipantGuestsActive = isCustomersActive && participantTab === 'guests';
+  const isParticipantsListActive = isCustomersActive && participantTab !== 'guests' && participantTab !== 'organizers';
   const isUsersActive = pathname.startsWith('/admin-control-site/users');
   const isDepartmentsActive = isUsersActive && userTab === 'departments';
   const isOrganizersActive = isUsersActive && userTab === 'organizers';
@@ -451,7 +460,8 @@ export default function AdminLayout() {
 
   // Header Title mapping
   let pageTitle = 'Hackathon Management';
-  if (isHackathonOrganizersActive) pageTitle = 'Hackathon Organizers';
+  if (isHackathonGuestsActive || isParticipantGuestsActive) pageTitle = 'Guest Credential Directory';
+  else if (isHackathonOrganizersActive) pageTitle = 'Hackathon Organizers';
   else if (isHackathonPrizesActive) pageTitle = 'Prize Management';
   else if (isHackathonFaqsActive) pageTitle = 'FAQ Management';
   else if (isHackathonContactsActive) pageTitle = 'Contact Inquiries';
@@ -581,6 +591,27 @@ export default function AdminLayout() {
                       >
                         <Award className="w-3.5 h-3.5 shrink-0" />
                         <span>Organizers</span>
+                      </Link>
+                    )}
+
+                    {/* Hackathon Guests */}
+                    {canAccessHackathonCrm && (
+                      <Link
+                        to="/admin-control-site/hackathons?tab=guests"
+                        onClick={() => setMobileMenuOpen(false)}
+                        className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-normal transition-all ${
+                          isHackathonGuestsActive
+                            ? 'shadow-xs text-white'
+                            : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                        }`}
+                        style={
+                          isHackathonGuestsActive
+                            ? { backgroundColor: '#ea580c', color: '#ffffff' }
+                            : {}
+                        }
+                      >
+                        <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
+                        <span>Guests</span>
                       </Link>
                     )}
 
@@ -835,18 +866,36 @@ export default function AdminLayout() {
                       to="/admin-control-site/schedules"
                       onClick={() => setMobileMenuOpen(false)}
                       className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-normal transition-all ${
-                        isSchedulesActive
+                        isScheduleMilestonesActive
                           ? 'shadow-xs text-white'
                           : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
                       }`}
                       style={
-                        isSchedulesActive
+                        isScheduleMilestonesActive
                           ? { backgroundColor: '#ea580c', color: '#ffffff' }
                           : {}
                       }
                     >
                       <Calendar className="w-3.5 h-3.5 shrink-0" />
                       <span>Schedules</span>
+                    </Link>
+
+                    <Link
+                      to="/admin-control-site/schedules?tab=events"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-normal transition-all ${
+                        isScheduleEventsActive
+                          ? 'shadow-xs text-white'
+                          : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                      }`}
+                      style={
+                        isScheduleEventsActive
+                          ? { backgroundColor: '#ea580c', color: '#ffffff' }
+                          : {}
+                      }
+                    >
+                      <Clock className="w-3.5 h-3.5 shrink-0" />
+                      <span>Schedule Events</span>
                     </Link>
                   </div>
                 )}
@@ -880,21 +929,42 @@ export default function AdminLayout() {
                     {/* Participants */}
                     {canAccessParticipants && (
                       <Link
-                        to="/admin-control-site/participants"
+                        to="/admin-control-site/participants?tab=participants"
                         onClick={() => setMobileMenuOpen(false)}
                         className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-normal transition-all ${
-                          isCustomersActive
+                          isParticipantsListActive
                             ? 'shadow-xs text-white'
                             : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
                         }`}
                         style={
-                          isCustomersActive
+                          isParticipantsListActive
                             ? { backgroundColor: '#ea580c', color: '#ffffff' }
                             : {}
                         }
                       >
                         <Users className="w-3.5 h-3.5 shrink-0" />
                         <span>Participants</span>
+                      </Link>
+                    )}
+
+                    {/* Guests & VIPs */}
+                    {canAccessParticipants && (
+                      <Link
+                        to="/admin-control-site/participants?tab=guests"
+                        onClick={() => setMobileMenuOpen(false)}
+                        className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-normal transition-all ${
+                          isParticipantGuestsActive
+                            ? 'shadow-xs text-white'
+                            : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                        }`}
+                        style={
+                          isParticipantGuestsActive
+                            ? { backgroundColor: '#ea580c', color: '#ffffff' }
+                            : {}
+                        }
+                      >
+                        <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
+                        <span>Guests & VIPs</span>
                       </Link>
                     )}
 

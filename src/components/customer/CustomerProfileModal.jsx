@@ -27,7 +27,7 @@ import {
 import HackathonBrand from '../common/HackathonBrand';
 
 export default function CustomerProfileModal({ isOpen, onClose, onOpenRegister }) {
-  const { currentUser, hackathon, logoutUser } = useHackathon();
+  const { currentUser, hackathon, logoutUser, isRegistrationOpen } = useHackathon();
 
   const [registeredTeams, setRegisteredTeams] = useState([]);
   const [isLoadingTeams, setIsLoadingTeams] = useState(false);
@@ -243,17 +243,26 @@ export default function CustomerProfileModal({ isOpen, onClose, onOpenRegister }
                 <div>
                   <h5 className="text-sm font-bold text-slate-800">No teams registered yet</h5>
                   <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
-                    You haven't enrolled a team for {hackathon?.title || 'the hackathon'} yet. Register your squad to participate!
+                    {isRegistrationOpen
+                      ? `You haven't enrolled a team for ${hackathon?.title || 'the hackathon'} yet. Register your squad to participate!`
+                      : `You have not registered or joined any squad for ${hackathon?.title || 'this hackathon edition'}.`}
                   </p>
                 </div>
-                <button
-                  type="button"
-                  onClick={handleRegisterNewTeam}
-                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-brand-orange hover:brightness-110 px-4 py-2 rounded-xl shadow-xs transition"
-                >
-                  <UserPlus className="w-3.5 h-3.5" />
-                  <span>Register Squad Now</span>
-                </button>
+                {isRegistrationOpen ? (
+                  <button
+                    type="button"
+                    onClick={handleRegisterNewTeam}
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-brand-orange hover:brightness-110 px-4 py-2 rounded-xl shadow-xs transition"
+                  >
+                    <UserPlus className="w-3.5 h-3.5" />
+                    <span>Register Squad Now</span>
+                  </button>
+                ) : (
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-slate-100 text-slate-600">
+                    <Clock className="w-3.5 h-3.5 text-slate-400" />
+                    <span>Registration is currently closed for this edition</span>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="space-y-4">

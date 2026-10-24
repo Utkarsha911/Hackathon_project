@@ -29,14 +29,16 @@ import {
   Award,
   UserCheck,
   Mail,
-  Shield,
   Hash,
-  Building2
+  Building2,
+  QrCode
 } from 'lucide-react';
 import TeamManagement from './TeamManagement';
 import PrizeManagement from './PrizeManagement';
 import FaqManagement from './FaqManagement';
 import ContactManagement from './ContactManagement';
+import CustomerManagement from './CustomerManagement';
+import QrBadgeModal from '../common/QrBadgeModal';
 
 // Module-level cache so tab switching within the admin panel is instant
 let cachedHackathonsPayload = null;
@@ -207,6 +209,10 @@ export default function HackathonManagement() {
   const [deletingOrg, setDeletingOrg] = useState(null);
   const [submittingDeleteOrg, setSubmittingDeleteOrg] = useState(false);
 
+  // QR Credential Badge Modal
+  const [qrAttendee, setQrAttendee] = useState(null);
+  const [qrModalOpen, setQrModalOpen] = useState(false);
+
   // Background scroll lock when any modal is open
   const isAnyModalOpen = Boolean(
     isCreateOpen ||
@@ -215,7 +221,8 @@ export default function HackathonManagement() {
       deletingHackathon ||
       isOrgModalOpen ||
       viewingOrg ||
-      deletingOrg
+      deletingOrg ||
+      qrModalOpen
   );
   useBodyScrollLock(isAnyModalOpen);
 
@@ -540,8 +547,8 @@ export default function HackathonManagement() {
       rules: hackathon.rules || '',
       status: hackathon.status || 'draft',
       is_current: hackathon.is_current !== undefined ? hackathon.is_current : true,
-      registration_start_date: ensureDateFormat(hackathon.registration_start_date, ''),
-      registration_end_date: ensureDateFormat(hackathon.registration_end_date, ''),
+      registration_start_date: ensureDateFormat(hackathon.registration_start_date || hackathon.registration_startdate, ''),
+      registration_end_date: ensureDateFormat(hackathon.registration_end_date || hackathon.registration_enddate, ''),
       minimum_team_size: hackathon.minimum_team_size ?? 1,
       maximum_team_size: hackathon.maximum_team_size ?? 4,
       year: ensureDateFormat(hackathon.year, getTodayDate()),
@@ -575,10 +582,16 @@ export default function HackathonManagement() {
       if (endDateFormatted) formData.append('end_date', endDateFormatted);
 
       const regStartFormatted = ensureDateFormat(createForm.registration_start_date);
-      if (regStartFormatted) formData.append('registration_start_date', regStartFormatted);
+      if (regStartFormatted) {
+        formData.append('registration_start_date', regStartFormatted);
+        formData.append('registration_startdate', regStartFormatted);
+      }
 
       const regEndFormatted = ensureDateFormat(createForm.registration_end_date);
-      if (regEndFormatted) formData.append('registration_end_date', regEndFormatted);
+      if (regEndFormatted) {
+        formData.append('registration_end_date', regEndFormatted);
+        formData.append('registration_enddate', regEndFormatted);
+      }
 
       const yearFormatted =
         ensureDateFormat(createForm.year) ||
@@ -639,10 +652,16 @@ export default function HackathonManagement() {
       if (endDateFormatted) formData.append('end_date', endDateFormatted);
 
       const regStartFormatted = ensureDateFormat(editForm.registration_start_date);
-      if (regStartFormatted) formData.append('registration_start_date', regStartFormatted);
+      if (regStartFormatted) {
+        formData.append('registration_start_date', regStartFormatted);
+        formData.append('registration_startdate', regStartFormatted);
+      }
 
       const regEndFormatted = ensureDateFormat(editForm.registration_end_date);
-      if (regEndFormatted) formData.append('registration_end_date', regEndFormatted);
+      if (regEndFormatted) {
+        formData.append('registration_end_date', regEndFormatted);
+        formData.append('registration_enddate', regEndFormatted);
+      }
 
       const yearFormatted =
         ensureDateFormat(editForm.year) ||
@@ -721,6 +740,8 @@ export default function HackathonManagement() {
     <div className="space-y-6 max-w-7xl mx-auto">
       {activeTab === 'teams' ? (
         <TeamManagement />
+      ) : activeTab === 'guests' ? (
+        <CustomerManagement />
       ) : activeTab === 'organizers' ? (
         <div className="space-y-6">
           {/* Header with Title and Add Organizer Button (Rule 1) */}
@@ -999,6 +1020,27 @@ export default function HackathonManagement() {
                           {/* Actions */}
                           <td className="py-3.5 px-4 text-right">
                             <div className="flex items-center justify-end gap-1">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setQrAttendee({
+                                    id: org.id,
+                                    type: 'organizer',
+                                    name: displayName,
+                                    role: org.designation || 'Organizer',
+                                    email: user.email,
+                                    phone: user.phone_number,
+                                    department: org.department_name,
+                                    hackathon_id: org.hackathon,
+                                    avatar: avatarUrl
+                                  });
+                                  setQrModalOpen(true);
+                                }}
+                                className="p-1.5 rounded-lg text-slate-500 hover:text-[#ea580c] hover:bg-orange-50 transition cursor-pointer"
+                                title="View QR Badge"
+                              >
+                                <QrCode className="w-4 h-4" />
+                              </button>
                               <button
                                 type="button"
                                 onClick={() => setViewingOrg(org)}
@@ -1445,9 +1487,9 @@ export default function HackathonManagement() {
 
                       {/* Registration Window */}
                       <td className="py-3 px-4 font-mono text-[11px] text-slate-600 whitespace-nowrap">
-                        <div>{hackathon.registration_start_date || '—'}</div>
+                        <div>{hackathon.registration_start_date || hackathon.registration_startdate || '—'}</div>
                         <div className="text-slate-400 text-[10px]">
-                          to {hackathon.registration_end_date || '—'}
+                          to {hackathon.registration_end_date || hackathon.registration_enddate || '—'}
                         </div>
                       </td>
 
@@ -1942,6 +1984,33 @@ export default function HackathonManagement() {
                 </div>
               </div>
 
+              {/* Registration Dates for Edit */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Registration Start Date
+                  </label>
+                  <input
+                    type="date"
+                    value={editForm.registration_start_date}
+                    onChange={(e) => setEditForm({ ...editForm, registration_start_date: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-slate-800 bg-slate-50 focus:bg-white focus:outline-none focus:border-[#e8622a]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Registration End Date
+                  </label>
+                  <input
+                    type="date"
+                    value={editForm.registration_end_date}
+                    onChange={(e) => setEditForm({ ...editForm, registration_end_date: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-slate-800 bg-slate-50 focus:bg-white focus:outline-none focus:border-[#e8622a]"
+                  />
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">
@@ -2176,8 +2245,8 @@ export default function HackathonManagement() {
                     Registration Dates
                   </span>
                   <span className="text-xs font-mono text-slate-800 mt-1 block">
-                    {viewingHackathon.registration_start_date || '—'} →{' '}
-                    {viewingHackathon.registration_end_date || '—'}
+                    {viewingHackathon.registration_start_date || viewingHackathon.registration_startdate || '—'} →{' '}
+                    {viewingHackathon.registration_end_date || viewingHackathon.registration_enddate || '—'}
                   </span>
                 </div>
 
@@ -2621,6 +2690,13 @@ export default function HackathonManagement() {
           </div>
         </div>
       )}
+
+      {/* QR CREDENTIAL BADGE MODAL */}
+      <QrBadgeModal
+        isOpen={qrModalOpen}
+        onClose={() => setQrModalOpen(false)}
+        attendee={qrAttendee}
+      />
     </div>
   );
 }
