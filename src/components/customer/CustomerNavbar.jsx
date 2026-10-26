@@ -26,6 +26,7 @@ export default function CustomerNavbar({ onOpenRegister, onOpenLogin, onOpenProf
     (Array.isArray(scheduleEvents) && scheduleEvents.length > 0) ||
     (Array.isArray(hackathon?.schedules) && hackathon.schedules.some((s) => !s.type || s.type === 'hackathon'));
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const dropdownRef = useRef(null);
 
