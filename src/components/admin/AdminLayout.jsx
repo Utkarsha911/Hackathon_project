@@ -482,7 +482,7 @@ export default function AdminLayout() {
   return (
     <ErrorBoundary>
       <div
-        className="min-h-screen flex"
+        className="admin-shell min-h-screen flex"
         style={{ backgroundColor: '#f5f6fa', color: '#1a1a2e', minHeight: '100vh', width: '100%' }}
       >
         {/* Mobile Sidebar Backdrop */}
@@ -1296,7 +1296,7 @@ export default function AdminLayout() {
           </header>
 
           {/* Page Content */}
-          <main className="flex-1 p-3.5 sm:p-6 lg:p-8 overflow-y-auto" style={{ backgroundColor: '#f5f6fa' }}>
+          <main className="admin-main flex-1 p-3.5 sm:p-6 lg:p-8 overflow-y-auto" style={{ backgroundColor: '#f5f6fa' }}>
             <ErrorBoundary>
               <Suspense fallback={<AdminViewLoader />}>
                 <Routes>

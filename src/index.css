@@ -172,3 +172,154 @@ main.modal-open-scroll-lock {
 .theme-brand .btn-primary:active { background-color: #d9680f; }
 .theme-brand .bic-input:focus { border-color: #1975b8; box-shadow: 0 0 0 3px rgba(25, 117, 184, 0.15); }
 .theme-brand .bic-section-label { color: #1975b8; }
+
+
+/* ------------------------------------------------------------------
+   Admin site polish (scoped to .admin-shell; public site is unaffected)
+   ------------------------------------------------------------------ */
+.admin-shell {
+  --admin-accent: #ea580c;
+  --admin-accent-soft: rgba(234, 88, 12, 0.1);
+  --admin-border: #e8e9ef;
+  --admin-ring: 0 0 0 3px rgba(234, 88, 12, 0.22);
+  font-size: 0.9375rem;
+  line-height: 1.5;
+}
+
+/* Sidebar: calmer rhythm, clearer hover/active states */
+.admin-shell aside {
+  box-shadow: 1px 0 0 var(--admin-border), 4px 0 24px -12px rgba(15, 23, 42, 0.08);
+}
+.admin-shell aside a,
+.admin-shell aside nav button,
+.admin-shell aside button[type="button"] {
+  transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+.admin-shell aside a {
+  position: relative;
+  font-weight: 500;
+}
+.admin-shell aside a[style*="background-color"] {
+  font-weight: 600;
+  box-shadow: 0 2px 8px -2px rgba(234, 88, 12, 0.45);
+}
+.admin-shell aside a:not([style*="background-color"]):hover {
+  background-color: #fff7ed;
+  color: #9a3412;
+}
+.admin-shell aside > div:nth-child(2)::-webkit-scrollbar { width: 4px; }
+
+/* Keyboard focus that is actually visible */
+.admin-shell a:focus-visible,
+.admin-shell button:focus-visible,
+.admin-shell select:focus-visible,
+.admin-shell [tabindex]:focus-visible {
+  outline: none;
+  box-shadow: var(--admin-ring);
+}
+
+/* Top bar */
+.admin-shell header {
+  box-shadow: 0 1px 0 var(--admin-border), 0 8px 24px -18px rgba(15, 23, 42, 0.18);
+}
+.admin-shell header select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 0.25rem;
+}
+
+/* Page content: gentle entrance, readable max width on huge screens */
+.admin-shell .admin-main > * {
+  max-width: 1600px;
+  margin-left: auto;
+  margin-right: auto;
+  animation: adminFadeUp 0.28s ease-out both;
+}
+@keyframes adminFadeUp {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Cards and panels: consistent radius, softer border/shadow */
+.admin-shell .admin-main .bg-white.rounded-2xl,
+.admin-shell .admin-main .bg-white.rounded-xl {
+  border-color: var(--admin-border);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 4px 16px -8px rgba(15, 23, 42, 0.06);
+}
+
+/* Tables: sticky tinted header, zebra-free hover, numeric alignment */
+.admin-shell .admin-main table {
+  border-collapse: separate;
+  border-spacing: 0;
+  font-variant-numeric: tabular-nums;
+}
+.admin-shell .admin-main thead th {
+  background-color: #f8fafc;
+  color: #64748b;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  border-bottom: 1px solid #e2e8f0;
+}
+.admin-shell .admin-main tbody tr {
+  transition: background-color 0.12s ease;
+}
+.admin-shell .admin-main tbody tr:hover {
+  background-color: #fffaf5;
+}
+.admin-shell .admin-main tbody td {
+  vertical-align: middle;
+}
+
+/* Form controls inside admin pages and modals */
+.admin-shell input[type="text"],
+.admin-shell input[type="email"],
+.admin-shell input[type="password"],
+.admin-shell input[type="number"],
+.admin-shell input[type="search"],
+.admin-shell input[type="url"],
+.admin-shell input[type="date"],
+.admin-shell input[type="datetime-local"],
+.admin-shell input[type="time"],
+.admin-shell textarea,
+.admin-shell select {
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+}
+.admin-shell input:not([type="checkbox"]):not([type="radio"]):focus,
+.admin-shell textarea:focus {
+  border-color: var(--admin-accent);
+  box-shadow: 0 0 0 3px var(--admin-accent-soft);
+}
+.admin-shell input[type="checkbox"],
+.admin-shell input[type="radio"] {
+  accent-color: var(--admin-accent);
+}
+.admin-shell ::selection {
+  background: rgba(234, 88, 12, 0.18);
+}
+
+/* Buttons: tactile press feedback, clear disabled state */
+.admin-shell .admin-main button:not(:disabled):active {
+  transform: translateY(0.5px);
+}
+.admin-shell button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* Thin, unobtrusive scrollbars in scroll regions */
+.admin-shell * {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+@media (max-width: 639px) {
+  .admin-shell .admin-main thead th { font-size: 0.625rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-shell .admin-main > * { animation: none; }
+  .admin-shell * { transition-duration: 0.01ms !important; }
+}
