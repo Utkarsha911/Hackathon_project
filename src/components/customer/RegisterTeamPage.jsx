@@ -78,11 +78,6 @@ export default function RegisterTeamPage() {
   const navigate = useNavigate();
   const { registerTeam, hackathon, currentUser, terms, isRegistrationOpen, registrationStatus } = useHackathon();
 
-  // If registration dates are not currently active, display the countdown / days left page
-  if (!isRegistrationOpen) {
-    return <RegistrationCountdownPage />;
-  }
-
   const minTeamSize = hackathon?.minimum_team_size || 1;
   const maxTeamSize = hackathon?.maximum_team_size || 4;
 
@@ -128,6 +123,11 @@ export default function RegisterTeamPage() {
 
   // Only the terms viewer is still a modal
   useBodyScrollLock(showTermsModal);
+
+  // If registration dates are not currently active, display the countdown / days left page
+  if (!isRegistrationOpen) {
+    return <RegistrationCountdownPage />;
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault();

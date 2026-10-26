@@ -36,7 +36,7 @@ export const EXECUTION_STATUS_OPTIONS = [
 ];
 
 export default function ScheduleManagement() {
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const activeTab = searchParams.get('tab') || 'schedules';
 
   // If user clicked 'Schedule Events' sub-item in sidebar, render ScheduleEventManagement
@@ -44,6 +44,11 @@ export default function ScheduleManagement() {
     return <ScheduleEventManagement />;
   }
 
+  return <ScheduleManagementContent />;
+}
+
+function ScheduleManagementContent() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const { showToast, hackathon: currentHackathon } = useHackathon();
 
   // Data states

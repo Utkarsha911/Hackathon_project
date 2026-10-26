@@ -37,9 +37,27 @@ export function getUserAvatarUrl(pathOrUser) {
 }
 
 export function getMediaUrl(path) {
-  if (!path) return '';
+  if (!path || typeof path !== 'string') return '';
   if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('data:')) {
     return path;
+  }
+  // Detect if an external URL was encoded or prepended by backend media storage (e.g. /media/https%3A/...)
+  try {
+    const decoded = decodeURIComponent(path);
+    const httpsIdx = decoded.indexOf('https://');
+    if (httpsIdx !== -1) {
+      return decoded.slice(httpsIdx);
+    }
+    const httpIdx = decoded.indexOf('http://');
+    if (httpIdx !== -1) {
+      return decoded.slice(httpIdx);
+    }
+    const singleSlashMatch = decoded.match(/https?:\/[^\/].*/i);
+    if (singleSlashMatch) {
+      return singleSlashMatch[0].replace(/^(https?):\/([^\/])/, '$1://$2');
+    }
+  } catch {
+    // fallback
   }
   return `${BACKEND_URL}${path.startsWith('/') ? path : `/${path}`}`;
 }
