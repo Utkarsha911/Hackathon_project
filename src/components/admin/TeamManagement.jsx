@@ -420,58 +420,58 @@ export default function TeamManagement() {
       </div>
 
       {/* 2. KPI Stat Cards (Rule 4, 8, 9) */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-3 gap-2 sm:gap-4">
         {/* Total Teams */}
-        <div className="bg-white rounded-2xl border border-slate-200/90 p-4 sm:p-5 shadow-xs flex items-center justify-between">
-          <div>
-            <span className="text-xs font-medium text-slate-500 uppercase tracking-wider block">
+        <div className="bg-white rounded-xl sm:rounded-2xl border border-slate-200/90 p-2.5 sm:p-5 shadow-xs flex items-center justify-between gap-1.5 sm:gap-3">
+          <div className="min-w-0">
+            <span className="text-[10px] sm:text-xs font-medium text-slate-500 uppercase tracking-wider block truncate">
               Total Squads
             </span>
-            <div className="flex items-baseline gap-2 mt-1">
-              <span className="text-2xl sm:text-3xl font-extrabold text-slate-900">
+            <div className="flex items-baseline gap-1.5 sm:gap-2 mt-0.5 sm:mt-1">
+              <span className="text-lg sm:text-3xl font-extrabold text-slate-900 truncate">
                 {stats.total_items}
               </span>
-              <span className="text-xs text-slate-400">Registered</span>
+              <span className="hidden sm:inline text-xs text-slate-400">Registered</span>
             </div>
           </div>
-          <div className="w-11 h-11 rounded-2xl bg-orange-50 text-[#ea580c] flex items-center justify-center">
-            <Users className="w-5 h-5" />
+          <div className="w-7 h-7 sm:w-11 sm:h-11 rounded-lg sm:rounded-2xl bg-orange-50 text-[#ea580c] flex items-center justify-center shrink-0">
+            <Users className="w-3.5 h-3.5 sm:w-5 sm:h-5" />
           </div>
         </div>
 
         {/* Approved Teams */}
-        <div className="bg-white rounded-2xl border border-slate-200/90 p-4 sm:p-5 shadow-xs flex items-center justify-between">
-          <div>
-            <span className="text-xs font-medium text-slate-500 uppercase tracking-wider block">
-              Approved Squads
+        <div className="bg-white rounded-xl sm:rounded-2xl border border-slate-200/90 p-2.5 sm:p-5 shadow-xs flex items-center justify-between gap-1.5 sm:gap-3">
+          <div className="min-w-0">
+            <span className="text-[10px] sm:text-xs font-medium text-slate-500 uppercase tracking-wider block truncate">
+              Approved
             </span>
-            <div className="flex items-baseline gap-2 mt-1">
-              <span className="text-2xl sm:text-3xl font-extrabold text-emerald-600">
+            <div className="flex items-baseline gap-1.5 sm:gap-2 mt-0.5 sm:mt-1">
+              <span className="text-lg sm:text-3xl font-extrabold text-emerald-600 truncate">
                 {stats.active_items}
               </span>
-              <span className="text-xs text-emerald-600 font-medium">Ready</span>
+              <span className="hidden sm:inline text-xs text-emerald-600 font-medium">Ready</span>
             </div>
           </div>
-          <div className="w-11 h-11 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
-            <CheckCircle2 className="w-5 h-5" />
+          <div className="w-7 h-7 sm:w-11 sm:h-11 rounded-lg sm:rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+            <CheckCircle2 className="w-3.5 h-3.5 sm:w-5 sm:h-5" />
           </div>
         </div>
 
         {/* Pending / Submitted Teams */}
-        <div className="bg-white rounded-2xl border border-slate-200/90 p-4 sm:p-5 shadow-xs flex items-center justify-between">
-          <div>
-            <span className="text-xs font-medium text-slate-500 uppercase tracking-wider block">
-              Pending Review
+        <div className="bg-white rounded-xl sm:rounded-2xl border border-slate-200/90 p-2.5 sm:p-5 shadow-xs flex items-center justify-between gap-1.5 sm:gap-3">
+          <div className="min-w-0">
+            <span className="text-[10px] sm:text-xs font-medium text-slate-500 uppercase tracking-wider block truncate">
+              Pending
             </span>
-            <div className="flex items-baseline gap-2 mt-1">
-              <span className="text-2xl sm:text-3xl font-extrabold text-amber-600">
+            <div className="flex items-baseline gap-1.5 sm:gap-2 mt-0.5 sm:mt-1">
+              <span className="text-lg sm:text-3xl font-extrabold text-amber-600 truncate">
                 {stats.inactive_items}
               </span>
-              <span className="text-xs text-amber-600 font-medium">Under Evaluation</span>
+              <span className="hidden sm:inline text-xs text-amber-600 font-medium">Review</span>
             </div>
           </div>
-          <div className="w-11 h-11 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center">
-            <Clock className="w-5 h-5" />
+          <div className="w-7 h-7 sm:w-11 sm:h-11 rounded-lg sm:rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+            <Clock className="w-3.5 h-3.5 sm:w-5 sm:h-5" />
           </div>
         </div>
       </div>

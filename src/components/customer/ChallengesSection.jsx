@@ -17,7 +17,7 @@ const STYLES = [
 export default function ChallengesSection() {
   const { challenges = [], isLoadingApi } = useHackathon();
 
-  if (challenges.length === 0 && !isLoadingApi) return null;
+  if (!Array.isArray(challenges) || challenges.length === 0) return null;
 
   return (
     <Section id="tracks" tone="tint">

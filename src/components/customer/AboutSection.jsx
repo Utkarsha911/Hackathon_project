@@ -37,10 +37,10 @@ export default function AboutSection() {
             <path d="M0 120 L70 50 L110 80 L190 10 L260 85 L310 45 L400 110 L400 120 Z" fill="rgba(255,255,255,0.18)" />
             <path d="M0 120 L90 80 L150 100 L230 55 L320 105 L400 75 L400 120 Z" fill="rgba(5,11,26,0.35)" />
           </svg>
-          <p className="relative text-xl sm:text-2xl font-semibold leading-snug max-w-sm">
-            Technology is most powerful when it brings people together to solve real problems.
+          <p className="relative text-base sm:text-lg font-medium leading-relaxed max-w-md">
+            {h.description || 'Technology is most powerful when it brings people together to solve real problems.'}
           </p>
-          <p className="relative mt-4 text-sm text-blue-100">— {h.title || 'BIC Hackathon'}</p>
+          <p className="relative mt-4 text-sm font-semibold text-blue-200">— {h.title || 'BIC Hackathon'}</p>
         </div>
       </div>
     </Section>

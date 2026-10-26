@@ -281,6 +281,7 @@ export default function AdminLayout() {
   const isHackathonGuestsActive = isHackathonsActive && hackathonTab === 'guests';
   const isHackathonTeamsActive = (isHackathonsActive && hackathonTab === 'teams') || pathname === '/admin-control-site/teams';
   const isHackathonPrizesActive = isHackathonsActive && (hackathonTab === 'prizes' || hackathonTab === 'prizes-faqs');
+  const isHackathonTermsActive = isHackathonsActive && hackathonTab === 'terms';
   const isHackathonFaqsActive = isHackathonsActive && hackathonTab === 'faqs';
   const isHackathonContactsActive = isHackathonsActive && hackathonTab === 'contacts';
   const isHackathonsListActive =
@@ -657,24 +658,24 @@ export default function AdminLayout() {
                       </Link>
                     )}
 
-                    {/* Hackathon FAQs */}
+                    {/* Hackathon Terms */}
                     {canAccessHackathonCrm && (
                       <Link
-                        to="/admin-control-site/hackathons?tab=faqs"
+                        to="/admin-control-site/hackathons?tab=terms"
                         onClick={() => setMobileMenuOpen(false)}
                         className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-normal transition-all ${
-                          isHackathonFaqsActive
+                          isHackathonTermsActive
                             ? 'shadow-xs text-white'
                             : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
                         }`}
                         style={
-                          isHackathonFaqsActive
+                          isHackathonTermsActive
                             ? { backgroundColor: '#ea580c', color: '#ffffff' }
                             : {}
                         }
                       >
-                        <HelpCircle className="w-3.5 h-3.5 shrink-0" />
-                        <span>FAQs</span>
+                        <Award className="w-3.5 h-3.5 shrink-0" />
+                        <span>Terms</span>
                       </Link>
                     )}
 

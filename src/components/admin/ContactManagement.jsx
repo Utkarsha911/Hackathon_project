@@ -212,76 +212,76 @@ export default function ContactManagement() {
       </div>
 
       {/* 2. KPI Stat Cards (Consuming Backend Stats - Rule 4) */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
         {/* Total Inquiries */}
-        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-xs">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+        <div className="bg-white p-2.5 sm:p-5 rounded-xl sm:rounded-2xl border border-slate-200 shadow-xs flex flex-col justify-between">
+          <div className="flex items-center justify-between gap-1">
+            <span className="text-[10px] sm:text-xs font-semibold text-slate-500 uppercase tracking-wider truncate">
               Total Inquiries
             </span>
-            <div className="w-8 h-8 rounded-xl bg-orange-50 flex items-center justify-center text-[#ea580c]">
-              <MessageSquare className="w-4 h-4" />
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-orange-50 flex items-center justify-center text-[#ea580c] shrink-0">
+              <MessageSquare className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </div>
           </div>
-          <div className="mt-3">
-            <div className="text-2xl font-bold text-slate-900 font-mono">
+          <div className="mt-1 sm:mt-3">
+            <div className="text-base sm:text-2xl font-bold text-slate-900 font-mono truncate">
               {stats.total_contacts ?? contacts.length}
             </div>
-            <p className="text-xs text-slate-500 mt-1">Inquiries received</p>
+            <p className="hidden sm:block text-xs text-slate-500 mt-1">Inquiries received</p>
           </div>
         </div>
 
         {/* New Inquiries */}
-        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-xs">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+        <div className="bg-white p-2.5 sm:p-5 rounded-xl sm:rounded-2xl border border-slate-200 shadow-xs flex flex-col justify-between">
+          <div className="flex items-center justify-between gap-1">
+            <span className="text-[10px] sm:text-xs font-semibold text-slate-500 uppercase tracking-wider truncate">
               New Unresolved
             </span>
-            <div className="w-8 h-8 rounded-xl bg-sky-50 flex items-center justify-center text-sky-600">
-              <Mail className="w-4 h-4" />
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-sky-50 flex items-center justify-center text-sky-600 shrink-0">
+              <Mail className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </div>
           </div>
-          <div className="mt-3">
-            <div className="text-2xl font-bold text-sky-700 font-mono">
+          <div className="mt-1 sm:mt-3">
+            <div className="text-base sm:text-2xl font-bold text-sky-700 font-mono truncate">
               {stats.new_contacts ?? 0}
             </div>
-            <p className="text-xs text-slate-500 mt-1">Awaiting response</p>
+            <p className="hidden sm:block text-xs text-slate-500 mt-1">Awaiting response</p>
           </div>
         </div>
 
         {/* In Progress */}
-        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-xs">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+        <div className="bg-white p-2.5 sm:p-5 rounded-xl sm:rounded-2xl border border-slate-200 shadow-xs flex flex-col justify-between">
+          <div className="flex items-center justify-between gap-1">
+            <span className="text-[10px] sm:text-xs font-semibold text-slate-500 uppercase tracking-wider truncate">
               In Progress
             </span>
-            <div className="w-8 h-8 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600">
-              <Clock className="w-4 h-4" />
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-amber-50 flex items-center justify-center text-amber-600 shrink-0">
+              <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </div>
           </div>
-          <div className="mt-3">
-            <div className="text-2xl font-bold text-amber-700 font-mono">
+          <div className="mt-1 sm:mt-3">
+            <div className="text-base sm:text-2xl font-bold text-amber-700 font-mono truncate">
               {stats.in_progress_contacts ?? 0}
             </div>
-            <p className="text-xs text-slate-500 mt-1">Under committee review</p>
+            <p className="hidden sm:block text-xs text-slate-500 mt-1">Under committee review</p>
           </div>
         </div>
 
         {/* Resolved */}
-        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-xs">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+        <div className="bg-white p-2.5 sm:p-5 rounded-xl sm:rounded-2xl border border-slate-200 shadow-xs flex flex-col justify-between">
+          <div className="flex items-center justify-between gap-1">
+            <span className="text-[10px] sm:text-xs font-semibold text-slate-500 uppercase tracking-wider truncate">
               Resolved
             </span>
-            <div className="w-8 h-8 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600">
-              <CheckCircle2 className="w-4 h-4" />
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600 shrink-0">
+              <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </div>
           </div>
-          <div className="mt-3">
-            <div className="text-2xl font-bold text-emerald-700 font-mono">
+          <div className="mt-1 sm:mt-3">
+            <div className="text-base sm:text-2xl font-bold text-emerald-700 font-mono truncate">
               {stats.resolved_contacts ?? 0}
             </div>
-            <p className="text-xs text-slate-500 mt-1">Addressed inquiries</p>
+            <p className="hidden sm:block text-xs text-slate-500 mt-1">Addressed inquiries</p>
           </div>
         </div>
       </div>

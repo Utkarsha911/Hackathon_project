@@ -62,20 +62,20 @@ export default function HeroSection({ onOpenRegister }) {
       <div className="absolute inset-0 bg-gradient-to-r from-brand-dark via-brand-dark/85 to-transparent" />
 
       <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
-        <p className="text-sm font-semibold uppercase tracking-[0.25em] text-slate-300">
+        <p className="text-xs sm:text-sm font-semibold uppercase tracking-[0.25em] text-slate-300">
           {h.version || EVENT_VERSION}
         </p>
 
-        <h1 className="mt-3 text-5xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight max-w-3xl leading-[1.05]">
+        <h1 className="mt-3 text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight max-w-3xl leading-[1.08] break-words">
           {h.title || 'BIC Hackathon'}{' '}
           <span className="bg-gradient-to-r from-brand-orange to-brand-yellow bg-clip-text text-transparent">{year}</span>
         </h1>
 
 
-        <div className="mt-10 flex flex-col sm:flex-row sm:items-stretch gap-6 sm:gap-0 max-w-3xl">
+        <div className="mt-8 sm:mt-10 flex flex-col sm:flex-row sm:items-stretch gap-4 sm:gap-0 max-w-3xl">
           {facts.map((f, idx) => (
             <div key={f.label} className={`flex items-start gap-3 sm:pr-6 ${idx > 0 ? 'sm:pl-6 sm:border-l sm:border-white/20' : ''}`}>
-              <f.icon className="w-6 h-6 text-slate-200 shrink-0 mt-0.5" />
+              <f.icon className="w-5 h-5 sm:w-6 sm:h-6 text-slate-200 shrink-0 mt-0.5" />
               <div className="text-sm">
                 <div className="text-xs text-slate-400">{f.label}</div>
                 <div className="font-semibold text-white leading-snug">{f.value}</div>
@@ -85,16 +85,16 @@ export default function HeroSection({ onOpenRegister }) {
           ))}
         </div>
 
-        <div className="mt-9 flex flex-wrap items-center gap-3">
+        <div className="mt-8 sm:mt-9 flex flex-wrap items-center gap-3">
           {isRegistrationOpen ? (
-            <Button onClick={onOpenRegister}>
+            <Button onClick={onOpenRegister} className="w-full sm:w-auto justify-center">
               <span>Register Now</span>
               <ArrowRight className="w-4 h-4" />
             </Button>
           ) : registrationStatus?.reason === 'not_started' ? (
             <Button
               onClick={onOpenRegister}
-              className="!bg-brand-orange/20 !text-brand-yellow !border !border-brand-orange/40 hover:!bg-brand-orange/30 !shadow-xs"
+              className="w-full sm:w-auto justify-center !bg-brand-orange/20 !text-brand-yellow !border !border-brand-orange/40 hover:!bg-brand-orange/30 !shadow-xs"
             >
               <Clock className="w-4 h-4 text-brand-yellow" />
               <span>
@@ -104,7 +104,7 @@ export default function HeroSection({ onOpenRegister }) {
               <ArrowRight className="w-3.5 h-3.5" />
             </Button>
           ) : null}
-          <Button variant="outline" href="#about">Learn More</Button>
+          <Button variant="outline" href="#about" className="w-full sm:w-auto justify-center">Learn More</Button>
         </div>
       </div>
     </section>

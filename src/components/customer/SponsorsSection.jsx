@@ -229,7 +229,7 @@ export default function SponsorsSection() {
     };
   }, [allSponsors]);
 
-  if (allSponsors.length === 0 && !isLoadingApi) {
+  if (!Array.isArray(allSponsors) || allSponsors.length === 0) {
     return null;
   }
 

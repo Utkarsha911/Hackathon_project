@@ -435,20 +435,48 @@ export default function RegisterTeamPage() {
               </div>
             </div>
 
-            {/* Terms and Conditions Signing Notice */}
-            <div className="flex items-start gap-2.5 p-3 rounded-xl bg-slate-50 border border-slate-200/90 text-xs text-slate-600">
-              <ShieldCheck className="w-4 h-4 text-brand-blue shrink-0 mt-0.5" />
-              <p className="leading-relaxed">
-                By clicking <span className="font-semibold text-ink">"Submit Team Registration"</span>, you confirm that you are agreeing to and signing the{' '}
+            {/* Participation Terms & Code of Conduct in Form */}
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/90 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-orange-100 text-[#ea580c] flex items-center justify-center">
+                    <ShieldCheck className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-slate-900">
+                      {terms?.[0]?.title || 'Participation Terms & Code of Conduct'}
+                    </h4>
+                    <p className="text-[11px] text-slate-500">
+                      Official rules & conduct agreement for {hackathon?.title || 'the hackathon'}
+                    </p>
+                  </div>
+                </div>
                 <button
                   type="button"
                   onClick={() => setShowTermsModal(true)}
-                  className="font-semibold text-brand-blue hover:underline cursor-pointer inline-flex items-center gap-0.5"
+                  className="text-xs font-semibold text-brand-blue hover:underline cursor-pointer inline-flex items-center gap-1"
                 >
-                  <span>Terms and Conditions</span>
-                </button>{' '}
-                and hackathon rules on behalf of your team.
-              </p>
+                  <span>Full Screen</span>
+                </button>
+              </div>
+
+              <div className="text-xs text-slate-600 leading-relaxed max-h-32 overflow-y-auto p-3 rounded-xl bg-white border border-slate-200 whitespace-pre-line shadow-2xs font-mono">
+                {terms?.[0]?.content ||
+                  'By participating in this hackathon, all team members agree to uphold academic integrity, original work, and community safety. Unauthorized plagiarism, offensive material, or unfair practices will result in instant disqualification. Participants retain full ownership of intellectual property produced during the event. Organizers reserve the right to photograph, record, and report on hackathon presentations for promotional purposes.'}
+              </div>
+
+              <label className="flex items-start gap-2.5 pt-1 text-xs text-slate-700 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  required
+                  defaultChecked
+                  className="rounded border-slate-300 text-brand-orange focus:ring-brand-orange w-4 h-4 mt-0.5"
+                />
+                <span className="leading-snug">
+                  I and all registered team members have read, understood, and agree to abide by the{' '}
+                  <span className="font-semibold text-slate-900">Participation Terms & Code of Conduct</span>.
+                </span>
+              </label>
             </div>
 
             {/* Actions */}
@@ -517,7 +545,7 @@ export default function RegisterTeamPage() {
               <div className="w-8 h-8 rounded-xl bg-brand-tint text-brand-blue flex items-center justify-center">
                 <ShieldCheck className="w-4 h-4" />
               </div>
-              <h4>Terms & Conditions</h4>
+              <h4>{terms?.[0]?.title || 'Participation Terms & Code of Conduct'}</h4>
             </div>
 
             <div className="text-xs text-slate-600 leading-relaxed max-h-72 overflow-y-auto space-y-3 pr-2 py-2 border-y border-slate-100 my-4">

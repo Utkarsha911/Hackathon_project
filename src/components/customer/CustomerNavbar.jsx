@@ -9,8 +9,17 @@ import Button from '../common/Button';
 export default function CustomerNavbar({ onOpenRegister, onOpenLogin, onOpenProfile }) {
   const location = useLocation();
   const navigate = useNavigate();
-  const { hackathon, currentUser, logoutUser, isRegistrationOpen, schedules = [], scheduleEvents = [] } = useHackathon();
-  const [userDropdownOpen, setUserDropdownOpen] = useState(false);
+  const {
+    hackathon,
+    currentUser,
+    logoutUser,
+    isRegistrationOpen,
+    schedules = [],
+    scheduleEvents = [],
+    prizes = [],
+    organizers = [],
+    faqs = []
+  } = useHackathon();
 
   const hasScheduleData =
     (Array.isArray(schedules) && schedules.some((s) => !s.type || s.type === 'hackathon')) ||
@@ -55,14 +64,17 @@ export default function CustomerNavbar({ onOpenRegister, onOpenLogin, onOpenProf
 
   const userInitial = (currentUser?.first_name?.[0] || currentUser?.email?.[0] || 'U').toUpperCase();
 
+  const hasPrizesData = Array.isArray(prizes) && prizes.length > 0;
+  const hasOrganizersData = Array.isArray(organizers) && organizers.length > 0;
+  const hasFaqData = Array.isArray(faqs) && faqs.length > 0;
+
   const navLinks = [
     { label: 'Home', hash: '#top' },
     { label: 'About', hash: '#about' },
-    { label: 'Tracks', hash: '#tracks' },
     ...(hasScheduleData ? [{ label: 'Schedule', hash: '#schedule' }] : []),
-    { label: 'Prizes', hash: '#prizes' },
-    { label: 'Organizers', hash: '#organizers' },
-    { label: 'FAQ', hash: '#faq' },
+    ...(hasPrizesData ? [{ label: 'Prizes', hash: '#prizes' }] : []),
+    ...(hasOrganizersData ? [{ label: 'Organizers', hash: '#organizers' }] : []),
+    ...(hasFaqData ? [{ label: 'FAQ', hash: '#faq' }] : []),
   ];
 
   const handleMobileNavClick = () => {

@@ -260,43 +260,42 @@ export default function PrizeManagement() {
       </div>
 
       {/* 2. KPI Cards (Rule 4: Consume backend stats) */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 gap-2 sm:gap-4">
         {/* Total Prizes */}
-        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-xs">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+        <div className="bg-white p-2.5 sm:p-5 rounded-xl sm:rounded-2xl border border-slate-200 shadow-xs flex flex-col justify-between">
+          <div className="flex items-center justify-between gap-1">
+            <span className="text-[10px] sm:text-xs font-semibold text-slate-500 uppercase tracking-wider truncate">
               Total Prizes
             </span>
-
+            <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl bg-orange-50 flex items-center justify-center text-[#ea580c] shrink-0">
+              <Award className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            </div>
           </div>
-          <div className="mt-3">
-            <div className="text-2xl font-bold text-slate-900 font-mono">
+          <div className="mt-1 sm:mt-3">
+            <div className="text-base sm:text-2xl font-bold text-slate-900 font-mono truncate">
               {stats.total_prizes ?? prizes.length}
             </div>
-            <p className="text-xs text-slate-500 mt-1">Award tiers configured</p>
+            <p className="hidden sm:block text-xs text-slate-500 mt-1">Award tiers configured</p>
           </div>
         </div>
 
         {/* Total Prize Pool */}
-        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-xs">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+        <div className="bg-white p-2.5 sm:p-5 rounded-xl sm:rounded-2xl border border-slate-200 shadow-xs flex flex-col justify-between">
+          <div className="flex items-center justify-between gap-1">
+            <span className="text-[10px] sm:text-xs font-semibold text-slate-500 uppercase tracking-wider truncate">
               Total Prize Pool
             </span>
-            <div className="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600">
-              <DollarSign className="w-4 h-4" />
+            <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600 shrink-0">
+              <DollarSign className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </div>
           </div>
-          <div className="mt-3">
-            <div className="text-2xl font-bold text-emerald-700 font-mono">
+          <div className="mt-1 sm:mt-3">
+            <div className="text-base sm:text-2xl font-bold text-emerald-700 font-mono truncate">
               NPR {totalPrizePoolFormatted}
             </div>
-            <p className="text-xs text-slate-500 mt-1">Direct cash distribution</p>
+            <p className="hidden sm:block text-xs text-slate-500 mt-1">Direct cash distribution</p>
           </div>
         </div>
-
-        {/* Active API Status */}
-
       </div>
 
       {/* 3. Search Bar */}

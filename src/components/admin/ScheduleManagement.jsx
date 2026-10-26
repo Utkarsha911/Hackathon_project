@@ -515,90 +515,90 @@ export default function ScheduleManagement() {
       </div>
 
       {/* 2. Backend Stats KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
         {/* Total Schedules */}
-        <div className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex items-center justify-between">
-          <div>
-            <div className="text-xs font-medium text-slate-500 uppercase tracking-wider">
+        <div className="p-2.5 sm:p-5 rounded-xl sm:rounded-2xl bg-white border border-slate-200/80 shadow-xs flex items-center justify-between gap-1.5 sm:gap-3">
+          <div className="min-w-0">
+            <div className="text-[10px] sm:text-xs font-medium text-slate-500 uppercase tracking-wider truncate">
               Total Schedules
             </div>
-            <div className="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-1">
+            <div className="text-lg sm:text-3xl font-extrabold text-slate-900 mt-0.5 sm:mt-1 truncate">
               {stats.total_items ?? schedules.length}
             </div>
-            <div className="text-[11px] text-slate-400 mt-1 flex items-center gap-1">
+            <div className="hidden sm:flex text-[11px] text-slate-400 mt-1 items-center gap-1">
               <CalendarClock className="w-3 h-3 text-[#ea580c]" />
               <span>Program milestones & sessions</span>
             </div>
           </div>
           <div
-            className="w-12 h-12 rounded-2xl flex items-center justify-center shadow-inner shrink-0"
+            className="w-7 h-7 sm:w-12 sm:h-12 rounded-lg sm:rounded-2xl flex items-center justify-center shadow-inner shrink-0"
             style={{ backgroundColor: '#fff3ef' }}
           >
-            <CalendarClock className="w-6 h-6" style={{ color: '#ea580c' }} />
+            <CalendarClock className="w-3.5 h-3.5 sm:w-6 sm:h-6" style={{ color: '#ea580c' }} />
           </div>
         </div>
 
         {/* Active Schedules */}
-        <div className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex items-center justify-between">
-          <div>
-            <div className="text-xs font-medium text-slate-500 uppercase tracking-wider">
+        <div className="p-2.5 sm:p-5 rounded-xl sm:rounded-2xl bg-white border border-slate-200/80 shadow-xs flex items-center justify-between gap-1.5 sm:gap-3">
+          <div className="min-w-0">
+            <div className="text-[10px] sm:text-xs font-medium text-slate-500 uppercase tracking-wider truncate">
               Active Schedules
             </div>
-            <div className="text-2xl sm:text-3xl font-extrabold text-emerald-600 mt-1">
+            <div className="text-lg sm:text-3xl font-extrabold text-emerald-600 mt-0.5 sm:mt-1 truncate">
               {stats.active_items ?? 0}
             </div>
-            <div className="text-[11px] text-slate-400 mt-1 flex items-center gap-1">
+            <div className="hidden sm:flex text-[11px] text-slate-400 mt-1 items-center gap-1">
               <CheckCircle2 className="w-3 h-3 text-emerald-500" />
               <span>Active in public timeline</span>
             </div>
           </div>
-          <div className="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center shadow-inner shrink-0 border border-emerald-100">
-            <CheckCircle2 className="w-6 h-6 text-emerald-600" />
+          <div className="w-7 h-7 sm:w-12 sm:h-12 rounded-lg sm:rounded-2xl bg-emerald-50 flex items-center justify-center shadow-inner shrink-0 border border-emerald-100">
+            <CheckCircle2 className="w-3.5 h-3.5 sm:w-6 sm:h-6 text-emerald-600" />
           </div>
         </div>
 
         {/* Inactive Schedules */}
-        <div className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex items-center justify-between">
-          <div>
-            <div className="text-xs font-medium text-slate-500 uppercase tracking-wider">
+        <div className="p-2.5 sm:p-5 rounded-xl sm:rounded-2xl bg-white border border-slate-200/80 shadow-xs flex items-center justify-between gap-1.5 sm:gap-3">
+          <div className="min-w-0">
+            <div className="text-[10px] sm:text-xs font-medium text-slate-500 uppercase tracking-wider truncate">
               Inactive / Draft
             </div>
-            <div className="text-2xl sm:text-3xl font-extrabold text-slate-700 mt-1">
+            <div className="text-lg sm:text-3xl font-extrabold text-slate-700 mt-0.5 sm:mt-1 truncate">
               {stats.inactive_items ?? 0}
             </div>
-            <div className="text-[11px] text-slate-400 mt-1 flex items-center gap-1">
+            <div className="hidden sm:flex text-[11px] text-slate-400 mt-1 items-center gap-1">
               <Clock className="w-3 h-3 text-amber-500" />
               <span>Unpublished or archived</span>
             </div>
           </div>
-          <div className="w-12 h-12 rounded-2xl bg-amber-50 flex items-center justify-center shadow-inner shrink-0 border border-amber-100">
-            <Clock className="w-6 h-6 text-amber-600" />
+          <div className="w-7 h-7 sm:w-12 sm:h-12 rounded-lg sm:rounded-2xl bg-amber-50 flex items-center justify-center shadow-inner shrink-0 border border-amber-100">
+            <Clock className="w-3.5 h-3.5 sm:w-6 sm:h-6 text-amber-600" />
           </div>
         </div>
 
         {/* Execution Health KPI */}
-        <div className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex items-center justify-between">
-          <div>
-            <div className="text-xs font-medium text-slate-500 uppercase tracking-wider">
+        <div className="p-2.5 sm:p-5 rounded-xl sm:rounded-2xl bg-white border border-slate-200/80 shadow-xs flex items-center justify-between gap-1.5 sm:gap-3">
+          <div className="min-w-0">
+            <div className="text-[10px] sm:text-xs font-medium text-slate-500 uppercase tracking-wider truncate">
               Execution Health
             </div>
-            <div className="flex items-center gap-2 mt-1">
-              <span className="text-sm font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-200">
+            <div className="flex flex-wrap items-center gap-1 sm:gap-2 mt-0.5 sm:mt-1">
+              <span className="text-xs sm:text-sm font-bold text-emerald-600 bg-emerald-50 px-1.5 sm:px-2 py-0.5 rounded-md sm:rounded-lg border border-emerald-200">
                 {executionBreakdown.smooth} Smooth
               </span>
               {(executionBreakdown.minor_issues > 0 || executionBreakdown.major_issues > 0) && (
-                <span className="text-xs font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-lg border border-amber-200">
+                <span className="text-[10px] sm:text-xs font-bold text-amber-600 bg-amber-50 px-1 sm:px-1.5 py-0.5 rounded-md sm:rounded-lg border border-amber-200">
                   {executionBreakdown.minor_issues + executionBreakdown.major_issues} Issues
                 </span>
               )}
             </div>
-            <div className="text-[11px] text-slate-400 mt-1.5 flex items-center gap-1">
+            <div className="hidden sm:flex text-[11px] text-slate-400 mt-1.5 items-center gap-1">
               <Clock className="w-3 h-3 text-indigo-500" />
               <span>{executionBreakdown.not_evaluated} Pending evaluation</span>
             </div>
           </div>
-          <div className="w-12 h-12 rounded-2xl bg-indigo-50 flex items-center justify-center shadow-inner shrink-0 border border-indigo-100">
-            <SlidersHorizontal className="w-6 h-6 text-indigo-600" />
+          <div className="w-7 h-7 sm:w-12 sm:h-12 rounded-lg sm:rounded-2xl bg-indigo-50 flex items-center justify-center shadow-inner shrink-0 border border-indigo-100">
+            <SlidersHorizontal className="w-3.5 h-3.5 sm:w-6 sm:h-6 text-indigo-600" />
           </div>
         </div>
       </div>

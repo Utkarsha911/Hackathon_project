@@ -311,8 +311,13 @@ export function HackathonProvider({ children }) {
         }
 
         const termsRes = await api.crm.getTerms().catch(() => null);
-        if (Array.isArray(termsRes) && termsRes.length > 0) {
-          setTerms(termsRes);
+        const termsList = Array.isArray(termsRes)
+          ? termsRes
+          : Array.isArray(termsRes?.results)
+          ? termsRes.results
+          : [];
+        if (termsList.length > 0) {
+          setTerms(termsList);
           connected = true;
         }
 

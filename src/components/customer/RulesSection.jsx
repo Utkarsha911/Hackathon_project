@@ -21,7 +21,7 @@ export default function RulesSection() {
     codeOfConduct.length > 0 ||
     evaluationCriteria.length > 0;
 
-  if (!hasRulesContent && !isLoadingApi) {
+  if (!hasRulesContent) {
     return null; // Don't render empty section if backend has no rules
   }
 

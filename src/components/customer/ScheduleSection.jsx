@@ -25,7 +25,7 @@ export default function ScheduleSection() {
     [schedules]
   );
 
-  if (steps.length === 0 && !isLoadingApi) return null;
+  if (!Array.isArray(steps) || steps.length === 0) return null;
 
   return (
     <Section id="schedule">

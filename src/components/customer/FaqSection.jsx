@@ -15,7 +15,7 @@ export default function FaqSection() {
     setOpenId(activeOpenId === id ? false : id);
   };
 
-  if (faqs.length === 0 && !isLoadingApi) {
+  if (!Array.isArray(faqs) || faqs.length === 0) {
     return null;
   }
 

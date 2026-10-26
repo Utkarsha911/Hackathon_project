@@ -1170,13 +1170,38 @@ export const api = {
         body: JSON.stringify(data),
       }),
 
-    getTerms: () => request('/crm/terms'),
-    createTerms: (data) =>
-      request('/crm/terms', {
+    getTerms: (params = {}, options = {}) =>
+      request(`/hackathons-crm/terms/${buildQueryString(params)}`, options)
+        .catch(() => request('/crm/terms', options)),
+    createTerms: (data, options = {}) =>
+      request('/hackathons-crm/terms/', {
         method: 'POST',
         body: JSON.stringify(data),
+        ...options,
       }),
+  // ---- Singular term CRUD helpers (admin UI) ----
+  // Create a single term
+  createTerm: (data, options = {}) =>
+    request('/hackathons-crm/terms/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+      ...options,
+    }),
 
+  // Update a term
+  updateTerm: (id, data, options = {}) =>
+    request(`/hackathons-crm/terms/${id}/`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+      ...options,
+    }),
+
+  // Delete a term
+  deleteTerm: (id, options = {}) =>
+    request(`/hackathons-crm/terms/${id}/`, {
+      method: 'DELETE',
+      ...options,
+    }),
     submitContact: (data, options = {}) =>
       request('/hackathons-crm/contacts/', {
         method: 'POST',
@@ -1906,5 +1931,11 @@ export const api = {
     },
   },
 };
+
+export const getTerms = (params, options) => api.crm.getTerms(params, options);
+export const createTerm = (data, options) => api.crm.createTerm(data, options);
+export const createTerms = (data, options) => api.crm.createTerms(data, options);
+export const updateTerm = (id, data, options) => api.crm.updateTerm(id, data, options);
+export const deleteTerm = (id, options) => api.crm.deleteTerm(id, options);
 
 export default api;

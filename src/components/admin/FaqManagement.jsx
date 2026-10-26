@@ -253,59 +253,59 @@ export default function FaqManagement() {
       </div>
 
       {/* 2. KPI Cards (Rule 4: Consume backend stats) */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-3 gap-2 sm:gap-4">
         {/* Total FAQs */}
-        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-xs">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+        <div className="bg-white p-2.5 sm:p-5 rounded-xl sm:rounded-2xl border border-slate-200 shadow-xs flex flex-col justify-between">
+          <div className="flex items-center justify-between gap-1">
+            <span className="text-[10px] sm:text-xs font-semibold text-slate-500 uppercase tracking-wider truncate">
               Total FAQs
             </span>
-            <div className="w-9 h-9 rounded-xl bg-orange-50 flex items-center justify-center text-[#ea580c]">
-              <HelpCircle className="w-4 h-4" />
+            <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl bg-orange-50 flex items-center justify-center text-[#ea580c] shrink-0">
+              <HelpCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </div>
           </div>
-          <div className="mt-3">
-            <div className="text-2xl font-bold text-slate-900 font-mono">
+          <div className="mt-1 sm:mt-3">
+            <div className="text-base sm:text-2xl font-bold text-slate-900 font-mono truncate">
               {stats.total_items ?? faqs.length}
             </div>
-            <p className="text-xs text-slate-500 mt-1">Questions configured in CRM</p>
+            <p className="hidden sm:block text-xs text-slate-500 mt-1">Questions configured in CRM</p>
           </div>
         </div>
 
         {/* Active FAQs */}
-        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-xs">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-              Published FAQs
+        <div className="bg-white p-2.5 sm:p-5 rounded-xl sm:rounded-2xl border border-slate-200 shadow-xs flex flex-col justify-between">
+          <div className="flex items-center justify-between gap-1">
+            <span className="text-[10px] sm:text-xs font-semibold text-slate-500 uppercase tracking-wider truncate">
+              Published
             </span>
-            <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600">
-              <CheckCircle2 className="w-4 h-4" />
+            <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl bg-blue-50 flex items-center justify-center text-blue-600 shrink-0">
+              <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </div>
           </div>
-          <div className="mt-3">
-            <div className="text-2xl font-bold text-blue-700 font-mono">
+          <div className="mt-1 sm:mt-3">
+            <div className="text-base sm:text-2xl font-bold text-blue-700 font-mono truncate">
               {stats.active_items ?? faqs.length}
             </div>
-            <p className="text-xs text-slate-500 mt-1">Publicly displayed to participants</p>
+            <p className="hidden sm:block text-xs text-slate-500 mt-1">Publicly displayed to participants</p>
           </div>
         </div>
 
         {/* Active API Status */}
-        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-xs">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-              Backend Endpoint
+        <div className="bg-white p-2.5 sm:p-5 rounded-xl sm:rounded-2xl border border-slate-200 shadow-xs flex flex-col justify-between">
+          <div className="flex items-center justify-between gap-1">
+            <span className="text-[10px] sm:text-xs font-semibold text-slate-500 uppercase tracking-wider truncate">
+              Endpoint
             </span>
-            <div className="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600">
-              <Layers className="w-4 h-4" />
+            <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl bg-slate-100 flex items-center justify-center text-slate-600 shrink-0">
+              <Layers className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </div>
           </div>
-          <div className="mt-3">
-            <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-700">
-              <span className="w-2 h-2 rounded-full bg-emerald-500" />
-              <span>FAQs API Live</span>
+          <div className="mt-1 sm:mt-3">
+            <div className="flex items-center gap-1 sm:gap-1.5 text-xs font-semibold text-emerald-700 truncate">
+              <span className="w-1.5 sm:w-2 h-1.5 sm:h-2 rounded-full bg-emerald-500 shrink-0" />
+              <span className="truncate">API Live</span>
             </div>
-            <p className="text-[11px] font-mono text-slate-400 mt-1 truncate">
+            <p className="hidden sm:block text-[11px] font-mono text-slate-400 mt-1 truncate">
               /api/v1/hackathons-crm/faqs/
             </p>
           </div>

@@ -5,6 +5,7 @@ import HeroSection from './HeroSection';
 import AboutSection from './AboutSection';
 import ChallengesSection from './ChallengesSection';
 import HighlightsSection from './HighlightsSection';
+import OrganizersSection from './OrganizersSection';
 import ScheduleSection from './ScheduleSection';
 import RulesSection from './RulesSection';
 import SponsorsSection from './SponsorsSection';
@@ -122,6 +123,7 @@ export default function CustomerPortal() {
         <ChallengesSection />
         <ScheduleSection />
         <HighlightsSection />
+        <OrganizersSection />
         <RulesSection />
         <SponsorsSection />
         <FaqSection />
@@ -188,11 +190,14 @@ export default function CustomerPortal() {
 
             <h3 className="text-base font-bold text-slate-900 mb-4 flex items-center gap-2">
               <Shield className="w-4 h-4 text-brand-blue" />
-              <span>Official Terms & Code of Conduct</span>
+              <span>{terms?.[0]?.title || 'Official Terms & Code of Conduct'}</span>
             </h3>
 
             <div className="text-xs text-slate-600 leading-relaxed max-h-72 overflow-y-auto space-y-3 pr-2">
-              <p>{terms[0]?.content}</p>
+              <p className="whitespace-pre-line">
+                {terms?.[0]?.content ||
+                  'By participating in this hackathon, all team members agree to uphold academic integrity, original work, and community safety. Unauthorized plagiarism, offensive material, or unfair practices will result in instant disqualification. Participants retain full ownership of intellectual property produced during the event. Organizers reserve the right to photograph, record, and report on hackathon presentations for promotional purposes.'}
+              </p>
             </div>
 
             <div className="mt-5 flex justify-end">

@@ -738,59 +738,59 @@ export default function SponsorManagement() {
       </div>
 
       {/* KPI Stats Bar - Populated directly from backend stats: { total_items, active_items, inactive_items } */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
         {activeTab === 'sponsors' && (
           <>
-            <div className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs">
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-slate-500 font-medium">Total Sponsors</span>
-                <div className="w-8 h-8 rounded-xl bg-orange-50 text-[#ea580c] flex items-center justify-center">
-                  <Building2 className="w-4 h-4" />
+            <div className="p-2.5 sm:p-5 rounded-xl sm:rounded-2xl bg-white border border-slate-200/80 shadow-xs flex flex-col justify-between">
+              <div className="flex items-center justify-between gap-1">
+                <span className="text-[10px] sm:text-xs text-slate-500 font-medium truncate">Total Sponsors</span>
+                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-orange-50 text-[#ea580c] flex items-center justify-center shrink-0">
+                  <Building2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 </div>
               </div>
-              <div className="text-2xl font-bold font-mono text-slate-900 mt-2">
+              <div className="text-base sm:text-2xl font-bold font-mono text-slate-900 mt-1 sm:mt-2 truncate">
                 {sponsorStats?.total_items ?? sponsors.length}
               </div>
-              <div className="text-[11px] text-slate-400 mt-0.5">Corporate partners</div>
+              <div className="hidden sm:block text-[11px] text-slate-400 mt-0.5">Corporate partners</div>
             </div>
 
-            <div className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs">
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-slate-500 font-medium">Active Sponsors</span>
-                <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
-                  <CheckCircle2 className="w-4 h-4" />
+            <div className="p-2.5 sm:p-5 rounded-xl sm:rounded-2xl bg-white border border-slate-200/80 shadow-xs flex flex-col justify-between">
+              <div className="flex items-center justify-between gap-1">
+                <span className="text-[10px] sm:text-xs text-slate-500 font-medium truncate">Active Sponsors</span>
+                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                  <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 </div>
               </div>
-              <div className="text-2xl font-bold font-mono text-slate-900 mt-2">
+              <div className="text-base sm:text-2xl font-bold font-mono text-slate-900 mt-1 sm:mt-2 truncate">
                 {sponsorStats?.active_items ?? sponsors.length}
               </div>
-              <div className="text-[11px] text-slate-400 mt-0.5">Currently active</div>
+              <div className="hidden sm:block text-[11px] text-slate-400 mt-0.5">Currently active</div>
             </div>
 
-            <div className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs">
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-slate-500 font-medium">Inactive Sponsors</span>
-                <div className="w-8 h-8 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center">
-                  <AlertCircle className="w-4 h-4" />
+            <div className="p-2.5 sm:p-5 rounded-xl sm:rounded-2xl bg-white border border-slate-200/80 shadow-xs flex flex-col justify-between">
+              <div className="flex items-center justify-between gap-1">
+                <span className="text-[10px] sm:text-xs text-slate-500 font-medium truncate">Inactive</span>
+                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center shrink-0">
+                  <AlertCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 </div>
               </div>
-              <div className="text-2xl font-bold font-mono text-slate-900 mt-2">
+              <div className="text-base sm:text-2xl font-bold font-mono text-slate-900 mt-1 sm:mt-2 truncate">
                 {sponsorStats?.inactive_items ?? 0}
               </div>
-              <div className="text-[11px] text-slate-400 mt-0.5">Archived records</div>
+              <div className="hidden sm:block text-[11px] text-slate-400 mt-0.5">Archived records</div>
             </div>
 
-            <div className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs">
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-slate-500 font-medium">Partner Services</span>
-                <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
-                  <Briefcase className="w-4 h-4" />
+            <div className="p-2.5 sm:p-5 rounded-xl sm:rounded-2xl bg-white border border-slate-200/80 shadow-xs flex flex-col justify-between">
+              <div className="flex items-center justify-between gap-1">
+                <span className="text-[10px] sm:text-xs text-slate-500 font-medium truncate">Services</span>
+                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                  <Briefcase className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 </div>
               </div>
-              <div className="text-2xl font-bold font-mono text-slate-900 mt-2">
+              <div className="text-base sm:text-2xl font-bold font-mono text-slate-900 mt-1 sm:mt-2 truncate">
                 {sponsors.filter((s) => Boolean(s.service)).length}
               </div>
-              <div className="text-[11px] text-slate-400 mt-0.5">In-kind / Tech perks</div>
+              <div className="hidden sm:block text-[11px] text-slate-400 mt-0.5">In-kind / Tech perks</div>
             </div>
           </>
         )}

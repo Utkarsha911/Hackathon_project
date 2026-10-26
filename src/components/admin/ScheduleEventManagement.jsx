@@ -623,49 +623,49 @@ export default function ScheduleEventManagement() {
       </div>
 
       {/* KPI Stats Cards (Rule 4: Backend Stats Consumption) */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-3 gap-2 sm:gap-4">
         {/* Total Events */}
-        <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex items-center justify-between">
-          <div>
-            <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">
+        <div className="p-2.5 sm:p-4 rounded-xl sm:rounded-2xl bg-white border border-slate-200/80 shadow-xs flex items-center justify-between gap-1.5 sm:gap-3">
+          <div className="min-w-0">
+            <p className="text-[10px] sm:text-xs font-medium text-slate-500 uppercase tracking-wider truncate">
               Total Events
             </p>
-            <p className="text-2xl font-bold text-slate-900 mt-1">
+            <p className="text-base sm:text-2xl font-bold text-slate-900 mt-0.5 sm:mt-1 truncate">
               {stats.total_items ?? events.length}
             </p>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-orange-50 flex items-center justify-center text-orange-600">
-            <CalendarClock className="w-5 h-5" />
+          <div className="w-7 h-7 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-orange-50 flex items-center justify-center text-orange-600 shrink-0">
+            <CalendarClock className="w-3.5 h-3.5 sm:w-5 sm:h-5" />
           </div>
         </div>
 
         {/* Active Events */}
-        <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex items-center justify-between">
-          <div>
-            <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">
+        <div className="p-2.5 sm:p-4 rounded-xl sm:rounded-2xl bg-white border border-slate-200/80 shadow-xs flex items-center justify-between gap-1.5 sm:gap-3">
+          <div className="min-w-0">
+            <p className="text-[10px] sm:text-xs font-medium text-slate-500 uppercase tracking-wider truncate">
               Active Events
             </p>
-            <p className="text-2xl font-bold text-emerald-600 mt-1">
+            <p className="text-base sm:text-2xl font-bold text-emerald-600 mt-0.5 sm:mt-1 truncate">
               {stats.active_items ?? events.filter((e) => e.is_active !== false).length}
             </p>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600">
-            <CheckCircle2 className="w-5 h-5" />
+          <div className="w-7 h-7 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600 shrink-0">
+            <CheckCircle2 className="w-3.5 h-3.5 sm:w-5 sm:h-5" />
           </div>
         </div>
 
         {/* Inactive Events */}
-        <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex items-center justify-between">
-          <div>
-            <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">
+        <div className="p-2.5 sm:p-4 rounded-xl sm:rounded-2xl bg-white border border-slate-200/80 shadow-xs flex items-center justify-between gap-1.5 sm:gap-3">
+          <div className="min-w-0">
+            <p className="text-[10px] sm:text-xs font-medium text-slate-500 uppercase tracking-wider truncate">
               Inactive Events
             </p>
-            <p className="text-2xl font-bold text-slate-600 mt-1">
+            <p className="text-base sm:text-2xl font-bold text-slate-600 mt-0.5 sm:mt-1 truncate">
               {stats.inactive_items ?? events.filter((e) => e.is_active === false).length}
             </p>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500">
-            <AlertCircle className="w-5 h-5" />
+          <div className="w-7 h-7 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-slate-100 flex items-center justify-center text-slate-500 shrink-0">
+            <AlertCircle className="w-3.5 h-3.5 sm:w-5 sm:h-5" />
           </div>
         </div>
       </div>

@@ -8,12 +8,25 @@ import HackathonBrand from './HackathonBrand';
 export default function Footer() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { hackathon, schedules = [], scheduleEvents = [] } = useHackathon();
+  const {
+    hackathon,
+    schedules = [],
+    scheduleEvents = [],
+    prizes = [],
+    faqs = [],
+    sponsors = []
+  } = useHackathon();
 
   const hasScheduleData =
     (Array.isArray(schedules) && schedules.length > 0) ||
     (Array.isArray(scheduleEvents) && scheduleEvents.length > 0) ||
     (Array.isArray(hackathon?.schedules) && hackathon.schedules.length > 0);
+
+  const hasPrizesData = Array.isArray(prizes) && prizes.length > 0;
+  const hasFaqData = Array.isArray(faqs) && faqs.length > 0;
+  const hasSponsorsData =
+    (Array.isArray(sponsors) && sponsors.length > 0) ||
+    (Array.isArray(hackathon?.sponsor_packages) && hackathon.sponsor_packages.length > 0);
 
   const hasRulesData = (() => {
     const r = hackathon?.rules;
@@ -32,15 +45,14 @@ export default function Footer() {
   })();
 
   const quickLinks = [
-    { label: 'About', href: '/#about' },
-    { label: 'Tracks', href: '/#tracks' },
+    ...(hackathon?.title ? [{ label: 'About', href: '/#about' }] : []),
     ...(hasScheduleData ? [{ label: 'Schedule', href: '/#schedule' }] : []),
-    { label: 'Prizes', href: '/#prizes' },
+    ...(hasPrizesData ? [{ label: 'Prizes', href: '/#prizes' }] : []),
   ];
   const resources = [
-    { label: 'FAQ', href: '/#faq' },
+    ...(hasFaqData ? [{ label: 'FAQ', href: '/#faq' }] : []),
     ...(hasRulesData ? [{ label: 'Rules & Guidelines', href: '/#rules' }] : []),
-    { label: 'Partners', href: '/#sponsors' },
+    ...(hasSponsorsData ? [{ label: 'Partners', href: '/#sponsors' }] : []),
     { label: 'Contact', href: '/#contact' },
   ];
 
