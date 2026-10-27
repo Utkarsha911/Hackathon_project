@@ -50,7 +50,7 @@ export default function HeroSection({ onOpenRegister }) {
   ];
 
   return (
-    <section id="top" className="relative bg-brand-dark text-white overflow-hidden">
+    <section id="top" className="relative min-h-screen min-h-[100dvh] flex flex-col justify-center bg-brand-dark text-white overflow-hidden">
       {bg && (
         <img
           src={bg}
@@ -61,7 +61,7 @@ export default function HeroSection({ onOpenRegister }) {
       )}
       <div className="absolute inset-0 bg-gradient-to-r from-brand-dark via-brand-dark/85 to-transparent" />
 
-      <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
+      <div className="relative w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
         <p className="text-xs sm:text-sm font-semibold uppercase tracking-[0.25em] text-slate-300">
           {h.version || EVENT_VERSION}
         </p>
