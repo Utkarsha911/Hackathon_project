@@ -28,16 +28,16 @@ function getTierPriority(tierName = '') {
   return 6;
 }
 
-// Professional Tier Palette (Solid Opaque Badges, Clean Left Border Accents)
+// Professional Tier Palette matching Customer Site Theme
 function getTierConfig(tierName = '') {
   const t = String(tierName || '').toLowerCase().trim();
   
   if (t.includes('title') || t.includes('headline')) {
     return {
       label: tierName || 'Title Partner',
-      badgeClass: 'bg-brand-blue text-white',
-      borderAccent: 'border-l-[#ea580c]',
-      avatarGradient: 'from-[#ea580c] to-[#c2410c]',
+      badgeClass: 'bg-brand-navy text-white',
+      borderAccent: 'border-l-brand-blue',
+      avatarGradient: 'from-brand-navy to-brand-blue',
       Icon: Award
     };
   }
@@ -45,9 +45,9 @@ function getTierConfig(tierName = '') {
   if (t.includes('premium') || t.includes('platinum')) {
     return {
       label: tierName || 'Platinum Partner',
-      badgeClass: 'bg-indigo-600 text-white',
-      borderAccent: 'border-l-indigo-600',
-      avatarGradient: 'from-indigo-600 to-indigo-800',
+      badgeClass: 'bg-brand-blue text-white',
+      borderAccent: 'border-l-brand-blue',
+      avatarGradient: 'from-brand-blue to-blue-700',
       Icon: BadgeCheck
     };
   }
@@ -55,7 +55,7 @@ function getTierConfig(tierName = '') {
   if (t.includes('gold')) {
     return {
       label: tierName || 'Gold Partner',
-      badgeClass: 'bg-brand-red text-slate-950 font-black',
+      badgeClass: 'bg-amber-600 text-white font-bold',
       borderAccent: 'border-l-amber-500',
       avatarGradient: 'from-amber-500 to-amber-700',
       Icon: Award
@@ -91,7 +91,7 @@ function getMarqueeList(items = []) {
   return [...list, ...list];
 }
 
-// Executive Sponsor Card Component
+// Executive Sponsor Card Component - Smaller, Compact, Customer Themed
 function SponsorCard({ sponsor, sIdx, brokenImages, setBrokenImages }) {
   const rawLogo = sponsor.logo || sponsor.logo_url;
   const logoSrc = rawLogo ? getMediaUrl(rawLogo) : null;
@@ -107,10 +107,10 @@ function SponsorCard({ sponsor, sIdx, brokenImages, setBrokenImages }) {
 
   return (
     <div
-      className={`w-72 sm:w-80 shrink-0 group relative rounded-2xl bg-white border border-slate-200/90 border-l-4 ${tierConfig.borderAccent} p-3 sm:p-3.5 shadow-2xs hover:shadow-lg hover:shadow-slate-900/5 transition-all duration-300 hover:-translate-y-0.5 flex items-center gap-3.5 mx-2 sm:mx-2.5 select-none overflow-hidden`}
+      className={`w-64 sm:w-72 shrink-0 group relative rounded-2xl bg-white border border-slate-200/80 border-l-[3px] ${tierConfig.borderAccent} p-3 shadow-2xs hover:shadow-md hover:shadow-brand-navy/5 transition-all duration-300 hover:-translate-y-0.5 flex items-center gap-3 mx-2 select-none overflow-hidden`}
     >
       {/* Logo Box */}
-      <div className="w-12 h-12 rounded-xl bg-slate-50 border border-slate-100 p-2 flex items-center justify-center shrink-0 group-hover:bg-white group-hover:border-slate-200 transition-colors">
+      <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-100 p-1.5 flex items-center justify-center shrink-0 group-hover:bg-white group-hover:border-slate-200 transition-colors">
         {showLogoImage ? (
           <img
             src={logoSrc}
@@ -128,12 +128,12 @@ function SponsorCard({ sponsor, sIdx, brokenImages, setBrokenImages }) {
       {/* Info Details */}
       <div className="min-w-0 flex-1">
         {/* Tier Badge & Location Row */}
-        <div className="flex items-center gap-1.5 mb-1 flex-wrap">
-          <span className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded uppercase tracking-wider ${tierConfig.badgeClass} shadow-2xs`}>
+        <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
+          <span className={`text-[8.5px] font-extrabold px-1.5 py-0.2 rounded uppercase tracking-wider ${tierConfig.badgeClass} shadow-2xs`}>
             {tierName}
           </span>
           {sponsor.location && (
-            <span className="inline-flex items-center gap-0.5 text-[10px] text-slate-500 font-medium truncate max-w-[120px]">
+            <span className="inline-flex items-center gap-0.5 text-[9.5px] text-slate-500 font-medium truncate max-w-[110px]">
               <MapPin className="w-2.5 h-2.5 text-brand-blue shrink-0" />
               <span className="truncate">{sponsor.location}</span>
             </span>
@@ -147,11 +147,11 @@ function SponsorCard({ sponsor, sIdx, brokenImages, setBrokenImages }) {
 
         {/* Contribution or Subtitle */}
         {subtitle ? (
-          <p className="text-[10px] sm:text-[11px] text-slate-500 font-medium truncate mt-0.5 leading-tight" title={subtitle}>
+          <p className="text-[10px] text-slate-500 font-medium truncate mt-0.5 leading-tight" title={subtitle}>
             {subtitle}
           </p>
         ) : (
-          <p className="text-[10px] sm:text-[11px] text-slate-400 font-mono truncate mt-0.5 leading-tight">
+          <p className="text-[10px] text-slate-400 font-mono truncate mt-0.5 leading-tight">
             Official Partner
           </p>
         )}
@@ -163,11 +163,11 @@ function SponsorCard({ sponsor, sIdx, brokenImages, setBrokenImages }) {
           href={websiteUrl.startsWith('http') ? websiteUrl : `https://${websiteUrl}`}
           target="_blank"
           rel="noreferrer"
-          className="w-7 h-7 rounded-lg bg-slate-50 group-hover:bg-orange-50 text-slate-400 group-hover:text-brand-blue border border-slate-200/60 group-hover:border-orange-200 flex items-center justify-center transition-all shrink-0 cursor-pointer"
+          className="w-6 h-6 rounded-lg bg-slate-50 group-hover:bg-brand-tint text-slate-400 group-hover:text-brand-blue border border-slate-200/60 group-hover:border-brand-blue/30 flex items-center justify-center transition-all shrink-0 cursor-pointer"
           title="Visit Website"
           onClick={(e) => e.stopPropagation()}
         >
-          <ExternalLink className="w-3.5 h-3.5" />
+          <ExternalLink className="w-3 h-3" />
         </a>
       )}
     </div>
@@ -236,13 +236,16 @@ export default function SponsorsSection() {
   return (
     <Section id="sponsors" tone="tint" py="py-12" width="max-w-7xl" className="overflow-hidden">
       
-      {/* Single-Screen Header - Clean & Focused */}
-      <div className="text-center max-w-xl mx-auto mb-6">
+      {/* Centered Heading in Customer Theme */}
+      <div className="text-center max-w-xl mx-auto mb-8">
+        <div className="text-xs font-bold uppercase tracking-[0.14em] text-brand-blue mb-2">
+          Partners & Sponsors
+        </div>
         <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-ink">
-          Our sponsors
+          Our Sponsors
         </h2>
-        <p className="mt-1 text-sm text-slate-600">
-          They paid for the prizes, the food and the wifi.
+        <p className="mt-2 text-xs sm:text-sm text-slate-500">
+          Supported by visionary partners powering innovation and opportunities for hackers.
         </p>
       </div>
 

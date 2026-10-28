@@ -695,7 +695,7 @@ export default function ScheduleEventManagement() {
             <option value="all">All Schedules</option>
             {schedulesList.map((s) => (
               <option key={s.id} value={s.id}>
-                {s.title}
+                {s.title} ({s.type === 'pre_event' ? 'Pre-Event' : 'Hackathon'})
               </option>
             ))}
           </select>

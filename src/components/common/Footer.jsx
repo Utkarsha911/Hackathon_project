@@ -18,9 +18,9 @@ export default function Footer() {
   } = useHackathon();
 
   const hasScheduleData =
-    (Array.isArray(schedules) && schedules.length > 0) ||
+    (Array.isArray(schedules) && schedules.some((s) => !s.type || s.type === 'hackathon')) ||
     (Array.isArray(scheduleEvents) && scheduleEvents.length > 0) ||
-    (Array.isArray(hackathon?.schedules) && hackathon.schedules.length > 0);
+    (Array.isArray(hackathon?.schedules) && hackathon.schedules.some((s) => !s.type || s.type === 'hackathon'));
 
   const hasPrizesData = Array.isArray(prizes) && prizes.length > 0;
   const hasFaqData = Array.isArray(faqs) && faqs.length > 0;

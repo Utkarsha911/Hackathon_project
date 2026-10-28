@@ -345,7 +345,7 @@ export function HackathonProvider({ children }) {
 
         // Only fetch generic schedules if current-hackathon did not embed schedules
         if (!currentDetails?.schedules || currentDetails.schedules.length === 0) {
-          const schedulesRes = await api.schedules.getAll().catch(() => null);
+          const schedulesRes = await api.schedules.getAll({ type: 'hackathon' }).catch(() => null);
           const list = Array.isArray(schedulesRes)
             ? schedulesRes
             : Array.isArray(schedulesRes?.results)
