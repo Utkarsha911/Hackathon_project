@@ -281,6 +281,7 @@ export default function AdminLayout() {
     isHackathonsActive &&
     hackathonTab !== 'organizers' &&
     !isHackathonPrizesActive &&
+    !isHackathonTermsActive &&
     !isHackathonFaqsActive &&
     !isHackathonContactsActive;
   const isSponsorsActive = pathname.startsWith('/admin-control-site/sponsors');
@@ -454,6 +455,7 @@ export default function AdminLayout() {
   else if (isHackathonOrganizersActive) pageTitle = 'Hackathon Organizers';
   else if (isHackathonPrizesActive) pageTitle = 'Prize Management';
   else if (isHackathonFaqsActive) pageTitle = 'FAQ Management';
+  else if (isHackathonTermsActive) pageTitle = 'Terms & Conditions';
   else if (isHackathonContactsActive) pageTitle = 'Contact Inquiries';
   else if (isHackathonsActive) pageTitle = 'Hackathon Management';
   else if (isSponsorsActive) pageTitle = 'Sponsors & Packages';
