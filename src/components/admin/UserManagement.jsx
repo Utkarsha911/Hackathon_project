@@ -2095,29 +2095,7 @@ export default function UserManagement() {
                   </div>
                 </div>
 
-                {/* Team Selection (Optional) */}
-                <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <label className="block text-xs font-semibold text-slate-700">
-                      Assigned Team (Optional)
-                    </label>
-                    <span className="text-[10px] text-slate-400">
-                      Link user to a hackathon team
-                    </span>
-                  </div>
-                  <select
-                    value={formData.team}
-                    onChange={(e) => setFormData({ ...formData, team: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs sm:text-sm bg-white text-slate-800 focus:outline-none focus:border-[#e8622a]"
-                  >
-                    <option value="">No Team Assigned (Independent)</option>
-                    {teamsList.map((t) => (
-                      <option key={t.id} value={t.name}>
-                        {t.name} ({t.track || t.college_org || 'Team'})
-                      </option>
-                    ))}
-                  </select>
-                </div>
+
 
                 {/* Actions */}
                 <div className="pt-4 border-t border-slate-100 flex items-center justify-end gap-3">
