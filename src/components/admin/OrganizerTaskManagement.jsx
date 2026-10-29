@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { api, getSelectedAdminHackathon } from '../../services/api';
 import { useHackathon } from '../../context/HackathonContext';
 import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
+import ModalPortal from '../common/ModalPortal';
 import {
   ClipboardList,
   CheckCircle2,
@@ -733,9 +734,11 @@ export default function OrganizerTaskManagement() {
       </div>
 
       {/* 5. Create / Edit Task Modal */}
+      <ModalPortal>
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in duration-150 overflow-y-auto">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-xl overflow-hidden border border-slate-200 my-6">
+        <div className="fixed inset-0 z-[100] overflow-y-auto bg-slate-900/60 backdrop-blur-xs p-3 sm:p-4">
+          <div className="min-h-full flex items-center justify-center py-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-xl overflow-hidden border border-slate-200">
             <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-xl bg-orange-50 flex items-center justify-center text-[#ea580c]">
@@ -923,12 +926,14 @@ export default function OrganizerTaskManagement() {
               </div>
             </form>
           </div>
+          </div>
         </div>
       )}
 
       {/* 6. View Task Details Modal */}
       {viewingTask && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in duration-150">
+        <div className="fixed inset-0 z-[100] overflow-y-auto bg-slate-900/60 backdrop-blur-xs p-3 sm:p-4">
+          <div className="min-h-full flex items-center justify-center py-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden border border-slate-200">
             <div className="p-5 border-b border-slate-100 flex items-center justify-between">
               <div className="flex items-center gap-2.5">
@@ -1033,12 +1038,14 @@ export default function OrganizerTaskManagement() {
               </button>
             </div>
           </div>
+          </div>
         </div>
       )}
 
       {/* 7. Delete Confirmation Modal */}
       {deleteModal.isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in duration-150">
+        <div className="fixed inset-0 z-[100] overflow-y-auto bg-slate-900/60 backdrop-blur-xs p-3 sm:p-4">
+          <div className="min-h-full flex items-center justify-center py-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 border border-slate-200 space-y-4">
             <div className="w-12 h-12 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center mx-auto">
               <AlertCircle className="w-6 h-6" />
@@ -1078,8 +1085,10 @@ export default function OrganizerTaskManagement() {
               </button>
             </div>
           </div>
+          </div>
         </div>
       )}
+      </ModalPortal>
     </div>
   );
 }

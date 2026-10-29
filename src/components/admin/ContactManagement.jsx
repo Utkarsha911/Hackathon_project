@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { api } from '../../services/api';
 import { useHackathon } from '../../context/HackathonContext';
 import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
+import ModalPortal from '../common/ModalPortal';
 import {
   Mail,
   Search,
@@ -438,8 +439,10 @@ export default function ContactManagement() {
       </div>
 
       {/* 5. View Inquiry Details Modal */}
+      <ModalPortal>
       {viewingContact && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in duration-150">
+        <div className="fixed inset-0 z-[100] overflow-y-auto bg-slate-900/60 backdrop-blur-xs p-3 sm:p-4">
+          <div className="min-h-full flex items-center justify-center py-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-xl overflow-hidden border border-slate-200">
             {/* Modal Header */}
             <div className="p-5 border-b border-slate-100 flex items-center justify-between">
@@ -548,12 +551,14 @@ export default function ContactManagement() {
               </button>
             </div>
           </div>
+          </div>
         </div>
       )}
 
       {/* 6. Delete Confirmation Modal */}
       {deleteModal.isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in duration-150">
+        <div className="fixed inset-0 z-[100] overflow-y-auto bg-slate-900/60 backdrop-blur-xs p-3 sm:p-4">
+          <div className="min-h-full flex items-center justify-center py-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 border border-slate-200 space-y-4">
             <div className="w-12 h-12 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center mx-auto">
               <AlertCircle className="w-6 h-6" />
@@ -593,8 +598,10 @@ export default function ContactManagement() {
               </button>
             </div>
           </div>
+          </div>
         </div>
       )}
+      </ModalPortal>
     </div>
   );
 }

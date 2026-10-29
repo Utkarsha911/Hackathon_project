@@ -25,6 +25,7 @@ import {
 import { api, getSelectedAdminHackathon } from '../../services/api';
 import { useHackathon } from '../../context/HackathonContext';
 import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
+import ModalPortal from '../common/ModalPortal';
 import ScheduleEventManagement from './ScheduleEventManagement';
 
 // Execution status options matching backend ExecutionStatus choices
@@ -1000,11 +1001,14 @@ function ScheduleManagementContent() {
       )}
 
       {/* ------------------------------------------------------------- */}
-      {/* MODAL 1: CREATE SCHEDULE */}
+      {/* MODALS (PORTALED TO BODY TO COVER FULL SCREEN)                */}
       {/* ------------------------------------------------------------- */}
+      <ModalPortal>
+      {/* MODAL 1: CREATE SCHEDULE */}
       {createModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl border border-slate-200 max-w-lg w-full p-6 shadow-2xl relative my-8 animate-in fade-in zoom-in-95 duration-150">
+        <div className="fixed inset-0 z-[100] overflow-y-auto bg-slate-900/60 backdrop-blur-xs p-3 sm:p-4">
+          <div className="min-h-full flex items-center justify-center py-4 sm:py-6">
+          <div className="bg-white rounded-2xl border border-slate-200 max-w-lg w-full p-6 shadow-2xl relative animate-in fade-in zoom-in-95 duration-150">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div>
                 <h3 className="text-base sm:text-lg font-bold text-slate-900">
@@ -1135,6 +1139,7 @@ function ScheduleManagementContent() {
               </div>
             </form>
           </div>
+          </div>
         </div>
       )}
 
@@ -1142,8 +1147,9 @@ function ScheduleManagementContent() {
       {/* MODAL 2: EDIT SCHEDULE */}
       {/* ------------------------------------------------------------- */}
       {editModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl border border-slate-200 max-w-lg w-full p-6 shadow-2xl relative my-8 animate-in fade-in zoom-in-95 duration-150">
+        <div className="fixed inset-0 z-[100] overflow-y-auto bg-slate-900/60 backdrop-blur-xs p-3 sm:p-4">
+          <div className="min-h-full flex items-center justify-center py-4 sm:py-6">
+          <div className="bg-white rounded-2xl border border-slate-200 max-w-lg w-full p-6 shadow-2xl relative animate-in fade-in zoom-in-95 duration-150">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div>
                 <h3 className="text-base sm:text-lg font-bold text-slate-900">
@@ -1272,6 +1278,7 @@ function ScheduleManagementContent() {
               </div>
             </form>
           </div>
+          </div>
         </div>
       )}
 
@@ -1279,8 +1286,9 @@ function ScheduleManagementContent() {
       {/* MODAL 3: UPDATE STATUS (/api/v1/hackathons/admin/schedules/update-status) */}
       {/* ------------------------------------------------------------- */}
       {statusModalOpen && selectedSchedule && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl border border-slate-200 max-w-md w-full p-6 shadow-2xl relative my-8 animate-in fade-in zoom-in-95 duration-150">
+        <div className="fixed inset-0 z-[100] overflow-y-auto bg-slate-900/60 backdrop-blur-xs p-3 sm:p-4">
+          <div className="min-h-full flex items-center justify-center py-4 sm:py-6">
+          <div className="bg-white rounded-2xl border border-slate-200 max-w-md w-full p-6 shadow-2xl relative animate-in fade-in zoom-in-95 duration-150">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600">
@@ -1391,6 +1399,7 @@ function ScheduleManagementContent() {
               </div>
             </form>
           </div>
+          </div>
         </div>
       )}
 
@@ -1398,8 +1407,9 @@ function ScheduleManagementContent() {
       {/* MODAL 4: VIEW SCHEDULE DETAILS */}
       {/* ------------------------------------------------------------- */}
       {viewModalOpen && selectedSchedule && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl border border-slate-200 max-w-lg w-full p-6 shadow-2xl relative my-8 animate-in fade-in zoom-in-95 duration-150">
+        <div className="fixed inset-0 z-[100] overflow-y-auto bg-slate-900/60 backdrop-blur-xs p-3 sm:p-4">
+          <div className="min-h-full flex items-center justify-center py-4 sm:py-6">
+          <div className="bg-white rounded-2xl border border-slate-200 max-w-lg w-full p-6 shadow-2xl relative animate-in fade-in zoom-in-95 duration-150">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center gap-2">
                 <CalendarClock className="w-5 h-5 text-[#ea580c]" />
@@ -1474,6 +1484,7 @@ function ScheduleManagementContent() {
               </button>
             </div>
           </div>
+          </div>
         </div>
       )}
 
@@ -1481,8 +1492,9 @@ function ScheduleManagementContent() {
       {/* MODAL 5: DELETE CONFIRMATION */}
       {/* ------------------------------------------------------------- */}
       {deleteModalOpen && selectedSchedule && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl border border-slate-200 max-w-sm w-full p-6 shadow-2xl relative my-8 animate-in fade-in zoom-in-95 duration-150">
+        <div className="fixed inset-0 z-[100] overflow-y-auto bg-slate-900/60 backdrop-blur-xs p-3 sm:p-4">
+          <div className="min-h-full flex items-center justify-center py-4">
+          <div className="bg-white rounded-2xl border border-slate-200 max-w-sm w-full p-6 shadow-2xl relative animate-in fade-in zoom-in-95 duration-150">
             <div className="w-12 h-12 rounded-2xl bg-rose-50 border border-rose-100 flex items-center justify-center text-rose-600 mx-auto mb-3">
               <Trash2 className="w-6 h-6" />
             </div>
@@ -1512,8 +1524,10 @@ function ScheduleManagementContent() {
               </button>
             </div>
           </div>
+          </div>
         </div>
       )}
+      </ModalPortal>
     </div>
   );
 }

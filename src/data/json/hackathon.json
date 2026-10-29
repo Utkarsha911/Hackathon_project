@@ -40,5 +40,6 @@
   "registration_enddate": "2026-11-05",
   "minimum_team_size": 2,
   "max_team_size": 4,
+  "is_tshirt_included": true,
   "created_by": "11111111-2222-3333-4444-555555555555"
 }

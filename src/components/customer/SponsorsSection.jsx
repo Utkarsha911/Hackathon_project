@@ -2,12 +2,6 @@ import React, { useState, useMemo } from 'react';
 import { useHackathon } from '../../context/HackathonContext';
 import { getMediaUrl } from '../../services/api';
 import Section from '../common/Section';
-import {
-  ExternalLink,
-  MapPin,
-  Award,
-  BadgeCheck
-} from 'lucide-react';
 
 // Generate Monogram Initials
 function getInitials(name = '') {
@@ -24,61 +18,36 @@ function getTierPriority(tierName = '') {
   if (t.includes('premium') || t.includes('platinum')) return 2;
   if (t.includes('gold')) return 3;
   if (t.includes('silver')) return 4;
-  if (t.includes('bronze')) return 5;
+  if (t.includes('basic') || t.includes('bronze')) return 5;
   return 6;
 }
 
-// Professional Tier Palette matching Customer Site Theme
-function getTierConfig(tierName = '') {
-  const t = String(tierName || '').toLowerCase().trim();
-  
-  if (t.includes('title') || t.includes('headline')) {
-    return {
-      label: tierName || 'Title Partner',
-      badgeClass: 'bg-brand-navy text-white',
-      borderAccent: 'border-l-brand-blue',
-      avatarGradient: 'from-brand-navy to-brand-blue',
-      Icon: Award
-    };
-  }
-  
-  if (t.includes('premium') || t.includes('platinum')) {
-    return {
-      label: tierName || 'Platinum Partner',
-      badgeClass: 'bg-brand-blue text-white',
-      borderAccent: 'border-l-brand-blue',
-      avatarGradient: 'from-brand-blue to-blue-700',
-      Icon: BadgeCheck
-    };
-  }
-  
-  if (t.includes('gold')) {
-    return {
-      label: tierName || 'Gold Partner',
-      badgeClass: 'bg-amber-600 text-white font-bold',
-      borderAccent: 'border-l-amber-500',
-      avatarGradient: 'from-amber-500 to-amber-700',
-      Icon: Award
-    };
-  }
-  
-  if (t.includes('silver')) {
-    return {
-      label: tierName || 'Silver Partner',
-      badgeClass: 'bg-slate-700 text-white',
-      borderAccent: 'border-l-slate-400',
-      avatarGradient: 'from-slate-600 to-slate-800',
-      Icon: BadgeCheck
-    };
-  }
+// Clean and capitalize tier/package label (e.g. "premium" -> "Premium", "basic" -> "Basic")
+function formatTierLabel(rawTier = '') {
+  if (!rawTier) return null;
+  const clean = String(rawTier).replace(/_/g, ' ').trim();
+  return clean.replace(/\b\w/g, (c) => c.toUpperCase());
+}
 
-  return {
-    label: tierName || 'Official Partner',
-    badgeClass: 'bg-slate-800 text-white',
-    borderAccent: 'border-l-slate-300',
-    avatarGradient: 'from-slate-800 to-slate-900',
-    Icon: BadgeCheck
-  };
+// Subtle badge styling on the right side
+function getTierBadgeClass(rawTier = '') {
+  const t = String(rawTier || '').toLowerCase();
+  if (t.includes('title') || t.includes('headline')) {
+    return 'bg-orange-50 text-[#ea580c] border-orange-200/80';
+  }
+  if (t.includes('premium') || t.includes('platinum')) {
+    return 'bg-purple-50 text-purple-700 border-purple-200/80';
+  }
+  if (t.includes('gold')) {
+    return 'bg-amber-50 text-amber-700 border-amber-200/80';
+  }
+  if (t.includes('silver')) {
+    return 'bg-slate-100 text-slate-700 border-slate-200';
+  }
+  if (t.includes('basic') || t.includes('bronze')) {
+    return 'bg-blue-50 text-blue-700 border-blue-200/80';
+  }
+  return 'bg-slate-50 text-slate-600 border-slate-200/80';
 }
 
 // Seamless infinite loop helper
@@ -91,91 +60,74 @@ function getMarqueeList(items = []) {
   return [...list, ...list];
 }
 
-// Executive Sponsor Card Component - Smaller, Compact, Customer Themed
+// Minimalist Partner / Sponsor Card matching modern integrations showcase
 function SponsorCard({ sponsor, sIdx, brokenImages, setBrokenImages }) {
   const rawLogo = sponsor.logo || sponsor.logo_url;
   const logoSrc = rawLogo ? getMediaUrl(rawLogo) : null;
   const isImageBroken = Boolean(brokenImages[`${sponsor.id}-${sIdx}`]);
   const showLogoImage = logoSrc && !isImageBroken;
 
-  const tierName = sponsor.sponsor_type_name || sponsor.tier || 'Official Partner';
-  const tierConfig = getTierConfig(tierName);
   const websiteUrl = sponsor.website_link || sponsor.website_url;
   const initials = getInitials(sponsor.name);
+  const tierName = sponsor.sponsor_type_name || sponsor.tier || sponsor.type || '';
+  const tierLabel = formatTierLabel(tierName);
+  const tierBadgeClass = getTierBadgeClass(tierName);
+  const subtitle = sponsor.service || sponsor.description || sponsor.location || 'Partner';
 
-  const subtitle = sponsor.service || sponsor.description || null;
+  const CardElement = websiteUrl ? 'a' : 'div';
+  const cardProps = websiteUrl
+    ? {
+        href: websiteUrl.startsWith('http') ? websiteUrl : `https://${websiteUrl}`,
+        target: '_blank',
+        rel: 'noreferrer'
+      }
+    : {};
 
   return (
-    <div
-      className={`w-64 sm:w-72 shrink-0 group relative rounded-2xl bg-white border border-slate-200/80 border-l-[3px] ${tierConfig.borderAccent} p-3 shadow-2xs hover:shadow-md hover:shadow-brand-navy/5 transition-all duration-300 hover:-translate-y-0.5 flex items-center gap-3 mx-2 select-none overflow-hidden`}
+    <CardElement
+      {...cardProps}
+      className="w-64 sm:w-72 shrink-0 group rounded-2xl bg-white border border-slate-200/70 p-3 sm:p-3.5 shadow-2xs hover:shadow-md transition-all duration-300 flex items-center justify-between gap-3 mx-2 select-none overflow-hidden no-underline cursor-pointer"
     >
-      {/* Logo Box */}
-      <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-100 p-1.5 flex items-center justify-center shrink-0 group-hover:bg-white group-hover:border-slate-200 transition-colors">
+      {/* Left: Squircle Logo Box */}
+      <div className="w-11 h-11 rounded-xl bg-slate-100/90 border border-slate-200/60 p-2 flex items-center justify-center shrink-0 group-hover:bg-slate-50 transition-colors">
         {showLogoImage ? (
           <img
             src={logoSrc}
             alt={sponsor.name}
             className="w-full h-full object-contain filter group-hover:scale-105 transition-transform"
-            onError={() => setBrokenImages(prev => ({ ...prev, [`${sponsor.id}-${sIdx}`]: true }))}
+            onError={() => setBrokenImages((prev) => ({ ...prev, [`${sponsor.id}-${sIdx}`]: true }))}
           />
         ) : (
-          <div className={`w-full h-full rounded-lg bg-gradient-to-br ${tierConfig.avatarGradient} text-white flex items-center justify-center font-black text-xs tracking-wider select-none shadow-xs`}>
+          <div className="w-full h-full rounded-lg bg-slate-200/80 text-slate-700 flex items-center justify-center font-bold text-xs select-none">
             {initials}
           </div>
         )}
       </div>
 
-      {/* Info Details */}
+      {/* Middle: Name and Subtitle */}
       <div className="min-w-0 flex-1">
-        {/* Tier Badge & Location Row */}
-        <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
-          <span className={`text-[8.5px] font-extrabold px-1.5 py-0.2 rounded uppercase tracking-wider ${tierConfig.badgeClass} shadow-2xs`}>
-            {tierName}
-          </span>
-          {sponsor.location && (
-            <span className="inline-flex items-center gap-0.5 text-[9.5px] text-slate-500 font-medium truncate max-w-[110px]">
-              <MapPin className="w-2.5 h-2.5 text-brand-blue shrink-0" />
-              <span className="truncate">{sponsor.location}</span>
-            </span>
-          )}
-        </div>
-
-        {/* Sponsor / Organization Name */}
-        <h4 className="text-xs sm:text-sm font-bold text-ink group-hover:text-brand-blue transition-colors truncate leading-tight">
+        <h4 className="text-sm font-bold text-slate-900 group-hover:text-brand-blue transition-colors truncate leading-tight">
           {sponsor.name}
         </h4>
-
-        {/* Contribution or Subtitle */}
-        {subtitle ? (
-          <p className="text-[10px] text-slate-500 font-medium truncate mt-0.5 leading-tight" title={subtitle}>
-            {subtitle}
-          </p>
-        ) : (
-          <p className="text-[10px] text-slate-400 font-mono truncate mt-0.5 leading-tight">
-            Official Partner
-          </p>
-        )}
+        <p className="text-xs text-slate-500 font-normal truncate mt-0.5 leading-tight">
+          {subtitle}
+        </p>
       </div>
 
-      {/* Discrete External Link Button */}
-      {websiteUrl && (
-        <a
-          href={websiteUrl.startsWith('http') ? websiteUrl : `https://${websiteUrl}`}
-          target="_blank"
-          rel="noreferrer"
-          className="w-6 h-6 rounded-lg bg-slate-50 group-hover:bg-brand-tint text-slate-400 group-hover:text-brand-blue border border-slate-200/60 group-hover:border-brand-blue/30 flex items-center justify-center transition-all shrink-0 cursor-pointer"
-          title="Visit Website"
-          onClick={(e) => e.stopPropagation()}
+      {/* Right: Tier / Package Badge (e.g. "Premium", "Basic", "Gold") */}
+      {tierLabel && (
+        <span
+          className={`shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full border shadow-2xs whitespace-nowrap leading-normal ${tierBadgeClass}`}
         >
-          <ExternalLink className="w-3 h-3" />
-        </a>
+          {tierLabel}
+        </span>
       )}
-    </div>
+    </CardElement>
   );
 }
 
 export default function SponsorsSection() {
-  const { hackathon, sponsors, isLoadingApi } = useHackathon();
+  const { hackathon, sponsors } = useHackathon();
   const [brokenImages, setBrokenImages] = useState({});
 
   // Normalize data from current_hackathon API sponsor_packages or fallback to context sponsors
@@ -183,20 +135,20 @@ export default function SponsorsSection() {
     let list = [];
     if (Array.isArray(hackathon?.sponsor_packages) && hackathon.sponsor_packages.length > 0) {
       list = hackathon.sponsor_packages
-        .filter(item => item && item.organization)
-        .map(item => ({
+        .filter((item) => item && item.organization)
+        .map((item) => ({
           ...item.organization,
           sponsor_package_id: item.id,
-          sponsor_type_name: item.sponsor_type_name || 'Official Partner',
-          tier: item.sponsor_type_name || 'Official Partner',
+          sponsor_type_name: item.sponsor_type_name || 'Partner',
+          tier: item.sponsor_type_name || 'Partner',
           tier_order: item.order ?? item.sponsor_type_order ?? getTierPriority(item.sponsor_type_name)
         }));
     } else if (Array.isArray(sponsors)) {
-      list = sponsors.map(s => ({
+      list = sponsors.map((s) => ({
         ...s,
-        tier: s.tier || 'Official Partner',
-        sponsor_type_name: s.sponsor_type_name || s.tier || 'Official Partner',
-        tier_order: getTierPriority(s.tier || s.sponsor_type_name)
+        tier: s.tier || s.sponsor_type_name || s.type || 'Partner',
+        sponsor_type_name: s.sponsor_type_name || s.tier || s.type || 'Partner',
+        tier_order: getTierPriority(s.tier || s.sponsor_type_name || s.type)
       }));
     }
 
@@ -235,7 +187,6 @@ export default function SponsorsSection() {
 
   return (
     <Section id="sponsors" tone="tint" py="py-12" width="max-w-7xl" className="overflow-hidden">
-      
       {/* Centered Heading in Customer Theme */}
       <div className="text-center max-w-xl mx-auto mb-8">
         <div className="text-xs font-bold uppercase tracking-[0.14em] text-brand-blue mb-2">
@@ -251,6 +202,10 @@ export default function SponsorsSection() {
 
       {/* Dual-Track Smooth Moving Conveyor Belts (Fits in Single Screen) */}
       <div className="space-y-3 relative">
+        {/* Soft edge gradient fades */}
+        <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-16 sm:w-24 z-10 bg-gradient-to-r from-brand-tint to-transparent" />
+        <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-16 sm:w-24 z-10 bg-gradient-to-l from-brand-tint to-transparent" />
+
         {/* Row 1: Moving Left */}
         {row1List.length > 0 && (
           <div className="relative w-full overflow-hidden py-1">
@@ -285,7 +240,6 @@ export default function SponsorsSection() {
           </div>
         )}
       </div>
-
     </Section>
   );
 }

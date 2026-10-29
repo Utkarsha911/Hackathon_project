@@ -23,6 +23,7 @@ import {
 import { api, getSelectedAdminHackathon, getUserAvatarUrl, DEFAULT_USER_AVATAR } from '../../services/api';
 import QrBadgeModal, { QrThumbnail } from '../common/QrBadgeModal';
 import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
+import ModalPortal from '../common/ModalPortal';
 
 export default function CustomerManagement() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -802,9 +803,12 @@ export default function CustomerManagement() {
         attendee={qrAttendee}
       />
 
+      {/* MODAL PORTAL */}
+      <ModalPortal>
       {/* CREATE / EDIT GUEST MODAL */}
       {guestModalOpen && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[100] overflow-y-auto bg-slate-900/60 backdrop-blur-xs p-3 sm:p-4">
+          <div className="min-h-full flex items-center justify-center py-4">
           <div className="bg-white rounded-3xl max-w-lg w-full shadow-2xl border border-slate-100 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/80">
               <div className="flex items-center gap-2">
@@ -943,12 +947,14 @@ export default function CustomerManagement() {
               </div>
             </form>
           </div>
+          </div>
         </div>
       )}
 
       {/* DELETE GUEST MODAL */}
       {deleteGuestModalOpen && guestToDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs">
+        <div className="fixed inset-0 z-[100] overflow-y-auto bg-slate-900/60 backdrop-blur-xs p-3 sm:p-4">
+          <div className="min-h-full flex items-center justify-center py-4">
           <div className="w-full max-w-md rounded-2xl bg-white border border-slate-200 shadow-2xl p-6 text-center">
             <div className="w-12 h-12 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center mx-auto mb-3">
               <Trash2 className="w-6 h-6" />
@@ -975,8 +981,10 @@ export default function CustomerManagement() {
               </button>
             </div>
           </div>
+          </div>
         </div>
       )}
+      </ModalPortal>
     </div>
   );
 }

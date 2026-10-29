@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { api, getSelectedAdminHackathon } from '../../services/api';
 import { useHackathon } from '../../context/HackathonContext';
 import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
+import ModalPortal from '../common/ModalPortal';
 import {
   HelpCircle,
   Plus,
@@ -437,158 +438,168 @@ export default function FaqManagement() {
 
       {/* ==================== CREATE / EDIT MODAL ==================== */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl border border-slate-200 w-full max-w-lg shadow-2xl overflow-hidden animate-fade-in">
-            <div className="p-6 border-b border-slate-100 flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-orange-100 flex items-center justify-center text-[#ea580c]">
-                  <HelpCircle className="w-4 h-4" />
+        <ModalPortal>
+          <div className="fixed inset-0 z-[100] overflow-y-auto bg-slate-900/60 backdrop-blur-xs p-3 sm:p-4">
+            <div className="min-h-full flex items-center justify-center py-4 sm:py-6">
+              <div className="relative bg-white rounded-3xl border border-slate-200 w-full max-w-lg shadow-2xl flex flex-col max-h-[90vh] overflow-hidden animate-fade-in">
+                <div className="shrink-0 p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-9 h-9 rounded-xl bg-orange-100 flex items-center justify-center text-[#ea580c]">
+                      <HelpCircle className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h3 className="text-base font-bold text-slate-900">
+                        {editingFaq ? 'Edit FAQ' : 'Create New FAQ'}
+                      </h3>
+                      <p className="text-xs text-slate-500">
+                        Endpoint: <code className="font-mono text-slate-600">/api/v1/hackathons-crm/faqs/</code>
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsModalOpen(false)}
+                    className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 bg-slate-100 hover:bg-slate-200 transition cursor-pointer"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
                 </div>
-                <div>
-                  <h3 className="text-base font-bold text-slate-900">
-                    {editingFaq ? 'Edit FAQ' : 'Create New FAQ'}
-                  </h3>
-                  <p className="text-xs text-slate-500">
-                    Endpoint: <code className="font-mono text-slate-600">/api/v1/hackathons-crm/faqs/</code>
-                  </p>
-                </div>
+
+                <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+                  <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                    {/* Hackathon Selection */}
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">
+                        Hackathon Edition <span className="text-red-500">*</span>
+                      </label>
+                      <select
+                        value={form.hackathon}
+                        onChange={(e) => setForm({ ...form, hackathon: e.target.value })}
+                        className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#ea580c]/20 focus:border-[#ea580c]"
+                        required
+                      >
+                        <option value="">Select a hackathon...</option>
+                        {hackathonsList.map((h) => (
+                          <option key={h.id} value={h.id}>
+                            {h.title} ({h.version || 'Active'}{h.is_current ? ' ★ Current' : ''})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Order */}
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">
+                        Display Order
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={form.order}
+                        onChange={(e) => setForm({ ...form, order: e.target.value })}
+                        className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#ea580c]/20 focus:border-[#ea580c]"
+                      />
+                    </div>
+
+                    {/* Question */}
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">
+                        Question <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={form.question}
+                        onChange={(e) => setForm({ ...form, question: e.target.value })}
+                        placeholder="e.g. Who can participate in the hackathon?"
+                        className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#ea580c]/20 focus:border-[#ea580c]"
+                        required
+                      />
+                    </div>
+
+                    {/* Answer */}
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">
+                        Answer <span className="text-red-500">*</span>
+                      </label>
+                      <textarea
+                        rows="4"
+                        value={form.answer}
+                        onChange={(e) => setForm({ ...form, answer: e.target.value })}
+                        placeholder="Detailed explanation answering eligibility, hardware, food, rules, or prizes..."
+                        className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#ea580c]/20 focus:border-[#ea580c]"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  {/* Modal Buttons */}
+                  <div className="shrink-0 p-4 border-t border-slate-100 bg-slate-50/70 flex items-center justify-end gap-2.5">
+                    <button
+                      type="button"
+                      onClick={() => setIsModalOpen(false)}
+                      className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="inline-flex items-center gap-1.5 px-5 py-2 rounded-xl text-xs font-semibold text-white shadow-sm transition disabled:opacity-50 cursor-pointer"
+                      style={{ backgroundColor: '#ea580c' }}
+                    >
+                      {isSubmitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                      <span>{editingFaq ? 'Save Changes' : 'Create FAQ'}</span>
+                    </button>
+                  </div>
+                </form>
               </div>
-              <button
-                type="button"
-                onClick={() => setIsModalOpen(false)}
-                className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 bg-slate-100 hover:bg-slate-200 transition"
-              >
-                <X className="w-4 h-4" />
-              </button>
             </div>
-
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
-              {/* Hackathon Selection */}
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Hackathon Edition <span className="text-red-500">*</span>
-                </label>
-                <select
-                  value={form.hackathon}
-                  onChange={(e) => setForm({ ...form, hackathon: e.target.value })}
-                  className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#ea580c]/20 focus:border-[#ea580c]"
-                  required
-                >
-                  <option value="">Select a hackathon...</option>
-                  {hackathonsList.map((h) => (
-                    <option key={h.id} value={h.id}>
-                      {h.title} ({h.version || 'Active'}{h.is_current ? ' ★ Current' : ''})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Order */}
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Display Order
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  value={form.order}
-                  onChange={(e) => setForm({ ...form, order: e.target.value })}
-                  className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#ea580c]/20 focus:border-[#ea580c]"
-                />
-              </div>
-
-              {/* Question */}
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Question <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={form.question}
-                  onChange={(e) => setForm({ ...form, question: e.target.value })}
-                  placeholder="e.g. Who can participate in the hackathon?"
-                  className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#ea580c]/20 focus:border-[#ea580c]"
-                  required
-                />
-              </div>
-
-              {/* Answer */}
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Answer <span className="text-red-500">*</span>
-                </label>
-                <textarea
-                  rows="4"
-                  value={form.answer}
-                  onChange={(e) => setForm({ ...form, answer: e.target.value })}
-                  placeholder="Detailed explanation answering eligibility, hardware, food, rules, or prizes..."
-                  className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#ea580c]/20 focus:border-[#ea580c]"
-                  required
-                />
-              </div>
-
-              {/* Modal Buttons */}
-              <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2.5">
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="inline-flex items-center gap-1.5 px-5 py-2 rounded-xl text-xs font-semibold text-white shadow-sm transition disabled:opacity-50"
-                  style={{ backgroundColor: '#ea580c' }}
-                >
-                  {isSubmitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                  <span>{editingFaq ? 'Save Changes' : 'Create FAQ'}</span>
-                </button>
-              </div>
-            </form>
           </div>
-        </div>
+        </ModalPortal>
       )}
 
       {/* ==================== DELETE CONFIRMATION MODAL ==================== */}
       {deleteModal.isOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl border border-slate-200 w-full max-w-sm p-6 shadow-2xl animate-fade-in text-center">
-            <div className="w-12 h-12 rounded-2xl bg-red-100 text-red-600 flex items-center justify-center mx-auto mb-4">
-              <AlertCircle className="w-6 h-6" />
-            </div>
-            <h3 className="text-base font-bold text-slate-900">
-              Delete FAQ?
-            </h3>
-            <p className="text-xs text-slate-500 mt-2">
-              Are you sure you want to delete{' '}
-              <strong className="text-slate-800">
-                {deleteModal.item?.question}
-              </strong>
-              ? This action cannot be undone.
-            </p>
+        <ModalPortal>
+          <div className="fixed inset-0 z-[100] overflow-y-auto bg-slate-900/60 backdrop-blur-xs p-3 sm:p-4">
+            <div className="min-h-full flex items-center justify-center py-4">
+              <div className="bg-white rounded-3xl border border-slate-200 w-full max-w-sm p-6 shadow-2xl animate-fade-in text-center">
+                <div className="w-12 h-12 rounded-2xl bg-red-100 text-red-600 flex items-center justify-center mx-auto mb-4">
+                  <AlertCircle className="w-6 h-6" />
+                </div>
+                <h3 className="text-base font-bold text-slate-900">
+                  Delete FAQ?
+                </h3>
+                <p className="text-xs text-slate-500 mt-2">
+                  Are you sure you want to delete{' '}
+                  <strong className="text-slate-800">
+                    {deleteModal.item?.question}
+                  </strong>
+                  ? This action cannot be undone.
+                </p>
 
-            <div className="mt-6 flex items-center justify-center gap-2.5">
-              <button
-                type="button"
-                onClick={() => setDeleteModal({ isOpen: false, item: null })}
-                className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleConfirmDelete}
-                disabled={isDeleting}
-                className="inline-flex items-center gap-1.5 px-5 py-2 rounded-xl text-xs font-semibold text-white bg-red-600 hover:bg-red-700 shadow-sm transition disabled:opacity-50"
-              >
-                {isDeleting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                <span>Delete</span>
-              </button>
+                <div className="mt-6 flex items-center justify-center gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => setDeleteModal({ isOpen: false, item: null })}
+                    className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleConfirmDelete}
+                    disabled={isDeleting}
+                    className="inline-flex items-center gap-1.5 px-5 py-2 rounded-xl text-xs font-semibold text-white bg-red-600 hover:bg-red-700 shadow-sm transition disabled:opacity-50 cursor-pointer"
+                  >
+                    {isDeleting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                    <span>Delete</span>
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
+        </ModalPortal>
       )}
     </div>
   );

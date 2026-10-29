@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../services/api';
 import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
+import ModalPortal from '../common/ModalPortal';
 import {
   ClipboardList,
   Search,
@@ -394,8 +395,10 @@ export default function LogViewer() {
       </div>
 
       {/* JSON Inspection Modal */}
+      <ModalPortal>
       {selectedActivity && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-3 sm:p-4 backdrop-blur-xs">
+        <div className="fixed inset-0 z-[100] overflow-y-auto bg-slate-900/60 backdrop-blur-xs p-3 sm:p-4">
+          <div className="min-h-full flex items-center justify-center py-4">
           <div className="bg-white rounded-2xl max-w-lg w-full p-4 sm:p-6 shadow-2xl border border-slate-100 space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2.5">
@@ -432,8 +435,10 @@ export default function LogViewer() {
               </button>
             </div>
           </div>
+          </div>
         </div>
       )}
+      </ModalPortal>
     </div>
   );
 }

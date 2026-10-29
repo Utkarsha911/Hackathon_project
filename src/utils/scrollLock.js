@@ -46,8 +46,11 @@ function applyLock() {
   try {
     const scrollContainers = document.querySelectorAll('main, aside, .overflow-y-auto, .overflow-auto');
     scrollContainers.forEach((container) => {
-      // Don't lock containers that are INSIDE a modal
-      if (container.closest('.fixed.inset-0, [role="dialog"]')) {
+      // Don't lock containers that are INSIDE a modal or CONTAIN an active modal
+      if (
+        container.closest('.fixed.inset-0, [role="dialog"]') ||
+        container.querySelector('.fixed.inset-0, [role="dialog"]')
+      ) {
         return;
       }
       const style = window.getComputedStyle(container);

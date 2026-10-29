@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { generateQrDataUrl } from '../../utils/qrUtils';
 import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
+import ModalPortal from './ModalPortal';
 
 /**
  * Reusable enterprise QR Credential Badge Modal
@@ -144,10 +145,12 @@ export default function QrBadgeModal({ isOpen, onClose, attendee }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-      <div className="bg-white rounded-3xl max-w-md w-full shadow-2xl border border-slate-100 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-        {/* Top Header bar with Close */}
-        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/80">
+    <ModalPortal>
+      <div className="fixed inset-0 z-[200] overflow-y-auto bg-slate-900/60 backdrop-blur-xs p-3 sm:p-4">
+        <div className="min-h-full flex items-center justify-center py-4">
+          <div className="bg-white rounded-3xl max-w-md w-full shadow-2xl border border-slate-100 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            {/* Top Header bar with Close */}
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/80">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-xl bg-orange-100 text-[#ea580c] flex items-center justify-center">
               <QrCode className="w-4 h-4" />
@@ -315,7 +318,9 @@ export default function QrBadgeModal({ isOpen, onClose, attendee }) {
           </button>
         </div>
       </div>
-    </div>
+        </div>
+      </div>
+    </ModalPortal>
   );
 }
 

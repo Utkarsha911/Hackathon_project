@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate, Navigate } from 'react-router-dom';
 import { api, getMediaUrl, getUserAvatarUrl, DEFAULT_USER_AVATAR, getSelectedAdminHackathon, setSelectedAdminHackathon, getAdminUser } from '../../services/api';
 import { useHackathon } from '../../context/HackathonContext';
 import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
@@ -31,15 +31,15 @@ import {
   Mail,
   Hash,
   Building2,
-  QrCode
+  QrCode,
+  Shirt
 } from 'lucide-react';
-import TeamManagement from './TeamManagement';
 import PrizeManagement from './PrizeManagement';
 import TermsManagement from './TermsManagement';
 import FaqManagement from './FaqManagement';
 import ContactManagement from './ContactManagement';
-import CustomerManagement from './CustomerManagement';
 import QrBadgeModal from '../common/QrBadgeModal';
+import ModalPortal from '../common/ModalPortal';
 
 // Module-level cache so tab switching within the admin panel is instant
 let cachedHackathonsPayload = null;
@@ -87,6 +87,7 @@ const EMPTY_FORM = {
   rules: '',
   status: 'draft',
   is_current: true,
+  is_tshirt_included: false,
   registration_start_date: getTodayDate(),
   registration_end_date: getTodayDate(),
   minimum_team_size: 1,
@@ -97,6 +98,7 @@ const EMPTY_FORM = {
 
 export default function HackathonManagement() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const activeTab = searchParams.get('tab') || 'hackathons';
   const { showToast, hackathon: currentHackathon } = useHackathon();
 
@@ -134,13 +136,14 @@ export default function HackathonManagement() {
 
   const canAccessHackathons = checkHasPermission(['hackathon']);
   const canAccessOrganizers = checkHasPermission(['organizer']);
-  const canAccessTeams = checkHasPermission(['team']);
   const canAccessHackathonCrm = isSuperOrStaff;
 
-  // Auto redirect unauthorized tab requests
+  // Auto redirect unauthorized or relocated tab requests
   useEffect(() => {
-    if (activeTab === 'teams' && !canAccessTeams) {
-      setSearchParams({ tab: canAccessHackathons ? 'hackathons' : 'organizers' }, { replace: true });
+    if (activeTab === 'teams') {
+      navigate('/admin-control-site/teams', { replace: true });
+    } else if (activeTab === 'guests') {
+      navigate('/admin-control-site/participants?tab=guests', { replace: true });
     } else if (['prizes', 'faqs', 'contacts'].includes(activeTab) && !canAccessHackathonCrm) {
       setSearchParams({ tab: canAccessHackathons ? 'hackathons' : 'organizers' }, { replace: true });
     } else if (activeTab === 'organizers' && !canAccessOrganizers && canAccessHackathons) {
@@ -148,7 +151,7 @@ export default function HackathonManagement() {
     } else if (activeTab === 'hackathons' && !canAccessHackathons && canAccessOrganizers) {
       setSearchParams({ tab: 'organizers' }, { replace: true });
     }
-  }, [activeTab, canAccessHackathons, canAccessOrganizers, canAccessTeams, canAccessHackathonCrm, setSearchParams]);
+  }, [activeTab, canAccessHackathons, canAccessOrganizers, canAccessHackathonCrm, setSearchParams, navigate]);
 
   // Primary data state (Hackathons)
   const [hackathons, setHackathons] = useState(() => {
@@ -548,6 +551,7 @@ export default function HackathonManagement() {
       rules: hackathon.rules || '',
       status: hackathon.status || 'draft',
       is_current: hackathon.is_current !== undefined ? hackathon.is_current : true,
+      is_tshirt_included: Boolean(hackathon.is_tshirt_included),
       registration_start_date: ensureDateFormat(hackathon.registration_start_date || hackathon.registration_startdate, ''),
       registration_end_date: ensureDateFormat(hackathon.registration_end_date || hackathon.registration_enddate, ''),
       minimum_team_size: hackathon.minimum_team_size ?? 1,
@@ -605,6 +609,7 @@ export default function HackathonManagement() {
       if (createForm.rules) formData.append('rules', createForm.rules.trim());
       if (createForm.status) formData.append('status', createForm.status);
       formData.append('is_current', createForm.is_current !== false ? 'true' : 'false');
+      formData.append('is_tshirt_included', createForm.is_tshirt_included ? 'true' : 'false');
       formData.append('minimum_team_size', Number(createForm.minimum_team_size) || 1);
       formData.append('maximum_team_size', Number(createForm.maximum_team_size) || 4);
 
@@ -677,6 +682,9 @@ export default function HackathonManagement() {
       if (editForm.is_current !== undefined) {
         formData.append('is_current', editForm.is_current ? 'true' : 'false');
       }
+      if (editForm.is_tshirt_included !== undefined) {
+        formData.append('is_tshirt_included', editForm.is_tshirt_included ? 'true' : 'false');
+      }
       formData.append('minimum_team_size', Number(editForm.minimum_team_size) || 1);
       formData.append('maximum_team_size', Number(editForm.maximum_team_size) || 4);
 
@@ -740,9 +748,9 @@ export default function HackathonManagement() {
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       {activeTab === 'teams' ? (
-        <TeamManagement />
+        <Navigate to="/admin-control-site/teams" replace />
       ) : activeTab === 'guests' ? (
-        <CustomerManagement />
+        <Navigate to="/admin-control-site/participants?tab=guests" replace />
       ) : activeTab === 'organizers' ? (
         <div className="space-y-6">
           {/* Header with Title and Add Organizer Button (Rule 1) */}
@@ -1365,6 +1373,19 @@ export default function HackathonManagement() {
                           </span>
                         )}
                       </div>
+                      <div className="flex items-center justify-between text-[11px] pt-1 border-t border-slate-100/70">
+                        <span className="text-[11px] text-slate-500">T-Shirt / Swag:</span>
+                        {hackathon.is_tshirt_included ? (
+                          <span className="inline-flex items-center gap-1 text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded font-semibold text-[10px]">
+                            <Shirt className="w-3 h-3 text-emerald-600" />
+                            <span>Included</span>
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-slate-500 bg-slate-100 border border-slate-200 px-1.5 py-0.5 rounded font-medium text-[10px]">
+                            <span>No</span>
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
 
@@ -1415,6 +1436,7 @@ export default function HackathonManagement() {
                   <th className="py-3.5 px-4">Event Dates</th>
                   <th className="py-3.5 px-4">Registration Window</th>
                   <th className="py-3.5 px-3">Team Size</th>
+                  <th className="py-3.5 px-3">T-Shirt</th>
                   <th className="py-3.5 px-4">Status</th>
                   <th className="py-3.5 px-4 sm:px-6 text-right">Actions</th>
                 </tr>
@@ -1506,6 +1528,20 @@ export default function HackathonManagement() {
                         </span>
                       </td>
 
+                      {/* T-Shirt Included */}
+                      <td className="py-3 px-3 whitespace-nowrap">
+                        {hackathon.is_tshirt_included ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-semibold">
+                            <Shirt className="w-3 h-3 text-emerald-600" />
+                            <span>Included</span>
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 text-slate-500 text-[11px] font-medium">
+                            <span>No</span>
+                          </span>
+                        )}
+                      </td>
+
                       {/* Status */}
                       <td className="py-3 px-4 whitespace-nowrap">
                         {getStatusBadge(hackathon.status)}
@@ -1554,37 +1590,40 @@ export default function HackathonManagement() {
       {/* ------------------------------------------------------------- */}
       {/* CREATE HACKATHON MODAL                                         */}
       {/* ------------------------------------------------------------- */}
+      <ModalPortal>
       {isCreateOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/50 backdrop-blur-xs overflow-y-auto">
-          <div className="bg-white rounded-2xl max-w-2xl w-full border border-slate-200 shadow-2xl overflow-hidden my-6">
-            {/* Modal Header */}
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-              <div className="flex items-center gap-2.5">
-                <div
-                  className="w-9 h-9 rounded-xl flex items-center justify-center shadow-inner"
-                  style={{ backgroundColor: '#fff3ef' }}
+        <div className="fixed inset-0 z-[100] overflow-y-auto bg-slate-900/60 backdrop-blur-xs p-3 sm:p-4">
+          <div className="min-h-full flex items-center justify-center py-4 sm:py-6">
+            <div className="relative bg-white rounded-2xl max-w-2xl w-full border border-slate-200 shadow-2xl flex flex-col max-h-[90vh] overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+              {/* Modal Header */}
+              <div className="shrink-0 px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
+                <div className="flex items-center gap-2.5">
+                  <div
+                    className="w-9 h-9 rounded-xl flex items-center justify-center shadow-inner"
+                    style={{ backgroundColor: '#fff3ef' }}
+                  >
+                    <Trophy className="w-5 h-5" style={{ color: '#e8622a' }} />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-slate-900">Create New Hackathon</h3>
+                    <p className="text-xs text-slate-400">
+                      Call POST /api/v1/hackathons/ with complete edition specifications
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setIsCreateOpen(false)}
+                  className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition cursor-pointer"
                 >
-                  <Trophy className="w-5 h-5" style={{ color: '#e8622a' }} />
-                </div>
-                <div>
-                  <h3 className="text-base font-bold text-slate-900">Create New Hackathon</h3>
-                  <p className="text-xs text-slate-400">
-                    Call POST /api/v1/hackathons/ with complete edition specifications
-                  </p>
-                </div>
+                  <X className="w-5 h-5" />
+                </button>
               </div>
 
-              <button
-                type="button"
-                onClick={() => setIsCreateOpen(false)}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Modal Form */}
-            <form onSubmit={handleCreateSubmit} className="p-6 space-y-4 max-h-[75vh] overflow-y-auto text-xs sm:text-sm">
+              {/* Modal Form */}
+              <form onSubmit={handleCreateSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+                <div className="flex-1 overflow-y-auto p-6 space-y-4 text-xs sm:text-sm">
               {/* Title & Sub Heading */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
@@ -1785,6 +1824,23 @@ export default function HackathonManagement() {
                     <p className="text-[11px] text-slate-500">Marks this edition as active for the public customer site</p>
                   </div>
                 </div>
+
+                {/* T-Shirt Included toggle */}
+                <div className="flex items-center gap-3 pt-2 sm:col-span-2">
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={Boolean(createForm.is_tshirt_included)}
+                      onChange={(e) => setCreateForm({ ...createForm, is_tshirt_included: e.target.checked })}
+                      className="sr-only peer"
+                    />
+                    <div className="w-10 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#ea580c]"></div>
+                  </label>
+                  <div>
+                    <span className="text-xs font-semibold text-slate-800">T-Shirt / Merchandise Included (`is_tshirt_included: true`)</span>
+                    <p className="text-[11px] text-slate-500">Collects participant t-shirt sizes on registration forms and rosters</p>
+                  </div>
+                </div>
               </div>
 
               {/* Banner Image Upload */}
@@ -1832,35 +1888,38 @@ export default function HackathonManagement() {
                 />
               </div>
 
-              {/* Modal Footer */}
-              <div className="pt-4 border-t border-slate-100 flex items-center justify-end gap-2.5">
-                <button
-                  type="button"
-                  onClick={() => setIsCreateOpen(false)}
-                  className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={submittingCreate}
-                  className="px-5 py-2 rounded-xl text-xs font-semibold text-white transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-                  style={{ backgroundColor: '#e8622a' }}
-                >
-                  {submittingCreate ? (
-                    <>
-                      <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      <span>Creating...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Check className="w-4 h-4" />
-                      <span>Create Hackathon</span>
-                    </>
-                  )}
-                </button>
-              </div>
-            </form>
+                </div>
+
+                {/* Modal Footer */}
+                <div className="shrink-0 px-6 py-3.5 border-t border-slate-100 bg-slate-50/70 flex items-center justify-end gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => setIsCreateOpen(false)}
+                    className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={submittingCreate}
+                    className="px-5 py-2 rounded-xl text-xs font-semibold text-white transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                    style={{ backgroundColor: '#e8622a' }}
+                  >
+                    {submittingCreate ? (
+                      <>
+                        <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        <span>Creating...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Check className="w-4 h-4" />
+                        <span>Create Hackathon</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         </div>
       )}
@@ -1869,33 +1928,35 @@ export default function HackathonManagement() {
       {/* EDIT HACKATHON MODAL                                           */}
       {/* ------------------------------------------------------------- */}
       {editingHackathon && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/50 backdrop-blur-xs overflow-y-auto">
-          <div className="bg-white rounded-2xl max-w-2xl w-full border border-slate-200 shadow-2xl overflow-hidden my-6">
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-orange-50 border border-orange-100 flex items-center justify-center text-[#e8622a]">
-                  <Edit3 className="w-5 h-5" />
+        <div className="fixed inset-0 z-[100] overflow-y-auto bg-slate-900/60 backdrop-blur-xs p-3 sm:p-4">
+          <div className="min-h-full flex items-center justify-center py-4 sm:py-6">
+            <div className="relative bg-white rounded-2xl max-w-2xl w-full border border-slate-200 shadow-2xl flex flex-col max-h-[90vh] overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+              <div className="shrink-0 px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-orange-50 border border-orange-100 flex items-center justify-center text-[#e8622a]">
+                    <Edit3 className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-slate-900">
+                      Edit {editingHackathon.title}
+                    </h3>
+                    <p className="text-xs text-slate-400">
+                      Update edition parameters and registration windows
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-base font-bold text-slate-900">
-                    Edit {editingHackathon.title}
-                  </h3>
-                  <p className="text-xs text-slate-400">
-                    Update edition parameters and registration windows
-                  </p>
-                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setEditingHackathon(null)}
+                  className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
               </div>
 
-              <button
-                type="button"
-                onClick={() => setEditingHackathon(null)}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleEditSubmit} className="p-6 space-y-4 max-h-[75vh] overflow-y-auto text-xs sm:text-sm">
+              <form onSubmit={handleEditSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+                <div className="flex-1 overflow-y-auto p-6 space-y-4 text-xs sm:text-sm">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">
@@ -2087,6 +2148,23 @@ export default function HackathonManagement() {
                     <p className="text-[11px] text-slate-500">Marks this edition as active for the public customer site</p>
                   </div>
                 </div>
+
+                {/* T-Shirt Included toggle */}
+                <div className="flex items-center gap-3 pt-2 sm:col-span-2">
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={Boolean(editForm.is_tshirt_included)}
+                      onChange={(e) => setEditForm({ ...editForm, is_tshirt_included: e.target.checked })}
+                      className="sr-only peer"
+                    />
+                    <div className="w-10 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#ea580c]"></div>
+                  </label>
+                  <div>
+                    <span className="text-xs font-semibold text-slate-800">T-Shirt / Merchandise Included (`is_tshirt_included: true`)</span>
+                    <p className="text-[11px] text-slate-500">Collects participant t-shirt sizes on registration forms and rosters</p>
+                  </div>
+                </div>
               </div>
 
               <div>
@@ -2131,34 +2209,37 @@ export default function HackathonManagement() {
                 />
               </div>
 
-              <div className="pt-4 border-t border-slate-100 flex items-center justify-end gap-2.5">
-                <button
-                  type="button"
-                  onClick={() => setEditingHackathon(null)}
-                  className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={submittingEdit}
-                  className="px-5 py-2 rounded-xl text-xs font-semibold text-white transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-                  style={{ backgroundColor: '#e8622a' }}
-                >
-                  {submittingEdit ? (
-                    <>
-                      <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      <span>Saving...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Check className="w-4 h-4" />
-                      <span>Save Changes</span>
-                    </>
-                  )}
-                </button>
-              </div>
-            </form>
+                </div>
+
+                <div className="shrink-0 px-6 py-3.5 border-t border-slate-100 bg-slate-50/70 flex items-center justify-end gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => setEditingHackathon(null)}
+                    className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={submittingEdit}
+                    className="px-5 py-2 rounded-xl text-xs font-semibold text-white transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                    style={{ backgroundColor: '#e8622a' }}
+                  >
+                    {submittingEdit ? (
+                      <>
+                        <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        <span>Saving...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Check className="w-4 h-4" />
+                        <span>Save Changes</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         </div>
       )}
@@ -2167,42 +2248,43 @@ export default function HackathonManagement() {
       {/* VIEW HACKATHON DETAILS MODAL                                   */}
       {/* ------------------------------------------------------------- */}
       {viewingHackathon && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/50 backdrop-blur-xs overflow-y-auto">
-          <div className="bg-white rounded-2xl max-w-2xl w-full border border-slate-200 shadow-2xl overflow-hidden my-6">
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-              <div className="flex items-center gap-2.5 min-w-0">
-                <div
-                  className="w-9 h-9 rounded-xl flex items-center justify-center shadow-inner shrink-0"
-                  style={{ backgroundColor: '#fff3ef' }}
-                >
-                  <Trophy className="w-5 h-5" style={{ color: '#e8622a' }} />
-                </div>
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h3 className="text-base font-bold text-slate-900 truncate">
-                      {viewingHackathon.title}
-                    </h3>
-                    {viewingHackathon.version && (
-                      <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200 font-mono text-[11px] font-bold shrink-0">
-                        {viewingHackathon.version}
-                      </span>
-                    )}
-                    <span className="shrink-0">{getStatusBadge(viewingHackathon.status)}</span>
+        <div className="fixed inset-0 z-[100] overflow-y-auto bg-slate-900/60 backdrop-blur-xs p-3 sm:p-4">
+          <div className="min-h-full flex items-center justify-center py-4 sm:py-6">
+            <div className="relative bg-white rounded-2xl max-w-2xl w-full border border-slate-200 shadow-2xl flex flex-col max-h-[90vh] overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+              <div className="shrink-0 px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div
+                    className="w-9 h-9 rounded-xl flex items-center justify-center shadow-inner shrink-0"
+                    style={{ backgroundColor: '#fff3ef' }}
+                  >
+                    <Trophy className="w-5 h-5" style={{ color: '#e8622a' }} />
                   </div>
-                  <p className="text-xs text-slate-400 font-mono truncate">ID: {viewingHackathon.id}</p>
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className="text-base font-bold text-slate-900 truncate">
+                        {viewingHackathon.title}
+                      </h3>
+                      {viewingHackathon.version && (
+                        <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200 font-mono text-[11px] font-bold shrink-0">
+                          {viewingHackathon.version}
+                        </span>
+                      )}
+                      <span className="shrink-0">{getStatusBadge(viewingHackathon.status)}</span>
+                    </div>
+                    <p className="text-xs text-slate-400 font-mono truncate">ID: {viewingHackathon.id}</p>
+                  </div>
                 </div>
+
+                <button
+                  type="button"
+                  onClick={() => setViewingHackathon(null)}
+                  className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition shrink-0 ml-2 cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
               </div>
 
-              <button
-                type="button"
-                onClick={() => setViewingHackathon(null)}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition shrink-0 ml-2"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="p-6 space-y-5 max-h-[75vh] overflow-y-auto text-xs sm:text-sm">
+              <div className="flex-1 overflow-y-auto p-6 space-y-5 text-xs sm:text-sm">
               {/* Banner Image */}
               {viewingHackathon.banner_image && (
                 <div className="rounded-xl overflow-hidden border border-slate-200 max-h-56">
@@ -2270,6 +2352,25 @@ export default function HackathonManagement() {
                     {viewingHackathon.year || '—'}
                   </span>
                 </div>
+
+                <div className="p-3 rounded-xl bg-slate-50/70 border border-slate-100">
+                  <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">
+                    T-Shirt / Merchandise
+                  </span>
+                  <div className="mt-1 flex items-center gap-1.5">
+                    {viewingHackathon.is_tshirt_included ? (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-semibold">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>Included (`is_tshirt_included: true`)</span>
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 text-slate-500 border border-slate-200 text-xs font-medium">
+                        <X className="w-3.5 h-3.5 text-slate-400" />
+                        <span>Not Included (`false`)</span>
+                      </span>
+                    )}
+                  </div>
+                </div>
               </div>
 
               {/* Description */}
@@ -2284,7 +2385,10 @@ export default function HackathonManagement() {
                 </div>
               )}
 
-              <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
+              </div>
+
+              {/* Modal Footer */}
+              <div className="shrink-0 px-6 py-3.5 border-t border-slate-100 bg-slate-50/70 flex items-center justify-between">
                 <span className="text-[11px] text-slate-400 font-mono">
                   Created: {viewingHackathon.created_at ? new Date(viewingHackathon.created_at).toLocaleString() : '—'}
                 </span>
@@ -2296,14 +2400,14 @@ export default function HackathonManagement() {
                       setViewingHackathon(null);
                       handleOpenEdit(target);
                     }}
-                    className="px-3.5 py-1.5 rounded-xl text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition"
+                    className="px-3.5 py-1.5 rounded-xl text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition cursor-pointer"
                   >
                     Edit Hackathon
                   </button>
                   <button
                     type="button"
                     onClick={() => setViewingHackathon(null)}
-                    className="px-4 py-1.5 rounded-xl text-xs font-semibold text-white transition"
+                    className="px-4 py-1.5 rounded-xl text-xs font-semibold text-white transition cursor-pointer"
                     style={{ backgroundColor: '#e8622a' }}
                   >
                     Close
@@ -2319,35 +2423,37 @@ export default function HackathonManagement() {
       {/* DELETE CONFIRMATION MODAL                                      */}
       {/* ------------------------------------------------------------- */}
       {deletingHackathon && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/50 backdrop-blur-xs">
-          <div className="bg-white rounded-2xl max-w-md w-full border border-slate-200 shadow-2xl p-6">
-            <div className="w-12 h-12 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center mx-auto mb-4 border border-red-100">
-              <Trash2 className="w-6 h-6" />
-            </div>
-            <h3 className="text-base font-bold text-slate-900 text-center">
-              Delete Hackathon?
-            </h3>
-            <p className="text-xs text-slate-500 text-center mt-1.5 leading-relaxed">
-              Are you sure you want to permanently delete{' '}
-              <strong className="text-slate-800">"{deletingHackathon.title}"</strong>? This will remove
-              all associated timelines and configurations.
-            </p>
-            <div className="mt-6 flex items-center justify-center gap-3">
-              <button
-                type="button"
-                onClick={() => setDeletingHackathon(null)}
-                className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                disabled={submittingDelete}
-                onClick={handleDeleteSubmit}
-                className="px-4 py-2 rounded-xl text-xs font-semibold text-white bg-red-600 hover:bg-red-700 transition cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
-              >
-                {submittingDelete ? 'Deleting...' : 'Confirm Delete'}
-              </button>
+        <div className="fixed inset-0 z-[100] overflow-y-auto bg-slate-900/60 backdrop-blur-xs p-3 sm:p-4">
+          <div className="min-h-full flex items-center justify-center py-4">
+            <div className="bg-white rounded-2xl max-w-md w-full border border-slate-200 shadow-2xl p-6 animate-in fade-in zoom-in-95 duration-150">
+              <div className="w-12 h-12 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center mx-auto mb-4 border border-red-100">
+                <Trash2 className="w-6 h-6" />
+              </div>
+              <h3 className="text-base font-bold text-slate-900 text-center">
+                Delete Hackathon?
+              </h3>
+              <p className="text-xs text-slate-500 text-center mt-1.5 leading-relaxed">
+                Are you sure you want to permanently delete{' '}
+                <strong className="text-slate-800">"{deletingHackathon.title}"</strong>? This will remove
+                all associated timelines and configurations.
+              </p>
+              <div className="mt-6 flex items-center justify-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setDeletingHackathon(null)}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={submittingDelete}
+                  onClick={handleDeleteSubmit}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-white bg-red-600 hover:bg-red-700 transition cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+                >
+                  {submittingDelete ? 'Deleting...' : 'Confirm Delete'}
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -2357,40 +2463,42 @@ export default function HackathonManagement() {
       {/* ADD / EDIT ORGANIZER MODAL                                    */}
       {/* ------------------------------------------------------------- */}
       {isOrgModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/50 backdrop-blur-xs overflow-y-auto">
-          <div className="bg-white rounded-2xl max-w-lg w-full border border-slate-200 shadow-2xl overflow-hidden my-6">
-            {/* Modal Header */}
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-              <div className="flex items-center gap-2.5">
-                <div
-                  className="w-9 h-9 rounded-xl flex items-center justify-center shadow-inner"
-                  style={{ backgroundColor: '#fff3ef' }}
+        <div className="fixed inset-0 z-[100] overflow-y-auto bg-slate-900/60 backdrop-blur-xs p-3 sm:p-4">
+          <div className="min-h-full flex items-center justify-center py-4 sm:py-6">
+            <div className="relative bg-white rounded-2xl max-w-lg w-full border border-slate-200 shadow-2xl flex flex-col max-h-[90vh] overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+              {/* Modal Header */}
+              <div className="shrink-0 px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
+                <div className="flex items-center gap-2.5">
+                  <div
+                    className="w-9 h-9 rounded-xl flex items-center justify-center shadow-inner"
+                    style={{ backgroundColor: '#fff3ef' }}
+                  >
+                    <Award className="w-5 h-5" style={{ color: '#ea580c' }} />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-slate-900">
+                      {editingOrg ? 'Edit Hackathon Organizer' : 'Add Hackathon Organizer'}
+                    </h3>
+                    <p className="text-xs text-slate-500">
+                      Assign a platform user as committee officer for a hackathon edition
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsOrgModalOpen(false);
+                    setEditingOrg(null);
+                  }}
+                  className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition cursor-pointer"
                 >
-                  <Award className="w-5 h-5" style={{ color: '#ea580c' }} />
-                </div>
-                <div>
-                  <h3 className="text-base font-bold text-slate-900">
-                    {editingOrg ? 'Edit Hackathon Organizer' : 'Add Hackathon Organizer'}
-                  </h3>
-                  <p className="text-xs text-slate-500">
-                    Assign a platform user as committee officer for a hackathon edition
-                  </p>
-                </div>
+                  <X className="w-4 h-4" />
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setIsOrgModalOpen(false);
-                  setEditingOrg(null);
-                }}
-                className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
 
-            {/* Modal Form */}
-            <form onSubmit={handleSaveOrg} className="p-6 space-y-4">
+              {/* Modal Form */}
+              <form onSubmit={handleSaveOrg} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+                <div className="flex-1 overflow-y-auto p-6 space-y-4">
               {/* Select User */}
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
@@ -2494,35 +2602,38 @@ export default function HackathonManagement() {
                 </p>
               </div>
 
-              {/* Actions */}
-              <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2.5">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsOrgModalOpen(false);
-                    setEditingOrg(null);
-                  }}
-                  className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={submittingOrg}
-                  className="px-4 py-2 rounded-xl text-xs font-semibold text-white shadow-md shadow-orange-500/20 hover:shadow-orange-500/30 transition cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
-                  style={{ backgroundColor: '#ea580c' }}
-                >
-                  {submittingOrg ? (
-                    <>
-                      <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      <span>Saving...</span>
-                    </>
-                  ) : (
-                    <span>{editingOrg ? 'Update Organizer' : 'Add Organizer'}</span>
-                  )}
-                </button>
-              </div>
-            </form>
+                </div>
+
+                {/* Actions */}
+                <div className="shrink-0 px-6 py-3.5 border-t border-slate-100 bg-slate-50/70 flex items-center justify-end gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsOrgModalOpen(false);
+                      setEditingOrg(null);
+                    }}
+                    className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={submittingOrg}
+                    className="px-4 py-2 rounded-xl text-xs font-semibold text-white shadow-md shadow-orange-500/20 hover:shadow-orange-500/30 transition cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+                    style={{ backgroundColor: '#ea580c' }}
+                  >
+                    {submittingOrg ? (
+                      <>
+                        <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        <span>Saving...</span>
+                      </>
+                    ) : (
+                      <span>{editingOrg ? 'Update Organizer' : 'Add Organizer'}</span>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         </div>
       )}
@@ -2531,37 +2642,38 @@ export default function HackathonManagement() {
       {/* VIEW ORGANIZER MODAL                                          */}
       {/* ------------------------------------------------------------- */}
       {viewingOrg && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/50 backdrop-blur-xs overflow-y-auto">
-          <div className="bg-white rounded-2xl max-w-lg w-full border border-slate-200 shadow-2xl overflow-hidden my-6">
-            {/* Modal Header */}
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-              <div className="flex items-center gap-2.5">
-                <div
-                  className="w-9 h-9 rounded-xl flex items-center justify-center shadow-inner"
-                  style={{ backgroundColor: '#fff3ef' }}
+        <div className="fixed inset-0 z-[100] overflow-y-auto bg-slate-900/60 backdrop-blur-xs p-3 sm:p-4">
+          <div className="min-h-full flex items-center justify-center py-4 sm:py-6">
+            <div className="relative bg-white rounded-2xl max-w-lg w-full border border-slate-200 shadow-2xl flex flex-col max-h-[90vh] overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+              {/* Modal Header */}
+              <div className="shrink-0 px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
+                <div className="flex items-center gap-2.5">
+                  <div
+                    className="w-9 h-9 rounded-xl flex items-center justify-center shadow-inner"
+                    style={{ backgroundColor: '#fff3ef' }}
+                  >
+                    <Award className="w-5 h-5" style={{ color: '#ea580c' }} />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-slate-900">
+                      Organizer Details
+                    </h3>
+                    <p className="text-xs text-slate-500 font-mono">
+                      ID: {viewingOrg.id}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setViewingOrg(null)}
+                  className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition cursor-pointer"
                 >
-                  <Award className="w-5 h-5" style={{ color: '#ea580c' }} />
-                </div>
-                <div>
-                  <h3 className="text-base font-bold text-slate-900">
-                    Organizer Details
-                  </h3>
-                  <p className="text-xs text-slate-500 font-mono">
-                    ID: {viewingOrg.id}
-                  </p>
-                </div>
+                  <X className="w-4 h-4" />
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={() => setViewingOrg(null)}
-                className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
 
-            {/* Profile Info */}
-            <div className="p-6 space-y-4">
+              {/* Profile Info */}
+              <div className="flex-1 overflow-y-auto p-6 space-y-4">
               <div className="flex items-center gap-4 p-4 rounded-xl bg-slate-50 border border-slate-200">
                 <img
                   src={getUserAvatarUrl(viewingOrg.user?.profile_picture)}
@@ -2623,7 +2735,10 @@ export default function HackathonManagement() {
                 </div>
               </div>
 
-              <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
+              </div>
+
+              {/* Modal Footer */}
+              <div className="shrink-0 px-6 py-3.5 border-t border-slate-100 bg-slate-50/70 flex items-center justify-between">
                 <span className="text-[11px] text-slate-400 font-mono">
                   Created: {viewingOrg.created_at ? new Date(viewingOrg.created_at).toLocaleString() : '—'}
                 </span>
@@ -2635,14 +2750,14 @@ export default function HackathonManagement() {
                       setViewingOrg(null);
                       handleOpenEditOrg(target);
                     }}
-                    className="px-3.5 py-1.5 rounded-xl text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition"
+                    className="px-3.5 py-1.5 rounded-xl text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition cursor-pointer"
                   >
                     Edit Organizer
                   </button>
                   <button
                     type="button"
                     onClick={() => setViewingOrg(null)}
-                    className="px-4 py-1.5 rounded-xl text-xs font-semibold text-white transition"
+                    className="px-4 py-1.5 rounded-xl text-xs font-semibold text-white transition cursor-pointer"
                     style={{ backgroundColor: '#ea580c' }}
                   >
                     Close
@@ -2658,37 +2773,39 @@ export default function HackathonManagement() {
       {/* DELETE ORGANIZER CONFIRMATION MODAL                           */}
       {/* ------------------------------------------------------------- */}
       {deletingOrg && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/50 backdrop-blur-xs">
-          <div className="bg-white rounded-2xl max-w-md w-full border border-slate-200 shadow-2xl p-6">
-            <div className="w-12 h-12 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center mx-auto mb-4 border border-red-100">
-              <Trash2 className="w-6 h-6" />
-            </div>
-            <h3 className="text-base font-bold text-slate-900 text-center">
-              Remove Organizer?
-            </h3>
-            <p className="text-xs text-slate-500 text-center mt-1.5 leading-relaxed">
-              Are you sure you want to remove{' '}
-              <strong className="text-slate-800">
-                "{deletingOrg.user?.full_name || deletingOrg.user?.email || 'this organizer'}"
-              </strong>{' '}
-              as {deletingOrg.designation} from this hackathon edition?
-            </p>
-            <div className="mt-6 flex items-center justify-center gap-3">
-              <button
-                type="button"
-                onClick={() => setDeletingOrg(null)}
-                className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                disabled={submittingDeleteOrg}
-                onClick={handleDeleteOrgSubmit}
-                className="px-4 py-2 rounded-xl text-xs font-semibold text-white bg-red-600 hover:bg-red-700 transition cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
-              >
-                {submittingDeleteOrg ? 'Removing...' : 'Confirm Remove'}
-              </button>
+        <div className="fixed inset-0 z-[100] overflow-y-auto bg-slate-900/60 backdrop-blur-xs p-3 sm:p-4">
+          <div className="min-h-full flex items-center justify-center py-4">
+            <div className="bg-white rounded-2xl max-w-md w-full border border-slate-200 shadow-2xl p-6 animate-in fade-in zoom-in-95 duration-150">
+              <div className="w-12 h-12 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center mx-auto mb-4 border border-red-100">
+                <Trash2 className="w-6 h-6" />
+              </div>
+              <h3 className="text-base font-bold text-slate-900 text-center">
+                Remove Organizer?
+              </h3>
+              <p className="text-xs text-slate-500 text-center mt-1.5 leading-relaxed">
+                Are you sure you want to remove{' '}
+                <strong className="text-slate-800">
+                  "{deletingOrg.user?.full_name || deletingOrg.user?.email || 'this organizer'}"
+                </strong>{' '}
+                as {deletingOrg.designation} from this hackathon edition?
+              </p>
+              <div className="mt-6 flex items-center justify-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setDeletingOrg(null)}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={submittingDeleteOrg}
+                  onClick={handleDeleteOrgSubmit}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-white bg-red-600 hover:bg-red-700 transition cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+                >
+                  {submittingDeleteOrg ? 'Removing...' : 'Confirm Remove'}
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -2700,6 +2817,7 @@ export default function HackathonManagement() {
         onClose={() => setQrModalOpen(false)}
         attendee={qrAttendee}
       />
+      </ModalPortal>
     </div>
   );
 }

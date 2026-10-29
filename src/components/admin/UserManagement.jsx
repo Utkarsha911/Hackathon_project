@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, Navigate } from 'react-router-dom';
 import { api, getMediaUrl, getUserAvatarUrl, DEFAULT_USER_AVATAR, getAdminUser, setAdminUser } from '../../services/api';
 import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
+import ModalPortal from '../common/ModalPortal';
 import {
   Users,
   UserPlus,
@@ -987,6 +988,13 @@ export default function UserManagement() {
     (activeTab === 'organizers' && canAccessOrganizers) ||
     (activeTab !== 'departments' && activeTab !== 'organizers' && canAccessUsers);
 
+  if (activeTab === 'teams') {
+    return <Navigate to="/admin-control-site/teams" replace />;
+  }
+  if (activeTab === 'guests') {
+    return <Navigate to="/admin-control-site/participants?tab=guests" replace />;
+  }
+
   if (!hasAccessToCurrentTab) {
     return (
       <div className="max-w-md mx-auto my-12 p-8 bg-white rounded-2xl border border-slate-200 text-center shadow-xs">
@@ -1695,9 +1703,12 @@ export default function UserManagement() {
         </>
       )}
 
+      {/* MODAL PORTAL */}
+      <ModalPortal>
       {/* ORGANIZER DETAIL MODAL */}
       {selectedOrganizer && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
+        <div className="fixed inset-0 z-[100] overflow-y-auto bg-slate-900/60 backdrop-blur-xs p-3 sm:p-4">
+          <div className="min-h-full flex items-center justify-center py-4">
           <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-xl w-full max-h-[92vh] overflow-y-auto">
             {/* Modal Header */}
             <div className="sticky top-0 bg-white px-5 sm:px-6 py-4 border-b border-slate-100 flex items-center justify-between z-10">
@@ -1850,12 +1861,14 @@ export default function UserManagement() {
               </button>
             </div>
           </div>
+          </div>
         </div>
       )}
 
       {/* REGISTRATION MODAL */}
       {isRegisterModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
+        <div className="fixed inset-0 z-[100] overflow-y-auto bg-slate-900/60 backdrop-blur-xs p-3 sm:p-4">
+          <div className="min-h-full flex items-center justify-center py-4">
           <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-xl w-full max-h-[92vh] sm:max-h-[90vh] overflow-y-auto">
             {/* Modal Header */}
             <div className="sticky top-0 bg-white px-4 sm:px-6 py-3.5 sm:py-4 border-b border-slate-100 flex items-center justify-between z-10">
@@ -2138,12 +2151,14 @@ export default function UserManagement() {
               </form>
             </div>
           </div>
+          </div>
         </div>
       )}
 
       {/* USER DETAIL VIEW MODAL */}
       {viewPayloadModalUser && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
+        <div className="fixed inset-0 z-[100] overflow-y-auto bg-slate-900/60 backdrop-blur-xs p-3 sm:p-4">
+          <div className="min-h-full flex items-center justify-center py-4">
           <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-2xl w-full p-4 sm:p-6 max-h-[90vh] sm:max-h-[88vh] overflow-y-auto">
             {/* Modal Header */}
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
@@ -2321,12 +2336,14 @@ export default function UserManagement() {
               </div>
             </div>
           </div>
+          </div>
         </div>
       )}
 
       {/* ADMIN EDIT USER MODAL (DIFFERENT TABS: PROFILE, ROLE, AND OTHER) */}
       {editUser && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
+        <div className="fixed inset-0 z-[100] overflow-y-auto bg-slate-900/60 backdrop-blur-xs p-3 sm:p-4">
+          <div className="min-h-full flex items-center justify-center py-4">
           <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-xl w-full max-h-[92vh] flex flex-col overflow-hidden">
             {/* Header */}
             <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-slate-100 flex items-center justify-between bg-white shrink-0">
@@ -2771,8 +2788,10 @@ export default function UserManagement() {
               </div>
             </div>
           </div>
+          </div>
         </div>
       )}
+      </ModalPortal>
     </div>
   );
 }

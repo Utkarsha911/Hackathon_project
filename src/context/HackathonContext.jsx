@@ -447,8 +447,17 @@ export function HackathonProvider({ children }) {
       college_website: collegeWebsite || '',
       coordinator_phone: (teamFormData.coordinator_phone || teamFormData.phone || '').trim(),
       coordinator_email: (teamFormData.coordinator_email || teamFormData.leaderEmail || '').trim(),
-      no_of_members: Number(teamFormData.no_of_members) || 1
+      no_of_members: Number(teamFormData.no_of_members) || 1,
+      has_agreed_to_terms: teamFormData.has_agreed_to_terms !== undefined ? Boolean(teamFormData.has_agreed_to_terms) : true
     };
+
+    if (teamFormData.tshirt_size) {
+      payload.tshirt_size = teamFormData.tshirt_size;
+    }
+
+    if (Array.isArray(teamFormData.participants) && teamFormData.participants.length > 0) {
+      payload.participants = teamFormData.participants;
+    }
 
     const createdTeam = await api.hackathons.teams.create(payload);
 
@@ -852,6 +861,13 @@ export function HackathonProvider({ children }) {
     // Datasets
     hackathon,
     setHackathon,
+    current_hackathon: hackathon,
+    isTshirtIncluded: Boolean(
+      hackathon?.is_tshirt_included ??
+      hackathon?.is_t_shirt_included ??
+      hackathon?.tshirt_included ??
+      false
+    ),
     isRegistrationOpen: isRegistrationOpen(hackathon),
     registrationStatus: getRegistrationStatus(hackathon),
     prizes,

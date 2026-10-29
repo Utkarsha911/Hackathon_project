@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { api, getSelectedAdminHackathon } from '../../services/api';
 import { useHackathon } from '../../context/HackathonContext';
 import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
+import ModalPortal from '../common/ModalPortal';
+import ClassicEditor from '@ckeditor/ckeditor5-build-classic';
 import {
   Trophy,
   Plus,
@@ -16,6 +18,95 @@ import {
   Building2,
   CheckCircle2
 } from 'lucide-react';
+
+// CKEditor 5 Component for Prize Descriptions - Clean Single Instance
+function PrizeCKEditor({ value, onChange }) {
+  const containerRef = useRef(null);
+  const editorRef = useRef(null);
+  const isInternalChange = useRef(false);
+
+  useEffect(() => {
+    let editorInstance = null;
+    let isMounted = true;
+
+    // Guard against StrictMode double-invocation
+    if (containerRef.current && !containerRef.current._ck_initialized) {
+      containerRef.current._ck_initialized = true;
+      ClassicEditor.create(containerRef.current, {
+        toolbar: [
+          'heading',
+          '|',
+          'bold',
+          'italic',
+          'link',
+          'bulletedList',
+          'numberedList',
+          '|',
+          'blockQuote',
+          'undo',
+          'redo'
+        ],
+        placeholder: 'Details regarding cash bounties, trophies, certificates, incubation opportunities, cloud credits...'
+      })
+        .then((editor) => {
+          if (!isMounted) {
+            editor.destroy();
+            return;
+          }
+          editorInstance = editor;
+          editorRef.current = editor;
+
+          if (value) {
+            editor.setData(value);
+          }
+
+          editor.model.document.on('change:data', () => {
+            isInternalChange.current = true;
+            const data = editor.getData();
+            onChange(data);
+            setTimeout(() => {
+              isInternalChange.current = false;
+            }, 50);
+          });
+        })
+        .catch((err) => {
+          console.error('CKEditor initialization error:', err);
+        });
+    }
+
+    return () => {
+      isMounted = false;
+      if (editorInstance) {
+        editorInstance.destroy().catch(() => {});
+        editorRef.current = null;
+      }
+    };
+  }, []);
+
+  // Sync external changes (e.g. when opening edit modal) without interfering with typing
+  useEffect(() => {
+    if (editorRef.current && !isInternalChange.current) {
+      const current = editorRef.current.getData();
+      if (value !== undefined && value !== current) {
+        editorRef.current.setData(value || '');
+      }
+    }
+  }, [value]);
+
+  return (
+    <div className="space-y-1.5 prize-ckeditor-wrapper">
+      <label className="block text-xs font-semibold text-slate-700">
+        Description &amp; Perks <span className="text-red-500">*</span>
+      </label>
+      <div className="rounded-xl overflow-hidden border border-slate-200 shadow-2xs bg-white">
+        <div ref={containerRef} />
+      </div>
+      <p className="text-[10px] text-slate-400">
+        Powered by CKEditor. Formatted text, bullet points, and links will render live on the public website.
+      </p>
+    </div>
+  );
+}
 
 export default function PrizeManagement() {
   const { showToast } = useHackathon();
@@ -381,8 +472,8 @@ export default function PrizeManagement() {
                       <td className="py-3 px-4 font-mono font-bold text-emerald-700">
                         {amount > 0 ? `NPR ${amount.toLocaleString()}` : 'Trophy / Grant'}
                       </td>
-                      <td className="py-3 px-4 max-w-xs truncate" title={prize.description}>
-                        {prize.description || '—'}
+                      <td className="py-3 px-4 max-w-xs truncate" title={prize.description ? prize.description.replace(/<[^>]*>?/gm, '') : ''}>
+                        {prize.description ? prize.description.replace(/<[^>]*>?/gm, '') : '—'}
                       </td>
                       <td className="py-3 px-4">
                         <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-[11px] font-mono bg-slate-100 text-slate-700 border border-slate-200">
@@ -428,176 +519,178 @@ export default function PrizeManagement() {
 
       {/* ==================== CREATE / EDIT MODAL ==================== */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl border border-slate-200 w-full max-w-lg shadow-2xl overflow-hidden animate-fade-in">
-            <div className="p-6 border-b border-slate-100 flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-orange-100 flex items-center justify-center text-[#ea580c]">
-                  <Trophy className="w-4 h-4" />
+        <ModalPortal>
+          <div className="fixed inset-0 z-[100] overflow-y-auto bg-slate-900/60 backdrop-blur-xs p-3 sm:p-4">
+            <div className="min-h-full flex items-center justify-center py-4 sm:py-6">
+              <div className="relative bg-white rounded-3xl border border-slate-200 w-full max-w-xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden animate-fade-in">
+                <div className="shrink-0 p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-9 h-9 rounded-xl bg-orange-100 flex items-center justify-center text-[#ea580c]">
+                      <Trophy className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h3 className="text-base font-bold text-slate-900">
+                        {editingPrize ? 'Edit Prize' : 'Create New Prize'}
+                      </h3>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsModalOpen(false)}
+                    className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 bg-slate-100 hover:bg-slate-200 transition cursor-pointer"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
                 </div>
-                <div>
-                  <h3 className="text-base font-bold text-slate-900">
-                    {editingPrize ? 'Edit Prize' : 'Create New Prize'}
-                  </h3>
-                </div>
+
+                <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+                  <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                    {/* Hackathon Selection */}
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">
+                        Hackathon Edition <span className="text-red-500">*</span>
+                      </label>
+                      <select
+                        value={form.hackathon}
+                        onChange={(e) => setForm({ ...form, hackathon: e.target.value })}
+                        className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#ea580c]/20 focus:border-[#ea580c]"
+                        required
+                      >
+                        <option value="">Select a hackathon...</option>
+                        {hackathonsList.map((h) => (
+                          <option key={h.id} value={h.id}>
+                            {h.title} ({h.version || 'Active'}{h.is_current ? ' ★ Current' : ''})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Title & Order */}
+                    <div className="grid grid-cols-3 gap-3">
+                      <div className="col-span-2">
+                        <label className="block text-xs font-semibold text-slate-700 mb-1">
+                          Prize Title <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={form.title}
+                          onChange={(e) => setForm({ ...form, title: e.target.value })}
+                          placeholder="e.g. Grand Champion, 1st Runner Up"
+                          className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#ea580c]/20 focus:border-[#ea580c]"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 mb-1">
+                          Order / Rank
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          value={form.order}
+                          onChange={(e) => setForm({ ...form, order: e.target.value })}
+                          className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#ea580c]/20 focus:border-[#ea580c]"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Prize Money */}
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">
+                        Prize Money (NPR)
+                      </label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-mono font-bold text-slate-400">
+                          NPR
+                        </span>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={form.prize_money}
+                          onChange={(e) => setForm({ ...form, prize_money: e.target.value })}
+                          placeholder="e.g. 50000.00"
+                          className="w-full pl-12 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#ea580c]/20 focus:border-[#ea580c] font-mono"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Description (CKEditor) */}
+                    <PrizeCKEditor
+                      key={editingPrize ? `edit-${editingPrize.id}` : 'create-prize'}
+                      value={form.description}
+                      onChange={(val) => setForm((prev) => ({ ...prev, description: val }))}
+                    />
+                  </div>
+
+                  {/* Modal Buttons */}
+                  <div className="shrink-0 p-4 border-t border-slate-100 bg-slate-50/70 flex items-center justify-end gap-2.5">
+                    <button
+                      type="button"
+                      onClick={() => setIsModalOpen(false)}
+                      className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="inline-flex items-center gap-1.5 px-5 py-2 rounded-xl text-xs font-semibold text-white shadow-sm transition disabled:opacity-50 cursor-pointer"
+                      style={{ backgroundColor: '#ea580c' }}
+                    >
+                      {isSubmitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                      <span>{editingPrize ? 'Save Changes' : 'Create Prize'}</span>
+                    </button>
+                  </div>
+                </form>
               </div>
-              <button
-                type="button"
-                onClick={() => setIsModalOpen(false)}
-                className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 bg-slate-100 hover:bg-slate-200 transition"
-              >
-                <X className="w-4 h-4" />
-              </button>
             </div>
-
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
-              {/* Hackathon Selection */}
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Hackathon Edition <span className="text-red-500">*</span>
-                </label>
-                <select
-                  value={form.hackathon}
-                  onChange={(e) => setForm({ ...form, hackathon: e.target.value })}
-                  className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#ea580c]/20 focus:border-[#ea580c]"
-                  required
-                >
-                  <option value="">Select a hackathon...</option>
-                  {hackathonsList.map((h) => (
-                    <option key={h.id} value={h.id}>
-                      {h.title} ({h.version || 'Active'}{h.is_current ? ' ★ Current' : ''})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Title & Order */}
-              <div className="grid grid-cols-3 gap-3">
-                <div className="col-span-2">
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Prize Title <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={form.title}
-                    onChange={(e) => setForm({ ...form, title: e.target.value })}
-                    placeholder="e.g. Grand Champion, 1st Runner Up"
-                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#ea580c]/20 focus:border-[#ea580c]"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Order / Rank
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    value={form.order}
-                    onChange={(e) => setForm({ ...form, order: e.target.value })}
-                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#ea580c]/20 focus:border-[#ea580c]"
-                  />
-                </div>
-              </div>
-
-              {/* Prize Money */}
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Prize Money (NPR)
-                </label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-mono font-bold text-slate-400">
-                    NPR
-                  </span>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={form.prize_money}
-                    onChange={(e) => setForm({ ...form, prize_money: e.target.value })}
-                    placeholder="e.g. 50000.00"
-                    className="w-full pl-12 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#ea580c]/20 focus:border-[#ea580c] font-mono"
-                  />
-                </div>
-              </div>
-
-              {/* Description */}
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Description / Perks <span className="text-red-500">*</span>
-                </label>
-                <textarea
-                  rows="3"
-                  value={form.description}
-                  onChange={(e) => setForm({ ...form, description: e.target.value })}
-                  placeholder="Details regarding cloud compute credits, trophies, certificates, incubation opportunities..."
-                  className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#ea580c]/20 focus:border-[#ea580c]"
-                  required
-                />
-              </div>
-
-              {/* Modal Buttons */}
-              <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2.5">
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="inline-flex items-center gap-1.5 px-5 py-2 rounded-xl text-xs font-semibold text-white shadow-sm transition disabled:opacity-50"
-                  style={{ backgroundColor: '#ea580c' }}
-                >
-                  {isSubmitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                  <span>{editingPrize ? 'Save Changes' : 'Create Prize'}</span>
-                </button>
-              </div>
-            </form>
           </div>
-        </div>
+        </ModalPortal>
       )}
 
       {/* ==================== DELETE CONFIRMATION MODAL ==================== */}
       {deleteModal.isOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl border border-slate-200 w-full max-w-sm p-6 shadow-2xl animate-fade-in text-center">
-            <div className="w-12 h-12 rounded-2xl bg-red-100 text-red-600 flex items-center justify-center mx-auto mb-4">
-              <AlertCircle className="w-6 h-6" />
-            </div>
-            <h3 className="text-base font-bold text-slate-900">
-              Delete Prize?
-            </h3>
-            <p className="text-xs text-slate-500 mt-2">
-              Are you sure you want to delete{' '}
-              <strong className="text-slate-800">
-                {deleteModal.item?.title}
-              </strong>
-              ? This action cannot be undone.
-            </p>
+        <ModalPortal>
+          <div className="fixed inset-0 z-[100] overflow-y-auto bg-slate-900/60 backdrop-blur-xs p-3 sm:p-4">
+            <div className="min-h-full flex items-center justify-center py-4">
+              <div className="bg-white rounded-3xl border border-slate-200 w-full max-w-sm p-6 shadow-2xl animate-fade-in text-center">
+                <div className="w-12 h-12 rounded-2xl bg-red-100 text-red-600 flex items-center justify-center mx-auto mb-4">
+                  <AlertCircle className="w-6 h-6" />
+                </div>
+                <h3 className="text-base font-bold text-slate-900">
+                  Delete Prize?
+                </h3>
+                <p className="text-xs text-slate-500 mt-2">
+                  Are you sure you want to delete{' '}
+                  <strong className="text-slate-800">
+                    {deleteModal.item?.title}
+                  </strong>
+                  ? This action cannot be undone.
+                </p>
 
-            <div className="mt-6 flex items-center justify-center gap-2.5">
-              <button
-                type="button"
-                onClick={() => setDeleteModal({ isOpen: false, item: null })}
-                className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleConfirmDelete}
-                disabled={isDeleting}
-                className="inline-flex items-center gap-1.5 px-5 py-2 rounded-xl text-xs font-semibold text-white bg-red-600 hover:bg-red-700 shadow-sm transition disabled:opacity-50"
-              >
-                {isDeleting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                <span>Delete</span>
-              </button>
+                <div className="mt-6 flex items-center justify-center gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => setDeleteModal({ isOpen: false, item: null })}
+                    className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleConfirmDelete}
+                    disabled={isDeleting}
+                    className="inline-flex items-center gap-1.5 px-5 py-2 rounded-xl text-xs font-semibold text-white bg-red-600 hover:bg-red-700 shadow-sm transition disabled:opacity-50 cursor-pointer"
+                  >
+                    {isDeleting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                    <span>Delete</span>
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
+        </ModalPortal>
       )}
     </div>
   );

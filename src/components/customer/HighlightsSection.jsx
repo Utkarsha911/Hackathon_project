@@ -121,9 +121,10 @@ export default function HighlightsSection() {
                   </div>
 
                   {p.description && (
-                    <p className="text-[11px] text-slate-500 mt-1 line-clamp-2 leading-relaxed">
-                      {p.description}
-                    </p>
+                    <div
+                      className="text-xs text-slate-600 mt-2 leading-relaxed prize-html-content"
+                      dangerouslySetInnerHTML={{ __html: p.description }}
+                    />
                   )}
                 </div>
               </div>

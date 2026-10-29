@@ -121,6 +121,92 @@ const getGroupTemporalStatus = (group, now) => {
   return { isToday: false, isCompleted: false, hasStarted: false };
 };
 
+// Individual Phase Card Component for Alternating Timeline
+function ScheduleItemCard({ item, timeRange, temporal }) {
+  return (
+    <div
+      className={`rounded-xl border p-3 sm:p-3.5 transition-all shadow-xs hover:shadow-md ${
+        temporal.isLive
+          ? 'bg-orange-50/40 border-orange-200 ring-2 ring-orange-500/20 shadow-orange-500/5'
+          : temporal.isCompleted
+          ? 'bg-slate-50/80 border-slate-200/80'
+          : 'bg-white border-slate-200/90 hover:border-slate-300'
+      }`}
+    >
+      {/* Time Range Badge */}
+      {timeRange && (
+        <div
+          className={`inline-flex items-center gap-1.5 text-[11px] px-2 py-0.5 rounded-full border font-semibold ${
+            temporal.isLive
+              ? 'text-[#ea580c] bg-orange-100/80 border-orange-200'
+              : temporal.isCompleted
+              ? 'text-slate-500 bg-slate-100 border-slate-200'
+              : 'text-slate-700 bg-slate-50 border-slate-200/80'
+          }`}
+        >
+          <Clock className="w-2.5 h-2.5 shrink-0" />
+          <span>{timeRange}</span>
+        </div>
+      )}
+
+      {/* Phase Title */}
+      <h4 className="text-sm sm:text-base font-bold text-slate-900 mt-1.5 leading-snug">
+        {item.title}
+      </h4>
+
+      {/* Description */}
+      {item.description && (
+        <p className="mt-1 text-xs text-slate-600 leading-relaxed">
+          {item.description}
+        </p>
+      )}
+
+      {/* Remarks / Notes */}
+      {item.remarks && (
+        <div className="mt-2 flex items-start gap-1.5 p-2 rounded-lg bg-amber-50/80 border border-amber-200/60 text-[11px] text-amber-800">
+          <Info className="w-3 h-3 text-amber-600 shrink-0 mt-0.5" />
+          <span>
+            <strong>Note:</strong> {item.remarks}
+          </span>
+        </div>
+      )}
+
+      {/* Agenda Sessions */}
+      {Array.isArray(item.events) && item.events.length > 0 && (
+        <div className="mt-2.5 pt-2 border-t border-slate-100 space-y-1.5">
+          <div className="text-[9px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
+            <Calendar className="w-2.5 h-2.5 text-[#ea580c]" />
+            <span>Agenda Sessions</span>
+          </div>
+          <div className="space-y-1">
+            {item.events.map((evt) => {
+              const evtTime = formatTimeRange(evt.start_time, evt.end_time);
+              return (
+                <div
+                  key={evt.id}
+                  className="flex items-center justify-between gap-2 px-2 py-1.5 rounded-lg bg-slate-50 border border-slate-100 text-[11px]"
+                >
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#ea580c] shrink-0" />
+                    <span className="truncate text-[11px] font-medium text-slate-800">
+                      {evt.description}
+                    </span>
+                  </div>
+                  {evtTime && (
+                    <span className="font-mono text-[10px] text-slate-500 shrink-0">
+                      {evtTime}
+                    </span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function ScheduleSection() {
   const { schedules = [] } = useHackathon();
 
@@ -230,24 +316,24 @@ export default function ScheduleSection() {
   const groupTemporal = activeGroup ? getGroupTemporalStatus(activeGroup, now) : null;
 
   return (
-    <Section id="schedule" py="py-12 sm:py-16">
-      <div className="max-w-xl mx-auto">
+    <Section id="schedule" py="py-8 sm:py-12">
+      <div className="max-w-3xl mx-auto">
         {/* Centered Heading in Customer Theme */}
-        <div className="text-center mb-8">
-          <div className="text-xs font-bold uppercase tracking-[0.14em] text-brand-blue mb-2">
+        <div className="text-center mb-6">
+          <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-brand-blue mb-1">
             Schedule
           </div>
-          <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-ink">
+          <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight text-ink">
             Event Timeline
           </h2>
-          <p className="mt-2 text-xs sm:text-sm text-slate-500">
+          <p className="mt-1 text-xs text-slate-500">
             Explore the daily roadmap, sessions, and milestones.
           </p>
         </div>
 
         {/* Centered Date Filter Tabs in Customer Site Color Theme */}
         {groupedSchedules.length > 1 && (
-          <div className="flex flex-wrap items-center justify-center gap-2 mb-8">
+          <div className="flex flex-wrap items-center justify-center gap-1.5 mb-6">
             {groupedSchedules.map((group, idx) => {
               const isSelected = group.dateKey === currentKey;
               const gStatus = getGroupTemporalStatus(group, now);
@@ -257,16 +343,16 @@ export default function ScheduleSection() {
                   key={group.dateKey}
                   type="button"
                   onClick={() => setSelectedDay(group.dateKey)}
-                  className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                  className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                     isSelected
-                      ? 'bg-brand-navy text-white shadow-sm ring-2 ring-brand-navy/20'
+                      ? 'bg-brand-navy text-white shadow-xs ring-1 ring-brand-navy/20'
                       : gStatus.hasStarted && !gStatus.isCompleted
                       ? 'bg-brand-tint text-brand-navy border border-brand-blue/30 hover:bg-brand-tint/80'
                       : 'bg-white hover:bg-slate-50 text-slate-600 hover:text-ink border border-slate-200/80'
                   }`}
                 >
                   <Calendar
-                    className={`w-3.5 h-3.5 ${
+                    className={`w-3 h-3 ${
                       isSelected
                         ? 'text-white'
                         : gStatus.hasStarted && !gStatus.isCompleted
@@ -285,16 +371,16 @@ export default function ScheduleSection() {
 
         {/* Active Date Badge in Customer Site Palette */}
         {activeGroup && (
-          <div className="text-center mb-6">
+          <div className="text-center mb-4">
             <div
-              className={`inline-flex items-center gap-2 px-3.5 py-1 rounded-full text-xs font-semibold transition-colors ${
+              className={`inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-[11px] font-semibold transition-colors ${
                 groupTemporal?.hasStarted && !groupTemporal?.isCompleted
                   ? 'bg-brand-tint text-brand-navy border border-brand-blue/30'
                   : 'bg-slate-100 text-slate-700 border border-slate-200/80'
               }`}
             >
               <Calendar
-                className={`w-3.5 h-3.5 ${
+                className={`w-3 h-3 ${
                   groupTemporal?.hasStarted && !groupTemporal?.isCompleted
                     ? 'text-brand-blue'
                     : 'text-slate-500'
@@ -303,171 +389,103 @@ export default function ScheduleSection() {
               <span>{formatFullDate(activeGroup.dateObj)}</span>
             </div>
 
-            <p className="text-[11px] text-slate-400 mt-1 font-medium">
+            <p className="text-[10px] text-slate-400 mt-1 font-medium">
               {activeGroup.items.length} {activeGroup.items.length === 1 ? 'phase' : 'phases'} scheduled
             </p>
           </div>
         )}
 
-        {/* Smaller Cards on Centered Timeline (Color Theme Transitions without Text Badges) */}
+        {/* Central Alternating Timeline Spine */}
         {activeGroup && (
-          <div className="relative border-l-2 border-brand-blue/20 ml-4 sm:ml-6 pl-5 sm:pl-6 space-y-3.5 py-1">
-            {activeGroup.items.map((item, itemIdx) => {
-              const timeRange = formatTimeRange(
-                item.start_date || item.start_time,
-                item.end_date || item.end_time
-              );
-              const temporal = getItemTemporalStatus(item, now);
+          <div className="relative py-2 mt-4">
+            {/* Central Vertical Spine (Desktop) */}
+            <div className="hidden md:block absolute left-1/2 top-3 bottom-3 w-0.5 bg-slate-700 -translate-x-1/2 rounded-full" />
 
-              return (
-                <div key={item.id || itemIdx} className="relative group">
-                  {/* Timeline Bullet Node with Customer Palette */}
-                  <span
-                    className={`absolute top-3.5 rounded-full border-2 border-white transition-all ${
-                      temporal.isLive
-                        ? '-left-[28px] sm:-left-[32px] w-3.5 h-3.5 bg-brand-blue ring-4 ring-brand-blue/20 shadow-xs'
-                        : temporal.isCompleted
-                        ? '-left-[27px] sm:-left-[31px] w-3 h-3 bg-slate-400 ring-2 ring-slate-100'
-                        : '-left-[27px] sm:-left-[31px] w-3 h-3 bg-slate-300 ring-2 ring-slate-100'
-                    }`}
-                    aria-hidden="true"
-                  />
+            {/* Left Vertical Spine (Mobile) */}
+            <div className="md:hidden absolute left-3.5 top-3 bottom-3 w-0.5 bg-slate-700 rounded-full" />
 
-                  {/* Smaller Card - Changes Color based on Customer Theme */}
+            <div className="space-y-5 md:space-y-6">
+              {activeGroup.items.map((item, itemIdx) => {
+                const isLeft = itemIdx % 2 === 0;
+                const timeRange = formatTimeRange(
+                  item.start_date || item.start_time,
+                  item.end_date || item.end_time
+                );
+                const temporal = getItemTemporalStatus(item, now);
+
+                return (
                   <div
-                    className={`rounded-2xl border p-4 transition-all ${
-                      temporal.isLive
-                        ? 'bg-brand-tint/70 border-brand-blue/50 ring-1 ring-brand-blue/20 shadow-[0_4px_16px_-4px_rgba(44,56,139,0.12)]'
-                        : temporal.isCompleted
-                        ? 'bg-slate-50/70 border-slate-200/80 opacity-90'
-                        : 'bg-white border-slate-200/80 shadow-[0_2px_8px_-2px_rgba(15,31,92,0.06)] hover:border-slate-300'
-                    }`}
+                    key={item.id || itemIdx}
+                    className="relative flex flex-col md:flex-row items-center w-full"
                   >
-                    <div>
-                      <h4
-                        className={`text-sm sm:text-base font-bold leading-snug ${
-                          temporal.isLive
-                            ? 'text-ink'
-                            : temporal.isCompleted
-                            ? 'text-slate-700'
-                            : 'text-ink'
-                        }`}
-                      >
-                        {item.title}
-                      </h4>
+                    {/* LEFT SIDE (Desktop) */}
+                    <div className="hidden md:flex w-1/2 justify-end pr-8">
+                      {isLeft && (
+                        <div className="relative w-full max-w-[320px] group">
+                          {/* Horizontal Connector Peg to Spine */}
+                          <div className="absolute top-5 -right-8 w-8 h-0.5 bg-slate-300" />
 
-                      {timeRange && (
-                        <div
-                          className={`mt-1.5 inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded border font-medium ${
-                            temporal.isLive
-                              ? 'text-brand-blue bg-white border-brand-blue/30 font-semibold shadow-2xs'
-                              : temporal.isCompleted
-                              ? 'text-slate-500 bg-slate-100 border-slate-200'
-                              : 'text-slate-600 bg-slate-50 border-slate-200/60'
-                          }`}
-                        >
-                          <Clock
-                            className={`w-3 h-3 shrink-0 ${
-                              temporal.isLive ? 'text-brand-blue' : 'text-slate-400'
-                            }`}
+                          {/* Chevron Arrow Pointing to Center Node */}
+                          <div className="absolute top-4 -right-1.5 w-3 h-3 bg-white border-t border-r border-slate-200 rotate-45 z-10" />
+
+                          <ScheduleItemCard
+                            item={item}
+                            timeRange={timeRange}
+                            temporal={temporal}
                           />
-                          <span>{timeRange}</span>
                         </div>
                       )}
                     </div>
 
-                    {item.description && (
-                      <p className="mt-2 text-xs sm:text-sm text-slate-600 leading-relaxed">
-                        {item.description}
-                      </p>
-                    )}
-
-                    {item.remarks && (
-                      <div className="mt-2.5 flex items-start gap-1.5 p-2 rounded-lg bg-amber-50/80 border border-amber-200/60 text-xs text-amber-800">
-                        <Info className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5" />
-                        <span>
-                          <strong>Note:</strong> {item.remarks}
-                        </span>
+                    {/* CENTER CIRCULAR NUMBERED NODE */}
+                    <div className="absolute left-3.5 md:left-1/2 top-3.5 -translate-x-1/2 z-20 flex items-center justify-center">
+                      <div
+                        className={`w-7 h-7 rounded-full font-bold text-[11px] flex items-center justify-center border-2 border-white shadow-xs transition-all ${
+                          temporal.isLive
+                            ? 'bg-[#ea580c] text-white ring-3 ring-orange-500/25 scale-105'
+                            : temporal.isCompleted
+                            ? 'bg-slate-400 text-white'
+                            : 'bg-slate-800 text-white'
+                        }`}
+                      >
+                        {itemIdx + 1}
                       </div>
-                    )}
+                    </div>
 
-                    {/* Sub-events agenda list */}
-                    {Array.isArray(item.events) && item.events.length > 0 && (
-                      <div className="mt-3 pt-3 border-t border-slate-100 space-y-1.5">
-                        <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
-                          <Calendar className="w-3 h-3 text-brand-blue" />
-                          <span>Agenda Sessions</span>
+                    {/* RIGHT SIDE (Desktop) */}
+                    <div className="hidden md:flex w-1/2 justify-start pl-8">
+                      {!isLeft && (
+                        <div className="relative w-full max-w-[320px] group">
+                          {/* Horizontal Connector Peg to Spine */}
+                          <div className="absolute top-5 -left-8 w-8 h-0.5 bg-slate-300" />
+
+                          {/* Chevron Arrow Pointing to Center Node */}
+                          <div className="absolute top-4 -left-1.5 w-3 h-3 bg-white border-b border-l border-slate-200 rotate-45 z-10" />
+
+                          <ScheduleItemCard
+                            item={item}
+                            timeRange={timeRange}
+                            temporal={temporal}
+                          />
                         </div>
-                        <div className="space-y-1.5">
-                          {item.events.map((evt) => {
-                            const evtTime = formatTimeRange(evt.start_time, evt.end_time);
-                            const evtStart = evt.start_time ? new Date(evt.start_time) : null;
-                            const evtEnd = evt.end_time ? new Date(evt.end_time) : null;
-                            const nowMs = now.getTime();
+                      )}
+                    </div>
 
-                            const isEvtPast =
-                              evt.has_completed ||
-                              (evtEnd && !isNaN(evtEnd.getTime()) && nowMs > evtEnd.getTime());
-                            const isEvtLive =
-                              !isEvtPast &&
-                              evtStart &&
-                              !isNaN(evtStart.getTime()) &&
-                              nowMs >= evtStart.getTime() &&
-                              (!evtEnd || isNaN(evtEnd.getTime()) || nowMs <= evtEnd.getTime());
-
-                            return (
-                              <div
-                                key={evt.id}
-                                className={`flex items-center justify-between gap-2 p-2 rounded-md border text-xs transition-colors ${
-                                  isEvtLive
-                                    ? 'bg-brand-tint border-brand-blue/30'
-                                    : isEvtPast
-                                    ? 'bg-slate-50/60 border-slate-100 text-slate-500'
-                                    : 'bg-slate-50 border-slate-100'
-                                }`}
-                              >
-                                <div className="flex items-center gap-1.5 min-w-0">
-                                  <span
-                                    className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                                      isEvtLive
-                                        ? 'bg-brand-blue'
-                                        : isEvtPast
-                                        ? 'bg-slate-400'
-                                        : 'bg-slate-300'
-                                    }`}
-                                  />
-                                  <span
-                                    className={`truncate text-[11px] ${
-                                      isEvtLive
-                                        ? 'font-bold text-ink'
-                                        : isEvtPast
-                                        ? 'font-medium text-slate-500'
-                                        : 'font-medium text-slate-800'
-                                    }`}
-                                  >
-                                    {evt.description}
-                                  </span>
-                                </div>
-
-                                {evtTime && (
-                                  <span
-                                    className={`font-mono text-[10px] shrink-0 ${
-                                      isEvtLive ? 'text-brand-blue font-semibold' : 'text-slate-400'
-                                    }`}
-                                  >
-                                    {evtTime}
-                                  </span>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
+                    {/* MOBILE VIEW (Stacked to the right of the mobile spine) */}
+                    <div className="md:hidden w-full pl-9">
+                      <div className="relative group">
+                        <div className="absolute top-4 -left-1.5 w-3 h-3 bg-white border-b border-l border-slate-200 rotate-45 z-10" />
+                        <ScheduleItemCard
+                          item={item}
+                          timeRange={timeRange}
+                          temporal={temporal}
+                        />
                       </div>
-                    )}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
         )}
       </div>

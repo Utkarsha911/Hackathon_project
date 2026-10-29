@@ -130,11 +130,6 @@
 html.modal-open,
 body.modal-open {
   overflow: hidden !important;
-  touch-action: none;
-}
-
-main.modal-open-scroll-lock {
-  overflow: hidden !important;
 }
 
 /* Smooth Infinite Marquee for Sponsors */
@@ -233,11 +228,11 @@ main.modal-open-scroll-lock {
   max-width: 1600px;
   margin-left: auto;
   margin-right: auto;
-  animation: adminFadeUp 0.28s ease-out both;
+  animation: adminFadeIn 0.25s ease-out;
 }
-@keyframes adminFadeUp {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: translateY(0); }
+@keyframes adminFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
 /* Cards and panels: consistent radius, softer border/shadow */
@@ -322,4 +317,65 @@ main.modal-open-scroll-lock {
 @media (prefers-reduced-motion: reduce) {
   .admin-shell .admin-main > * { animation: none; }
   .admin-shell * { transition-duration: 0.01ms !important; }
+}
+
+
+/* Visual Rich Text Editor Styling */
+.prize-rich-editor:empty:before {
+  content: attr(placeholder);
+  color: #94a3b8;
+  pointer-events: none;
+  display: block;
+}
+
+.prize-rich-editor ul,
+.prize-html-content ul {
+  list-style-type: disc;
+  padding-left: 1.25rem;
+  margin-top: 0.25rem;
+  margin-bottom: 0.25rem;
+}
+
+.prize-rich-editor ol,
+.prize-html-content ol {
+  list-style-type: decimal;
+  padding-left: 1.25rem;
+  margin-top: 0.25rem;
+  margin-bottom: 0.25rem;
+}
+
+.prize-rich-editor li,
+.prize-html-content li {
+  margin-top: 0.125rem;
+  margin-bottom: 0.125rem;
+}
+
+.prize-rich-editor a,
+.prize-html-content a {
+  color: #ea580c;
+  text-decoration: underline;
+}
+
+
+/* CKEditor 5 Styling */
+.prize-ckeditor-wrapper .ck-editor__editable_inline {
+  min-height: 140px;
+  max-height: 240px;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: #1e293b;
+}
+
+.prize-ckeditor-wrapper .ck.ck-editor__main > .ck-editor__editable:not(.ck-focused) {
+  border-color: #e2e8f0;
+}
+
+.prize-ckeditor-wrapper .ck.ck-editor__main > .ck-editor__editable.ck-focused {
+  border-color: #ea580c;
+  box-shadow: 0 0 0 2px rgba(234, 88, 12, 0.15);
+}
+
+.prize-ckeditor-wrapper .ck.ck-toolbar {
+  border-color: #e2e8f0 !important;
+  background-color: #f8fafc !important;
 }

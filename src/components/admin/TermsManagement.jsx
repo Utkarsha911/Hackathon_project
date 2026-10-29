@@ -1,9 +1,10 @@
 // src/components/admin/TermsManagement.jsx
 import React, { useEffect, useState, useCallback } from "react";
-import { Plus, Edit3, Trash2, FileText, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
+import { Plus, Edit3, Trash2, FileText, CheckCircle2, AlertCircle, Loader2, X } from "lucide-react";
 import { api, getSelectedAdminHackathon } from "../../services/api";
 import { useHackathon } from "../../context/HackathonContext";
 import { useBodyScrollLock } from "../../hooks/useBodyScrollLock";
+import ModalPortal from "../common/ModalPortal";
 
 const TermsManagement = () => {
   const [terms, setTerms] = useState([]);
@@ -226,58 +227,75 @@ const TermsManagement = () => {
 
       {/* Modal Form */}
       {showForm && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-lg w-full p-5 sm:p-6 shadow-xl border border-slate-200">
-            <h3 className="text-lg font-bold text-slate-900 mb-4">
-              {editingTerm ? 'Edit Term' : 'Create Participation Term'}
-            </h3>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
-                  Title
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Code of Conduct, Eligibility Rules"
-                  value={formData.title}
-                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  className="w-full border border-slate-200 rounded-xl px-3.5 py-2 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-[#ea580c]/20 focus:border-[#ea580c]"
-                />
+        <ModalPortal>
+          <div className="fixed inset-0 z-[100] overflow-y-auto bg-slate-900/60 backdrop-blur-xs p-3 sm:p-4">
+            <div className="min-h-full flex items-center justify-center py-4 sm:py-6">
+              <div className="relative bg-white rounded-2xl max-w-lg w-full border border-slate-200 shadow-2xl flex flex-col max-h-[90vh] overflow-hidden animate-fade-in">
+                <div className="shrink-0 p-5 sm:p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
+                  <h3 className="text-base sm:text-lg font-bold text-slate-900">
+                    {editingTerm ? 'Edit Term' : 'Create Participation Term'}
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={() => setShowForm(false)}
+                    className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition cursor-pointer"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+                  <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                        Title
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="e.g. Code of Conduct, Eligibility Rules"
+                        value={formData.title}
+                        onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                        className="w-full border border-slate-200 rounded-xl px-3.5 py-2 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-[#ea580c]/20 focus:border-[#ea580c]"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                        Content (HTML or Text)
+                      </label>
+                      <textarea
+                        required
+                        rows={6}
+                        placeholder="Enter participation terms clause content..."
+                        value={formData.content}
+                        onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+                        className="w-full border border-slate-200 rounded-xl px-3.5 py-2 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-[#ea580c]/20 focus:border-[#ea580c]"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="shrink-0 p-4 border-t border-slate-100 bg-slate-50/70 flex items-center justify-end gap-2.5">
+                    <button
+                      type="button"
+                      onClick={() => setShowForm(false)}
+                      className="px-4 py-2 rounded-xl border border-slate-200 text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-100 transition cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="px-5 py-2 rounded-xl text-xs sm:text-sm font-semibold text-white shadow-md shadow-orange-500/20 hover:shadow-orange-500/30 transition disabled:opacity-50 cursor-pointer"
+                      style={{ backgroundColor: '#ea580c' }}
+                    >
+                      {isSubmitting ? 'Saving...' : editingTerm ? 'Update Term' : 'Create Term'}
+                    </button>
+                  </div>
+                </form>
               </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
-                  Content (HTML or Text)
-                </label>
-                <textarea
-                  required
-                  rows={6}
-                  placeholder="Enter participation terms clause content..."
-                  value={formData.content}
-                  onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-                  className="w-full border border-slate-200 rounded-xl px-3.5 py-2 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-[#ea580c]/20 focus:border-[#ea580c]"
-                />
-              </div>
-              <div className="flex items-center justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowForm(false)}
-                  className="px-4 py-2 rounded-xl border border-slate-200 text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold text-white shadow-md shadow-orange-500/20 hover:shadow-orange-500/30 transition-all disabled:opacity-50"
-                  style={{ backgroundColor: '#ea580c' }}
-                >
-                  {isSubmitting ? 'Saving...' : editingTerm ? 'Update Term' : 'Create Term'}
-                </button>
-              </div>
-            </form>
+            </div>
           </div>
-        </div>
+        </ModalPortal>
       )}
     </div>
   );

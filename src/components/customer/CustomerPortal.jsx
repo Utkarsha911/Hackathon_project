@@ -121,9 +121,9 @@ export default function CustomerPortal() {
         <HeroSection onOpenRegister={handleOpenRegister} />
         <AboutSection />
         <ChallengesSection />
-        <ScheduleSection />
-        <HighlightsSection />
         <OrganizersSection />
+        <HighlightsSection />
+        <ScheduleSection />
         <RulesSection />
         <SponsorsSection />
         <FaqSection />
@@ -163,11 +163,7 @@ export default function CustomerPortal() {
         onClose={() => setIsAuthOpen(false)}
         onAuthSuccess={() => {
           setIsAuthOpen(false);
-          if (authReason === 'register' && isRegistrationOpen) {
-            navigate('/register');
-          } else {
-            navigate('/profile');
-          }
+          navigate('/register');
         }}
         onOpenRegister={() => {
           setIsAuthOpen(false);

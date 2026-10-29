@@ -21,8 +21,6 @@ import {
   ChevronDown,
   Users,
   UserCheck,
-  User,
-  Settings,
   ClipboardList,
   FolderTree,
   Shield,
@@ -36,7 +34,6 @@ import {
   Trophy,
   Building2,
   Package,
-  PieChart,
   CalendarClock,
   Calendar,
   Award,
@@ -77,7 +74,6 @@ const GroupManagement = lazy(() => import('./GroupManagement'));
 const TeamManagement = lazy(() => import('./TeamManagement'));
 const CustomerManagement = lazy(() => import('./CustomerManagement'));
 const OrganizerTaskManagement = lazy(() => import('./OrganizerTaskManagement'));
-const SystemConfig = lazy(() => import('./SystemConfig'));
 const LogViewer = lazy(() => import('./LogViewer'));
 
 function AdminViewLoader() {
@@ -200,7 +196,6 @@ export default function AdminLayout() {
   const [sponsorMgmtOpen, setSponsorMgmtOpen] = useState(true);
   const [scheduleMgmtOpen, setScheduleMgmtOpen] = useState(true);
   const [userMgmtOpen, setUserMgmtOpen] = useState(true);
-  const [organizerTasksOpen, setOrganizerTasksOpen] = useState(true);
 
   // Group permission objects for non-staff / non-superuser users
   const [userGroupObjects, setUserGroupObjects] = useState([]);
@@ -278,8 +273,6 @@ export default function AdminLayout() {
   const isDashboardActive = pathname === '/admin-control-site' || pathname === '/admin-control-site/';
   const isHackathonsActive = pathname.startsWith('/admin-control-site/hackathons');
   const isHackathonOrganizersActive = isHackathonsActive && hackathonTab === 'organizers';
-  const isHackathonGuestsActive = isHackathonsActive && hackathonTab === 'guests';
-  const isHackathonTeamsActive = (isHackathonsActive && hackathonTab === 'teams') || pathname === '/admin-control-site/teams';
   const isHackathonPrizesActive = isHackathonsActive && (hackathonTab === 'prizes' || hackathonTab === 'prizes-faqs');
   const isHackathonTermsActive = isHackathonsActive && hackathonTab === 'terms';
   const isHackathonFaqsActive = isHackathonsActive && hackathonTab === 'faqs';
@@ -287,8 +280,6 @@ export default function AdminLayout() {
   const isHackathonsListActive =
     isHackathonsActive &&
     hackathonTab !== 'organizers' &&
-    hackathonTab !== 'teams' &&
-    hackathonTab !== 'guests' &&
     !isHackathonPrizesActive &&
     !isHackathonFaqsActive &&
     !isHackathonContactsActive;
@@ -297,7 +288,7 @@ export default function AdminLayout() {
   const isScheduleEventsActive = isSchedulesActive && scheduleTab === 'events';
   const isScheduleMilestonesActive = isSchedulesActive && scheduleTab !== 'events';
   const isCustomersActive = pathname.startsWith('/admin-control-site/participants') || pathname.startsWith('/admin-control-site/customers');
-  const isParticipantGuestsActive = isCustomersActive && participantTab === 'guests';
+  const isParticipantGuestsActive = (isCustomersActive && participantTab === 'guests') || pathname === '/admin-control-site/guests' || (isHackathonsActive && hackathonTab === 'guests');
   const isParticipantsListActive = isCustomersActive && participantTab !== 'guests' && participantTab !== 'organizers';
   const isUsersActive = pathname.startsWith('/admin-control-site/users');
   const isDepartmentsActive = isUsersActive && userTab === 'departments';
@@ -305,8 +296,7 @@ export default function AdminLayout() {
   const isUsersListActive = isUsersActive && userTab !== 'organizers' && userTab !== 'departments';
   const isOrganizerTasksActive = pathname.startsWith('/admin-control-site/organizer-tasks') || pathname.startsWith('/admin-control-site/tasks');
   const isGroupsActive = pathname.startsWith('/admin-control-site/groups');
-  const isTeamsActive = isHackathonTeamsActive;
-  const isSystemConfigActive = pathname.startsWith('/admin-control-site/system-config');
+  const isTeamsActive = pathname.startsWith('/admin-control-site/teams') || (isHackathonsActive && hackathonTab === 'teams') || (isUsersActive && userTab === 'teams');
   const isLogsActive = pathname.startsWith('/admin-control-site/logs');
 
   const initials = `${currentUser?.first_name?.[0] || 'A'}${currentUser?.last_name?.[0] || 'D'}`.toUpperCase();
@@ -427,14 +417,13 @@ export default function AdminLayout() {
   const canAccessOrganizers = hasPermission(['organizer']);
   const canAccessTeams = hasPermission(['team']);
   const canAccessHackathonCrm = isSuperOrStaff; // CRM submodules (prizes, faqs, contacts) reserved for super/staff
-  const canAccessHackathonsDropdown = canAccessHackathons || canAccessOrganizers || canAccessTeams || canAccessHackathonCrm;
+  const canAccessHackathonsDropdown = canAccessHackathons || canAccessOrganizers || canAccessHackathonCrm;
 
   // 2. Organizations & Sponsors (Clean separation: Organization vs Sponsor Packages)
   const canAccessOrganizations = hasPermission(['organization']);
   const canAccessSponsorPackages = hasPermission(['sponsorpackage']);
   const canAccessSponsorPackageTypes = hasPermission(['sponsorpackagetype']);
-  const canAccessSponsorshipBreakdown = canAccessSponsorPackages;
-  const canAccessSponsorPackagesSection = canAccessSponsorPackages || canAccessSponsorPackageTypes || canAccessSponsorshipBreakdown;
+  const canAccessSponsorPackagesSection = canAccessSponsorPackages || canAccessSponsorPackageTypes;
   const canAccessSponsorsDropdown = canAccessOrganizations || canAccessSponsorPackagesSection;
   const canAccessSponsors = canAccessSponsorsDropdown;
 
@@ -451,17 +440,17 @@ export default function AdminLayout() {
   const canAccessUsers = hasPermission(['user']);
   const canAccessDepartments = hasPermission(['department']);
   const canAccessGroups = isSuperOrStaff || hasPermission(['group']);
-  const canAccessUserMgmtDropdown = canAccessParticipants || canAccessUsers || canAccessOrganizers || canAccessDepartments || canAccessGroups;
+  const canAccessUserMgmtDropdown = canAccessParticipants || canAccessUsers || canAccessOrganizers || canAccessDepartments || canAccessGroups || canAccessTeams;
   const canAccessUserMgmt = canAccessUserMgmtDropdown;
 
   // 5. Organizer Tasks & Activity Logs
   const canAccessOrganizerTasks = hasPermission(['organizertasks']);
-  const canAccessSystemConfig = isSuperOrStaff;
   const canAccessLogs = isSuperOrStaff || hasPermission(['activity']);
 
   // Header Title mapping
   let pageTitle = 'Hackathon Management';
-  if (isHackathonGuestsActive || isParticipantGuestsActive) pageTitle = 'Guest Credential Directory';
+  if (isParticipantGuestsActive) pageTitle = 'Guest Credential Directory';
+  else if (isTeamsActive) pageTitle = 'Team Management';
   else if (isHackathonOrganizersActive) pageTitle = 'Hackathon Organizers';
   else if (isHackathonPrizesActive) pageTitle = 'Prize Management';
   else if (isHackathonFaqsActive) pageTitle = 'FAQ Management';
@@ -476,7 +465,6 @@ export default function AdminLayout() {
   else if (isCustomersActive) pageTitle = 'Participant Directory';
   else if (isGroupsActive) pageTitle = 'Group Management';
   else if (isTeamsActive) pageTitle = 'Team Management';
-  else if (isSystemConfigActive) pageTitle = 'System Configuration';
   else if (isLogsActive) pageTitle = 'Activity & Logs';
 
   return (
@@ -495,7 +483,7 @@ export default function AdminLayout() {
 
         {/* Sidebar */}
         <aside
-          className={`fixed md:static inset-y-0 left-0 z-50 w-64 shrink-0 flex flex-col transition-transform duration-200 ease-in-out md:translate-x-0 ${
+          className={`fixed md:static inset-y-0 left-0 z-40 md:z-10 w-64 shrink-0 flex flex-col transition-transform duration-200 ease-in-out md:translate-x-0 ${
             mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
           }`}
           style={{ backgroundColor: '#ffffff', borderRight: '1px solid #e8e9ef', minHeight: '100vh' }}
@@ -592,48 +580,6 @@ export default function AdminLayout() {
                       >
                         <Award className="w-3.5 h-3.5 shrink-0" />
                         <span>Organizers</span>
-                      </Link>
-                    )}
-
-                    {/* Hackathon Guests */}
-                    {canAccessHackathonCrm && (
-                      <Link
-                        to="/admin-control-site/hackathons?tab=guests"
-                        onClick={() => setMobileMenuOpen(false)}
-                        className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-normal transition-all ${
-                          isHackathonGuestsActive
-                            ? 'shadow-xs text-white'
-                            : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-                        }`}
-                        style={
-                          isHackathonGuestsActive
-                            ? { backgroundColor: '#ea580c', color: '#ffffff' }
-                            : {}
-                        }
-                      >
-                        <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
-                        <span>Guests</span>
-                      </Link>
-                    )}
-
-                    {/* Hackathon Teams */}
-                    {canAccessTeams && (
-                      <Link
-                        to="/admin-control-site/hackathons?tab=teams"
-                        onClick={() => setMobileMenuOpen(false)}
-                        className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-normal transition-all ${
-                          isHackathonTeamsActive
-                            ? 'shadow-xs text-white'
-                            : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-                        }`}
-                        style={
-                          isHackathonTeamsActive
-                            ? { backgroundColor: '#ea580c', color: '#ffffff' }
-                            : {}
-                        }
-                      >
-                        <Users className="w-3.5 h-3.5 shrink-0" />
-                        <span>Teams</span>
                       </Link>
                     )}
 
@@ -813,27 +759,6 @@ export default function AdminLayout() {
                         <span>Package Types</span>
                       </Link>
                     )}
-
-                    {/* Sponsorship Breakdown */}
-                    {canAccessSponsorshipBreakdown && (
-                      <Link
-                        to="/admin-control-site/sponsors?tab=breakdown"
-                        onClick={() => setMobileMenuOpen(false)}
-                        className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-normal transition-all ${
-                          isSponsorsActive && currentTab === 'breakdown'
-                            ? 'shadow-xs text-white'
-                            : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-                        }`}
-                        style={
-                          isSponsorsActive && currentTab === 'breakdown'
-                            ? { backgroundColor: '#ea580c', color: '#ffffff' }
-                            : {}
-                        }
-                      >
-                        <PieChart className="w-3.5 h-3.5 shrink-0" />
-                        <span>Sponsorship Breakdown</span>
-                      </Link>
-                    )}
                   </div>
                 )}
               </div>
@@ -927,28 +852,30 @@ export default function AdminLayout() {
                 {/* Collapsible Sub-Items */}
                 {userMgmtOpen && (
                   <div className="space-y-0.5 pl-3 ml-2.5 border-l border-slate-100 py-0.5">
-                    {/* Participants */}
-                    {canAccessParticipants && (
+                    {/* Participants navigation removed - participants are now shown inline in the team view */}
+
+                    {/* Teams */}
+                    {canAccessTeams && (
                       <Link
-                        to="/admin-control-site/participants?tab=participants"
+                        to="/admin-control-site/teams"
                         onClick={() => setMobileMenuOpen(false)}
                         className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-normal transition-all ${
-                          isParticipantsListActive
+                          isTeamsActive
                             ? 'shadow-xs text-white'
                             : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
                         }`}
                         style={
-                          isParticipantsListActive
+                          isTeamsActive
                             ? { backgroundColor: '#ea580c', color: '#ffffff' }
                             : {}
                         }
                       >
                         <Users className="w-3.5 h-3.5 shrink-0" />
-                        <span>Participants</span>
+                        <span>Teams</span>
                       </Link>
                     )}
 
-                    {/* Guests & VIPs */}
+                    {/* Guests */}
                     {canAccessParticipants && (
                       <Link
                         to="/admin-control-site/participants?tab=guests"
@@ -965,7 +892,7 @@ export default function AdminLayout() {
                         }
                       >
                         <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
-                        <span>Guests & VIPs</span>
+                        <span>Guests</span>
                       </Link>
                     )}
 
@@ -1057,132 +984,49 @@ export default function AdminLayout() {
               </div>
             )}
 
-            {/* Dedicated Organizer Tasks Dropdown Accordion */}
+            {/* Organizer Tasks - Single Direct Link */}
             {canAccessOrganizerTasks && (
-              <div className="space-y-0.5 mb-1">
-                <button
-                  type="button"
-                  onClick={() => setOrganizerTasksOpen((prev) => !prev)}
-                  className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-slate-700 hover:bg-slate-100/80 hover:text-slate-900 transition-colors group cursor-pointer"
+              <div className="mb-1">
+                <Link
+                  to="/admin-control-site/organizer-tasks"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-normal transition-all ${
+                    isOrganizerTasksActive
+                      ? 'shadow-xs text-white'
+                      : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                  }`}
+                  style={isOrganizerTasksActive ? { backgroundColor: '#ea580c', color: '#ffffff' } : {}}
                 >
-                  <div className="flex items-center gap-2.5">
-                    <ClipboardList className="w-4 h-4 text-slate-600 shrink-0" />
-                    <span className="text-xs font-normal text-slate-700">
-                      Organizer Tasks
-                    </span>
-                  </div>
-                  {organizerTasksOpen ? (
-                    <ChevronUp className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                  ) : (
-                    <ChevronDown className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                  )}
-                </button>
-
-                {/* Collapsible Sub-Items for Organizer Tasks */}
-                {organizerTasksOpen && (
-                  <div className="space-y-0.5 pl-3 ml-2.5 border-l border-slate-100 py-0.5">
-                    <Link
-                      to="/admin-control-site/organizer-tasks"
-                      onClick={() => setMobileMenuOpen(false)}
-                      className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-normal transition-all ${
-                        isOrganizerTasksActive && (!location.search || !location.search.includes('status='))
-                          ? 'shadow-xs text-white'
-                          : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-                      }`}
-                      style={
-                        isOrganizerTasksActive && (!location.search || !location.search.includes('status='))
-                          ? { backgroundColor: '#ea580c', color: '#ffffff' }
-                          : {}
-                      }
-                    >
-                      <ClipboardList className="w-3.5 h-3.5 shrink-0" />
-                      <span>All Tasks</span>
-                    </Link>
-
-                    <Link
-                      to="/admin-control-site/organizer-tasks?status=pending"
-                      onClick={() => setMobileMenuOpen(false)}
-                      className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-normal transition-all ${
-                        isOrganizerTasksActive && location.search.includes('status=pending')
-                          ? 'shadow-xs text-white'
-                          : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-                      }`}
-                      style={
-                        isOrganizerTasksActive && location.search.includes('status=pending')
-                          ? { backgroundColor: '#ea580c', color: '#ffffff' }
-                          : {}
-                      }
-                    >
-                      <Clock className="w-3.5 h-3.5 shrink-0" />
-                      <span>Pending Tasks</span>
-                    </Link>
-
-                    <Link
-                      to="/admin-control-site/organizer-tasks?status=completed"
-                      onClick={() => setMobileMenuOpen(false)}
-                      className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-normal transition-all ${
-                        isOrganizerTasksActive && location.search.includes('status=completed')
-                          ? 'shadow-xs text-white'
-                          : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-                      }`}
-                      style={
-                        isOrganizerTasksActive && location.search.includes('status=completed')
-                          ? { backgroundColor: '#ea580c', color: '#ffffff' }
-                          : {}
-                      }
-                    >
-                      <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
-                      <span>Completed Tasks</span>
-                    </Link>
-                  </div>
-                )}
+                  <ClipboardList
+                    className="w-4 h-4 shrink-0"
+                    style={isOrganizerTasksActive ? { color: '#ffffff' } : { color: '#64748b' }}
+                  />
+                  <span>Organizer Tasks</span>
+                </Link>
               </div>
             )}
 
-            {/* Bottom Menu Items: System Config & Log */}
-            {(canAccessSystemConfig || canAccessLogs) && (
+            {/* Bottom Menu Items: Log */}
+            {canAccessLogs && (
               <div className="pt-2 space-y-0.5 border-t border-slate-100 mt-2">
-                {/* System Config */}
-                {canAccessSystemConfig && (
-                  <Link
-                    to="/admin-control-site/system-config"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-normal transition-all ${
-                      isSystemConfigActive
-                        ? 'shadow-xs text-white'
-                        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-                    }`}
-                    style={
-                      isSystemConfigActive
-                        ? { backgroundColor: '#ea580c', color: '#ffffff' }
-                        : {}
-                    }
-                  >
-                    <Settings className="w-4 h-4 shrink-0 text-slate-500" style={isSystemConfigActive ? { color: '#ffffff' } : {}} />
-                    <span>System Config</span>
-                  </Link>
-                )}
-
                 {/* Log */}
-                {canAccessLogs && (
-                  <Link
-                    to="/admin-control-site/logs"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-normal transition-all ${
-                      isLogsActive
-                        ? 'shadow-xs text-white'
-                        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-                    }`}
-                    style={
-                      isLogsActive
-                        ? { backgroundColor: '#ea580c', color: '#ffffff' }
-                        : {}
-                    }
-                  >
-                    <ClipboardList className="w-4 h-4 shrink-0 text-slate-500" style={isLogsActive ? { color: '#ffffff' } : {}} />
-                    <span>Log</span>
-                  </Link>
-                )}
+                <Link
+                  to="/admin-control-site/logs"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-normal transition-all ${
+                    isLogsActive
+                      ? 'shadow-xs text-white'
+                      : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                  }`}
+                  style={
+                    isLogsActive
+                      ? { backgroundColor: '#ea580c', color: '#ffffff' }
+                      : {}
+                  }
+                >
+                  <ClipboardList className="w-4 h-4 shrink-0 text-slate-500" style={isLogsActive ? { color: '#ffffff' } : {}} />
+                  <span>Log</span>
+                </Link>
               </div>
             )}
           </div>
@@ -1253,9 +1097,6 @@ export default function AdminLayout() {
               {/* Global Hackathon Edition Filter */}
               <div className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl border border-orange-200/90 bg-orange-50/80 text-slate-800 shadow-2xs hover:border-orange-300 transition">
                 <Trophy className="w-3.5 h-3.5 text-[#ea580c] shrink-0" />
-                <span className="text-[11px] font-bold uppercase tracking-wider text-[#c2410c] hidden md:inline">
-                  Edition:
-                </span>
                 <select
                   value={selectedHackathonId || 'all'}
                   onChange={(e) => {
@@ -1263,7 +1104,7 @@ export default function AdminLayout() {
                     setSelectedHackathonId(newId);
                     setSelectedAdminHackathon(newId);
                   }}
-                  className="bg-transparent text-xs sm:text-sm font-semibold text-slate-900 focus:outline-none cursor-pointer max-w-[140px] sm:max-w-[200px] truncate"
+                  className="bg-transparent text-xs sm:text-sm font-semibold text-slate-900 focus:outline-none cursor-pointer max-w-[160px] sm:max-w-[240px] truncate"
                   title="Filter all admin APIs by Hackathon Edition"
                 >
                   <option value="all">All Hackathons</option>
@@ -1274,15 +1115,6 @@ export default function AdminLayout() {
                   ))}
                 </select>
               </div>
-
-              <button
-                onClick={() => setProfileModalOpen(true)}
-                className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition border border-orange-200 bg-orange-50 text-[#c2410c] hover:bg-orange-100 shadow-xs"
-                title="Edit Personal Profile (/api/v1/users/profile/)"
-              >
-                <User className="w-3.5 h-3.5 text-[#e8622a]" />
-                <span className="hidden sm:inline">My Profile</span>
-              </button>
 
               <Link
                 to="/"
@@ -1340,7 +1172,7 @@ export default function AdminLayout() {
                     element={canAccessUserMgmtDropdown ? <UserManagement /> : <Navigate to="/admin-control-site" replace />}
                   />
 
-                  {/* Participant Directory */}
+                  {/* Participant Directory & Guests */}
                   <Route
                     path="participants"
                     element={canAccessParticipants ? <CustomerManagement /> : <Navigate to="/admin-control-site" replace />}
@@ -1348,6 +1180,10 @@ export default function AdminLayout() {
                   <Route
                     path="customers"
                     element={canAccessParticipants ? <CustomerManagement /> : <Navigate to="/admin-control-site" replace />}
+                  />
+                  <Route
+                    path="guests"
+                    element={<Navigate to="/admin-control-site/participants?tab=guests" replace />}
                   />
 
                   {/* Group Management */}
@@ -1359,7 +1195,11 @@ export default function AdminLayout() {
                   {/* Team Management */}
                   <Route
                     path="teams"
-                    element={<Navigate to="/admin-control-site/hackathons?tab=teams" replace />}
+                    element={canAccessTeams ? <TeamManagement /> : <Navigate to="/admin-control-site" replace />}
+                  />
+                  <Route
+                    path="teams/*"
+                    element={canAccessTeams ? <TeamManagement /> : <Navigate to="/admin-control-site" replace />}
                   />
 
                   {/* Organizer Tasks */}
@@ -1376,10 +1216,10 @@ export default function AdminLayout() {
                     element={<Navigate to="/admin-control-site/organizer-tasks" replace />}
                   />
 
-                  {/* System Config */}
+                  {/* System Config - Removed */}
                   <Route
                     path="system-config"
-                    element={canAccessSystemConfig ? <SystemConfig /> : <Navigate to="/admin-control-site" replace />}
+                    element={<Navigate to="/admin-control-site" replace />}
                   />
 
                   {/* Log Viewer */}

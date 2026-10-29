@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { api, getMediaUrl, getUserAvatarUrl, DEFAULT_USER_AVATAR, getAdminUser, setAdminUser } from '../../services/api';
 import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
+import ModalPortal from './ModalPortal';
 
 export default function UserProfileModal({ isOpen, onClose, onProfileUpdated }) {
   const [loading, setLoading] = useState(false);
@@ -224,8 +225,10 @@ export default function UserProfileModal({ isOpen, onClose, onProfileUpdated }) 
   const initials = `${formData.first_name?.[0] || 'U'}${formData.last_name?.[0] || ''}`.toUpperCase();
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-xl w-full max-h-[92vh] sm:max-h-[90vh] flex flex-col overflow-hidden">
+    <ModalPortal>
+      <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-sm p-3 sm:p-4 animate-fade-in">
+        <div className="min-h-full flex items-center justify-center py-4">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-xl w-full max-h-[92vh] sm:max-h-[90vh] flex flex-col overflow-hidden">
         {/* Header */}
         <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-slate-100 flex items-center justify-between bg-white shrink-0">
           <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
@@ -573,6 +576,8 @@ export default function UserProfileModal({ isOpen, onClose, onProfileUpdated }) 
           </div>
         </div>
       </div>
-    </div>
+        </div>
+      </div>
+    </ModalPortal>
   );
 }

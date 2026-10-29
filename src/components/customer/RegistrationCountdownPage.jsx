@@ -313,6 +313,10 @@ export default function RegistrationCountdownPage() {
         isOpen={isAuthOpen}
         reason="login"
         onClose={() => setIsAuthOpen(false)}
+        onAuthSuccess={() => {
+          setIsAuthOpen(false);
+          navigate('/register');
+        }}
       />
     </div>
   );

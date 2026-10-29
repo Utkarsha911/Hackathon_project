@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { api } from '../../services/api';
 import { useHackathon } from '../../context/HackathonContext';
 import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
+import ModalPortal from '../common/ModalPortal';
 import {
   Users,
   Plus,
@@ -493,9 +494,12 @@ export default function GroupManagement() {
         </div>
       )}
 
+      {/* MODAL PORTAL */}
+      <ModalPortal>
       {/* CREATE GROUP MODAL: Uses /api/v1/users/groups/create_group/ & /api/v1/users/groups/list_permissions/ */}
       {isCreateModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-3 sm:p-4 backdrop-blur-xs overflow-y-auto">
+        <div className="fixed inset-0 z-[100] overflow-y-auto bg-slate-900/60 backdrop-blur-xs p-3 sm:p-4">
+          <div className="min-h-full flex items-center justify-center py-4">
           <div className="bg-white rounded-2xl max-w-2xl w-full p-4 sm:p-6 shadow-2xl border border-slate-100 space-y-4 sm:space-y-5 max-h-[92vh] flex flex-col my-auto">
             {/* Modal Header */}
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
@@ -686,12 +690,14 @@ export default function GroupManagement() {
               </div>
             </form>
           </div>
+          </div>
         </div>
       )}
 
       {/* Permissions Detail Modal */}
       {selectedGroup && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-3 sm:p-4 backdrop-blur-xs">
+        <div className="fixed inset-0 z-[100] overflow-y-auto bg-slate-900/60 backdrop-blur-xs p-3 sm:p-4">
+          <div className="min-h-full flex items-center justify-center py-4">
           <div className="bg-white rounded-2xl max-w-lg w-full p-4 sm:p-6 shadow-xl border border-slate-100 space-y-4 max-h-[85vh] flex flex-col">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2.5">
@@ -761,12 +767,14 @@ export default function GroupManagement() {
               </button>
             </div>
           </div>
+          </div>
         </div>
       )}
 
       {/* UPDATE GROUP PERMISSIONS MODAL: Calls /api/v1/users/groups/{id}/update_group/ */}
       {editingGroup && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-3 sm:p-4 backdrop-blur-xs overflow-y-auto">
+        <div className="fixed inset-0 z-[100] overflow-y-auto bg-slate-900/60 backdrop-blur-xs p-3 sm:p-4">
+          <div className="min-h-full flex items-center justify-center py-4">
           <div className="bg-white rounded-2xl max-w-2xl w-full p-4 sm:p-6 shadow-2xl border border-slate-100 space-y-4 sm:space-y-5 max-h-[92vh] flex flex-col my-auto">
             {/* Modal Header */}
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
@@ -979,8 +987,10 @@ export default function GroupManagement() {
               </div>
             </form>
           </div>
+          </div>
         </div>
       )}
+      </ModalPortal>
     </div>
   );
 }

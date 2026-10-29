@@ -23,7 +23,8 @@ import {
   Code2,
   Plus,
   UserPlus,
-  Eye
+  Eye,
+  QrCode
 } from 'lucide-react';
 import { useHackathon } from '../../context/HackathonContext';
 import CustomerNavbar from './CustomerNavbar';
@@ -31,10 +32,109 @@ import UserAuthModal from './UserAuthModal';
 import TeamParticipantsModal from './TeamParticipantsModal';
 import Footer from '../common/Footer';
 import api, { getMediaUrl, getUserAvatarUrl, DEFAULT_USER_AVATAR } from '../../services/api';
+import { generateQrDataUrl } from '../../utils/qrUtils';
+
+function TeamPaymentCard({ team, isApproved, isParticipationConfirmed }) {
+  const [qrCodeUrl, setQrCodeUrl] = useState('');
+
+  useEffect(() => {
+    let active = true;
+    if (team?.payment_link) {
+      generateQrDataUrl(team.payment_link, { width: 240, margin: 2 }).then((url) => {
+        if (active) setQrCodeUrl(url);
+      });
+    } else {
+      setQrCodeUrl('');
+    }
+    return () => {
+      active = false;
+    };
+  }, [team?.payment_link]);
+
+  if (isParticipationConfirmed) {
+    return null;
+  }
+
+  if (isApproved) {
+    if (team?.payment_link) {
+      return (
+        <div className="mt-4 p-4 rounded-2xl bg-gradient-to-br from-orange-50/90 via-amber-50/40 to-white border border-orange-200/90 shadow-xs">
+          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4">
+            {qrCodeUrl ? (
+              <div className="p-2.5 rounded-2xl bg-white border border-orange-200 shadow-sm shrink-0 text-center">
+                <img
+                  src={qrCodeUrl}
+                  alt="Participation Fee Payment QR"
+                  className="w-28 h-28 sm:w-32 sm:h-32 rounded-xl object-contain mx-auto"
+                />
+                <span className="text-[10px] font-mono font-bold text-slate-500 mt-1 block">
+                  Scan to Pay
+                </span>
+              </div>
+            ) : (
+              <div className="w-28 h-28 rounded-2xl bg-orange-100 flex items-center justify-center shrink-0">
+                <QrCode className="w-8 h-8 text-[#ea580c]" />
+              </div>
+            )}
+
+            <div className="flex-1 text-center sm:text-left">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-orange-100 text-[#ea580c] border border-orange-200 mb-1.5">
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                <span>Squad Approved — Fee Payment Required</span>
+              </span>
+              <h4 className="text-sm font-bold text-slate-900">
+                Pay Participation Fee
+              </h4>
+              <p className="text-xs text-slate-600 mt-1 leading-relaxed">
+                Your squad is approved! Scan this QR code with eSewa, Khalti, or mobile banking, or click below to proceed to the payment link to confirm participation.
+              </p>
+
+              <div className="mt-3 flex flex-wrap items-center justify-center sm:justify-start gap-2">
+                <a
+                  href={team.payment_link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white bg-brand-orange hover:bg-orange-600 shadow-xs transition cursor-pointer"
+                >
+                  <span>Proceed to Payment Link</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="mt-4 p-3.5 rounded-2xl bg-amber-50/80 border border-amber-200 text-xs text-amber-900 flex items-center gap-3">
+        <div className="w-8 h-8 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+          <Clock className="w-4 h-4" />
+        </div>
+        <div>
+          <h5 className="font-bold text-amber-900 text-xs">Squad Approved — Payment Link Pending</h5>
+          <p className="text-[11px] text-amber-700 mt-0.5">
+            The organizing committee will publish your participation payment link and QR code here shortly.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return null;
+}
 
 export default function CustomerProfilePage() {
-  const { currentUser, hackathon, logoutUser, isRegistrationOpen } = useHackathon();
+  const { currentUser, hackathon, logoutUser, isRegistrationOpen, isTshirtIncluded: contextIsTshirtIncluded } = useHackathon();
   const navigate = useNavigate();
+
+  const isTshirtIncluded = Boolean(
+    contextIsTshirtIncluded ??
+    hackathon?.is_tshirt_included ??
+    hackathon?.is_t_shirt_included ??
+    hackathon?.tshirt_included ??
+    false
+  );
 
   const [registeredTeams, setRegisteredTeams] = useState([]);
   const [isLoadingTeams, setIsLoadingTeams] = useState(true);
@@ -411,7 +511,14 @@ export default function CustomerProfilePage() {
                             </div>
                           )}
 
-                          {/* Participants Roster Section (Allowed after team is approved/accepted) */}
+                          {/* Payment Link & QR Code Card for Team Leader */}
+                          <TeamPaymentCard
+                            team={team}
+                            isApproved={isApproved}
+                            isParticipationConfirmed={isParticipationConfirmed}
+                          />
+
+                          {/* Participants Roster Section (Allowed before and after approval) */}
                           <div className="mt-4 pt-3 border-t border-slate-100">
                             <div className="flex items-center justify-between gap-2 mb-2">
                               <div className="flex items-center gap-1.5">
@@ -436,21 +543,21 @@ export default function CustomerProfilePage() {
                                   <Eye className="w-3.5 h-3.5 text-slate-500" />
                                   <span>View Roster</span>
                                 </button>
-                              ) : isApproved ? (
+                              ) : !isRejected && !isDisqualified ? (
                                 <button
                                   type="button"
                                   onClick={() => {
                                     setManagingTeam(team);
                                     setIsParticipantsOpen(true);
                                   }}
-                                  className="inline-flex items-center gap-1 px-3 py-1 rounded-xl text-xs font-semibold text-white bg-brand-orange hover:bg-brand-orange shadow-xs transition active:scale-95 cursor-pointer"
+                                  className="inline-flex items-center gap-1 px-3 py-1 rounded-xl text-xs font-semibold text-white bg-brand-orange hover:bg-orange-600 shadow-xs transition active:scale-95 cursor-pointer"
                                 >
                                   <UserPlus className="w-3.5 h-3.5" />
                                   <span>{team.participants?.length > 0 ? 'Update Participants' : 'Add Participants'}</span>
                                 </button>
                               ) : (
                                 <span className="text-[10px] text-slate-400 font-medium italic">
-                                  Editable once approved
+                                  Squad {team.status}
                                 </span>
                               )}
                             </div>
@@ -485,7 +592,7 @@ export default function CustomerProfilePage() {
                                     </div>
 
                                     <div className="flex items-center gap-1.5 shrink-0 text-[10px] font-medium text-slate-500">
-                                      {p.shirt_size && (
+                                      {isTshirtIncluded && p.shirt_size && (
                                         <span className="px-1.5 py-0.5 rounded bg-white border border-slate-200">
                                           Size: {p.shirt_size}
                                         </span>
@@ -507,15 +614,16 @@ export default function CustomerProfilePage() {
                                 <ShieldCheck className="w-4 h-4 text-blue-600 shrink-0" />
                                 <span>Participation confirmed! Squad details and roster are locked and cannot be edited.</span>
                               </div>
-                            ) : isApproved && (!team.participants || team.participants.length === 0) ? (
-                              <div className="p-2.5 rounded-xl bg-amber-50/70 border border-amber-200/80 text-[11px] text-amber-800 flex items-center justify-between gap-2 mt-2">
-                                <span>Squad approved! Click "Add Participants" to register yourself and teammates.</span>
+                            ) : (!team.participants || team.participants.length === 0) ? (
+                              <div className="p-2.5 rounded-xl bg-orange-50/80 border border-orange-200/80 text-[11px] text-orange-900 flex items-center justify-between gap-2 mt-2">
+                                <span>No approval needed! Click "Add Participants" to register yourself and teammates.</span>
                               </div>
-                            ) : !isApproved && !isParticipationConfirmed ? (
-                              <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100 text-[11px] text-slate-400 mt-2">
-                                Squad application submitted. Participant profiles can be submitted after acceptance.
+                            ) : (
+                              <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100 text-[11px] text-slate-600 mt-2 flex items-center gap-1.5">
+                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                                <span>Squad registered. You can add or update your participants anytime directly.</span>
                               </div>
-                            ) : null}
+                            )}
                           </div>
                         </div>
 

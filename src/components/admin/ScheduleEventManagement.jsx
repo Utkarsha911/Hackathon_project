@@ -27,6 +27,7 @@ import { api, getSelectedAdminHackathon } from '../../services/api';
 import { useHackathon } from '../../context/HackathonContext';
 import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
 import QrScannerModal from '../common/QrScannerModal';
+import ModalPortal from '../common/ModalPortal';
 
 export default function ScheduleEventManagement() {
   const { showToast, hackathon: currentHackathon } = useHackathon();
@@ -973,11 +974,14 @@ export default function ScheduleEventManagement() {
         </div>
       )}
 
+      {/* MODAL PORTAL WRAPPER */}
+      <ModalPortal>
       {/* CREATE MODAL */}
       {createModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl max-w-xl w-full p-6 shadow-2xl border border-slate-200 animate-fade-in my-8">
-            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+        <div className="fixed inset-0 z-[100] overflow-y-auto bg-slate-900/60 backdrop-blur-xs p-3 sm:p-4">
+          <div className="min-h-full flex items-center justify-center py-4 sm:py-6">
+            <div className="relative bg-white rounded-2xl max-w-xl w-full p-6 shadow-2xl border border-slate-200 animate-fade-in flex flex-col max-h-[90vh] overflow-hidden">
+            <div className="shrink-0 flex items-center justify-between pb-4 border-b border-slate-100">
               <div>
                 <h3 className="text-lg font-bold text-slate-900">Add Schedule Event</h3>
                 <p className="text-xs text-slate-500 mt-0.5">
@@ -993,7 +997,8 @@ export default function ScheduleEventManagement() {
               </button>
             </div>
 
-            <form onSubmit={handleCreateSubmit} className="mt-4 space-y-4">
+            <form onSubmit={handleCreateSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+              <div className="flex-1 overflow-y-auto space-y-4 pt-4 pr-1">
               {/* Parent Schedule */}
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
@@ -1221,16 +1226,19 @@ export default function ScheduleEventManagement() {
                   {submitting ? 'Creating...' : 'Create Event'}
                 </button>
               </div>
+            </div>
             </form>
           </div>
         </div>
+      </div>
       )}
 
       {/* EDIT MODAL */}
       {editModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl max-w-xl w-full p-6 shadow-2xl border border-slate-200 animate-fade-in my-8">
-            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+        <div className="fixed inset-0 z-[100] overflow-y-auto bg-slate-900/60 backdrop-blur-xs p-3 sm:p-4">
+          <div className="min-h-full flex items-center justify-center py-4 sm:py-6">
+            <div className="relative bg-white rounded-2xl max-w-xl w-full p-6 shadow-2xl border border-slate-200 animate-fade-in flex flex-col max-h-[90vh] overflow-hidden">
+            <div className="shrink-0 flex items-center justify-between pb-4 border-b border-slate-100">
               <div>
                 <h3 className="text-lg font-bold text-slate-900">Edit Schedule Event</h3>
                 <p className="text-xs text-slate-500 mt-0.5">
@@ -1246,7 +1254,8 @@ export default function ScheduleEventManagement() {
               </button>
             </div>
 
-            <form onSubmit={handleEditSubmit} className="mt-4 space-y-4">
+            <form onSubmit={handleEditSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+              <div className="flex-1 overflow-y-auto space-y-4 pt-4 pr-1">
               {/* Parent Schedule */}
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
@@ -1454,7 +1463,7 @@ export default function ScheduleEventManagement() {
               </div>
 
               {/* Action Buttons */}
-              <div className="flex items-center justify-end gap-2 pt-4 border-t border-slate-100">
+              <div className="shrink-0 flex items-center justify-end gap-2 pt-4 border-t border-slate-100">
                 <button
                   type="button"
                   disabled={submitting}
@@ -1472,15 +1481,18 @@ export default function ScheduleEventManagement() {
                   {submitting ? 'Saving...' : 'Save Changes'}
                 </button>
               </div>
+            </div>
             </form>
           </div>
         </div>
+      </div>
       )}
 
       {/* QUICK NEW GUEST MODAL */}
       {newGuestModalOpen && (
-        <div className="fixed inset-0 z-60 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 animate-fade-in">
+        <div className="fixed inset-0 z-[100] overflow-y-auto bg-slate-900/60 backdrop-blur-xs p-3 sm:p-4">
+          <div className="min-h-full flex items-center justify-center py-4">
+            <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 animate-fade-in">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <h4 className="text-sm font-bold text-slate-900">Add New Guest</h4>
               <button
@@ -1548,13 +1560,15 @@ export default function ScheduleEventManagement() {
             </form>
           </div>
         </div>
+      </div>
       )}
 
       {/* VIEW MODAL */}
       {viewModalOpen && selectedEvent && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 animate-fade-in">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+        <div className="fixed inset-0 z-[100] overflow-y-auto bg-slate-900/60 backdrop-blur-xs p-3 sm:p-4">
+          <div className="min-h-full flex items-center justify-center py-4">
+            <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 animate-fade-in flex flex-col max-h-[90vh] overflow-hidden">
+            <div className="shrink-0 flex items-center justify-between pb-3 border-b border-slate-100">
               <span className="text-xs font-bold uppercase tracking-wider text-orange-600 bg-orange-50 px-2.5 py-1 rounded-full">
                 Schedule Event Details
               </span>
@@ -1567,7 +1581,7 @@ export default function ScheduleEventManagement() {
               </button>
             </div>
 
-            <div className="mt-4 space-y-4 text-xs sm:text-sm">
+            <div className="flex-1 overflow-y-auto mt-4 space-y-4 text-xs sm:text-sm pr-1">
               <div>
                 <h3 className="text-lg font-bold text-slate-900">{selectedEvent.title}</h3>
                 {selectedEvent.description && (
@@ -1629,12 +1643,14 @@ export default function ScheduleEventManagement() {
             </div>
           </div>
         </div>
+      </div>
       )}
 
       {/* DELETE MODAL */}
       {deleteModalOpen && selectedEvent && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-slate-200 animate-fade-in text-center">
+        <div className="fixed inset-0 z-[100] overflow-y-auto bg-slate-900/60 backdrop-blur-xs p-3 sm:p-4">
+          <div className="min-h-full flex items-center justify-center py-4">
+            <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-slate-200 animate-fade-in text-center">
             <div className="w-12 h-12 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center mx-auto mb-3">
               <Trash2 className="w-6 h-6" />
             </div>
@@ -1663,6 +1679,7 @@ export default function ScheduleEventManagement() {
             </div>
           </div>
         </div>
+      </div>
       )}
 
       {/* QR SCANNER MODAL FOR RECORDING EVENT */}
@@ -1684,6 +1701,7 @@ export default function ScheduleEventManagement() {
             : 'Scan attendee pass to auto-fill speaker and record schedule event'
         }
       />
+      </ModalPortal>
     </div>
   );
 }

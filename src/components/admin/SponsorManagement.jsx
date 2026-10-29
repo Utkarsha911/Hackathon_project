@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { api, getMediaUrl, getSelectedAdminHackathon, getAdminUser } from '../../services/api';
 import { useHackathon } from '../../context/HackathonContext';
 import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
+import ModalPortal from '../common/ModalPortal';
 import {
   Building2,
   Package,
@@ -70,7 +71,7 @@ export default function SponsorManagement() {
   const rawTab = searchParams.get('tab') || 'sponsors';
   const tabFromUrl = rawTab === 'directory' || rawTab === 'organizations' ? 'sponsors' : rawTab;
 
-  // Active Tab: 'sponsors' | 'packages' | 'types' | 'breakdown'
+  // Active Tab: 'sponsors' | 'packages' | 'types'
   const [activeTab, setActiveTab] = useState(tabFromUrl || 'sponsors');
 
   // Permission resolution
@@ -108,7 +109,6 @@ export default function SponsorManagement() {
   const canAccessOrganizations = checkHasPermission(['organization']);
   const canAccessSponsorPackages = checkHasPermission(['sponsorpackage']);
   const canAccessSponsorPackageTypes = checkHasPermission(['sponsorpackagetype']);
-  const canAccessSponsorshipBreakdown = canAccessSponsorPackages;
 
   useEffect(() => {
     if (tabFromUrl && tabFromUrl !== activeTab) {
@@ -118,7 +118,13 @@ export default function SponsorManagement() {
 
   // Tab permission guard: prevent unauthorized tabs from being shown
   useEffect(() => {
-    if ((activeTab === 'packages' || activeTab === 'breakdown') && !canAccessSponsorPackages) {
+    if (activeTab === 'breakdown') {
+      const fallback = canAccessOrganizations ? 'sponsors' : 'packages';
+      setSearchParams({ tab: fallback }, { replace: true });
+      setActiveTab(fallback);
+      return;
+    }
+    if (activeTab === 'packages' && !canAccessSponsorPackages) {
       if (canAccessOrganizations) {
         setSearchParams({ tab: 'sponsors' }, { replace: true });
         setActiveTab('sponsors');
@@ -688,13 +694,11 @@ export default function SponsorManagement() {
             {activeTab === 'sponsors' && 'Organizations'}
             {activeTab === 'packages' && 'Sponsor Packages'}
             {activeTab === 'types' && 'Package Types'}
-            {activeTab === 'breakdown' && 'Sponsorship Breakdown'}
           </h2>
           <p className="text-xs sm:text-sm text-slate-500 mt-1">
             {activeTab === 'sponsors' && 'Corporate partners, official logos, direct contact information, and partner perks'}
             {activeTab === 'packages' && 'Configured sponsorship packages, tier associations, allocated benefits, and internal notes'}
             {activeTab === 'types' && 'Define tier categories like Title Sponsor, Platinum, Gold, Food, and Community partners'}
-            {activeTab === 'breakdown' && 'Executive overview of sponsorship allocation, tier metrics, and partner services across editions'}
           </p>
         </div>
 
@@ -903,62 +907,6 @@ export default function SponsorManagement() {
                 {new Set(packages.map((p) => p.sponsor_type).filter(Boolean)).size}
               </div>
               <div className="text-[11px] text-slate-400 mt-0.5">Allocated in packages</div>
-            </div>
-          </>
-        )}
-
-        {activeTab === 'breakdown' && (
-          <>
-            <div className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs">
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-slate-500 font-medium">Total Sponsors</span>
-                <div className="w-8 h-8 rounded-xl bg-orange-50 text-[#ea580c] flex items-center justify-center">
-                  <Building2 className="w-4 h-4" />
-                </div>
-              </div>
-              <div className="text-2xl font-bold font-mono text-slate-900 mt-2">
-                {sponsorStats?.total_items ?? sponsors.length}
-              </div>
-              <div className="text-[11px] text-slate-400 mt-0.5">Registered partners</div>
-            </div>
-
-            <div className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs">
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-slate-500 font-medium">Sponsor Packages</span>
-                <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
-                  <Package className="w-4 h-4" />
-                </div>
-              </div>
-              <div className="text-2xl font-bold font-mono text-slate-900 mt-2">
-                {packageStats?.total_items ?? packages.length}
-              </div>
-              <div className="text-[11px] text-slate-400 mt-0.5">Tier configurations</div>
-            </div>
-
-            <div className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs">
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-slate-500 font-medium">Active Categories</span>
-                <div className="w-8 h-8 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
-                  <Layers className="w-4 h-4" />
-                </div>
-              </div>
-              <div className="text-2xl font-bold font-mono text-slate-900 mt-2">
-                {typeStats?.active_items ?? packageTypes.length}
-              </div>
-              <div className="text-[11px] text-slate-400 mt-0.5">Tier types</div>
-            </div>
-
-            <div className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs">
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-slate-500 font-medium">Inactive Records</span>
-                <div className="w-8 h-8 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center">
-                  <AlertCircle className="w-4 h-4" />
-                </div>
-              </div>
-              <div className="text-2xl font-bold font-mono text-slate-900 mt-2">
-                {(sponsorStats?.inactive_items || 0) + (packageStats?.inactive_items || 0) + (typeStats?.inactive_items || 0)}
-              </div>
-              <div className="text-[11px] text-slate-400 mt-0.5">Archived items</div>
             </div>
           </>
         )}
@@ -1505,101 +1453,14 @@ export default function SponsorManagement() {
       )}
 
       {/* ----------------------------------------------------------- */}
-      {/* TAB 4: SPONSORSHIP BREAKDOWN PAGE */}
+      {/* PORTALED MODALS                                             */}
       {/* ----------------------------------------------------------- */}
-      {activeTab === 'breakdown' && (
-        <div className="space-y-6">
-          {/* Comprehensive Matrix Table */}
-          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
-            <div className="p-4 border-b border-slate-100 flex items-center justify-between">
-              <div>
-                <h3 className="font-bold text-slate-900 text-sm">Full Sponsorship Allocation Matrix</h3>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Detailed cross-reference of registered organizations and their sponsorship commitments.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => fetchData(true)}
-                className="text-xs font-semibold text-[#ea580c] hover:underline"
-              >
-                Sync Updates
-              </button>
-            </div>
-
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-slate-50/80 border-b border-slate-200 text-slate-500 font-semibold uppercase tracking-wider text-[10px]">
-                  <tr>
-                    <th className="py-3 px-4">Sponsor Partner</th>
-                    <th className="py-3 px-4">Contact Person / Rep</th>
-                    <th className="py-3 px-4">Provisioned Service</th>
-                    <th className="py-3 px-4">Location & Territory</th>
-                    <th className="py-3 px-4">Registered Date</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 text-slate-700">
-                  {sponsors.map((s) => (
-                    <tr key={s.id} className="hover:bg-slate-50/60 transition">
-                      <td className="py-3 px-4">
-                        <div className="font-bold text-slate-900">{s.name}</div>
-                        {s.website_link && (
-                          <a
-                            href={s.website_link}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="text-[11px] text-[#ea580c] hover:underline inline-flex items-center gap-1 mt-0.5"
-                          >
-                            <span>Official Portal</span>
-                            <ExternalLink className="w-2.5 h-2.5" />
-                          </a>
-                        )}
-                      </td>
-
-                      <td className="py-3 px-4">
-                        <div className="font-mono text-[11px] text-slate-800">
-                          {s.contact_email || '—'}
-                        </div>
-                        <div className="text-[11px] text-slate-400 font-mono">
-                          {s.phone_number1 || s.phone_number2 || ''}
-                        </div>
-                      </td>
-
-                      <td className="py-3 px-4">
-                        {s.service ? (
-                          <span className="font-medium text-slate-800">{s.service}</span>
-                        ) : (
-                          <span className="text-slate-400 font-mono text-[11px]">Direct Support</span>
-                        )}
-                      </td>
-
-                      <td className="py-3 px-4">
-                        <span className="text-slate-600">{s.location || 'Kathmandu, Nepal'}</span>
-                      </td>
-
-                      <td className="py-3 px-4 font-mono text-[11px] text-slate-500">
-                        {s.created_at
-                          ? new Date(s.created_at).toLocaleDateString([], {
-                              month: 'short',
-                              day: 'numeric',
-                              year: 'numeric'
-                            })
-                          : '—'}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      )}
-
+      <ModalPortal>
       {/* ----------------------------------------------------------- */}
       {/* MODAL: CREATE / EDIT SPONSOR */}
       {/* ----------------------------------------------------------- */}
       {isSponsorModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-fade-in">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in overflow-y-auto">
           <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-slate-200 shadow-2xl">
             <div className="p-5 border-b border-slate-100 flex items-center justify-between sticky top-0 bg-white z-10">
               <div className="flex items-center gap-2">
@@ -1837,7 +1698,7 @@ export default function SponsorManagement() {
       {/* MODAL: VIEW SPONSOR DETAILS */}
       {/* ----------------------------------------------------------- */}
       {viewingSponsor && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-fade-in">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in overflow-y-auto">
           <div className="bg-white rounded-2xl w-full max-w-lg overflow-hidden border border-slate-200 shadow-2xl">
             <div className="p-5 border-b border-slate-100 flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -1922,7 +1783,7 @@ export default function SponsorManagement() {
       {/* MODAL: DELETE SPONSOR CONFIRMATION */}
       {/* ----------------------------------------------------------- */}
       {deletingSponsor && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-fade-in">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in overflow-y-auto">
           <div className="bg-white rounded-2xl w-full max-w-md p-6 border border-slate-200 shadow-2xl text-center">
             <div className="w-12 h-12 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center mx-auto mb-3">
               <AlertCircle className="w-6 h-6" />
@@ -1956,7 +1817,7 @@ export default function SponsorManagement() {
       {/* MODAL: CREATE / EDIT PACKAGE */}
       {/* ----------------------------------------------------------- */}
       {isPackageModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-fade-in">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in overflow-y-auto">
           <div className="bg-white rounded-2xl w-full max-w-lg border border-slate-200 shadow-2xl">
             <div className="p-5 border-b border-slate-100 flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -2117,7 +1978,7 @@ export default function SponsorManagement() {
       {/* MODAL: VIEW ORGANIZATION & SPONSOR PACKAGE DETAILS */}
       {/* ----------------------------------------------------------- */}
       {viewingPackage && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in zoom-in-95 duration-150 overflow-y-auto">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in zoom-in-95 duration-150 overflow-y-auto">
           <div className="bg-white rounded-3xl w-full max-w-xl border border-slate-200 shadow-2xl overflow-hidden my-8">
             {(() => {
               const org = getPackageOrganization(viewingPackage);
@@ -2386,7 +2247,7 @@ export default function SponsorManagement() {
       {/* MODAL: DELETE PACKAGE CONFIRMATION */}
       {/* ----------------------------------------------------------- */}
       {deletingPackage && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-fade-in">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in overflow-y-auto">
           <div className="bg-white rounded-2xl w-full max-w-md p-6 border border-slate-200 shadow-2xl text-center">
             <div className="w-12 h-12 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center mx-auto mb-3">
               <AlertCircle className="w-6 h-6" />
@@ -2420,7 +2281,7 @@ export default function SponsorManagement() {
       {/* MODAL: CREATE / EDIT PACKAGE TYPE */}
       {/* ----------------------------------------------------------- */}
       {isTypeModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-fade-in">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in overflow-y-auto">
           <div className="bg-white rounded-2xl w-full max-w-md border border-slate-200 shadow-2xl">
             <div className="p-5 border-b border-slate-100 flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -2518,7 +2379,7 @@ export default function SponsorManagement() {
       {/* MODAL: DELETE PACKAGE TYPE CONFIRMATION */}
       {/* ----------------------------------------------------------- */}
       {deletingType && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-fade-in">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in overflow-y-auto">
           <div className="bg-white rounded-2xl w-full max-w-md p-6 border border-slate-200 shadow-2xl text-center">
             <div className="w-12 h-12 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center mx-auto mb-3">
               <AlertCircle className="w-6 h-6" />
@@ -2547,6 +2408,7 @@ export default function SponsorManagement() {
           </div>
         </div>
       )}
+      </ModalPortal>
     </div>
   );
 }

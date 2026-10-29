@@ -41,6 +41,7 @@ export const BACKEND_MODELS = {
       { name: 'registration_enddate', type: 'Date' },
       { name: 'minimum_team_size', type: 'Integer' },
       { name: 'max_team_size', type: 'Integer' },
+      { name: 'is_tshirt_included', type: 'boolean', default: false },
       { name: 'created_by', type: 'ForeignKey("users.id")' }
     ]
   },
@@ -367,6 +368,7 @@ export const BACKEND_MODELS = {
       { name: 'college_org', type: 'String(255)' },
       { name: 'hackathon_id', type: 'ForeignKey("hackathons.id")', required: true },
       { name: 'status', type: 'String(50)', required: true },
+      { name: 'has_agreed_to_terms', type: 'boolean', default: false },
       { name: 'github_repo_link', type: 'String(255)' }
     ]
   },
