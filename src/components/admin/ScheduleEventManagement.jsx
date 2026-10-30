@@ -488,8 +488,14 @@ export default function ScheduleEventManagement() {
       setCreateModalOpen(false);
       await fetchEvents();
     } catch (err) {
-      console.warn('Failed to create schedule event:', err);
-      showToast(err?.message || 'Failed to create schedule event.', 'error');
+      // Handle unique constraint: schedule + organizer must be unique
+      const detail = err?.response?.data?.detail || '';
+      if (detail && /unique set/i.test(detail)) {
+        showToast('A schedule event with this schedule and organizer already exists.', 'error');
+      } else {
+        console.warn('Failed to create schedule event:', err);
+        showToast(err?.message || 'Failed to create schedule event.', 'error');
+      }
     } finally {
       setSubmitting(false);
     }
