@@ -417,7 +417,11 @@ export default function AdminLayout() {
   const canAccessHackathons = hasPermission(['hackathon']);
   const canAccessOrganizers = hasPermission(['organizer']);
   const canAccessTeams = hasPermission(['team']);
-  const canAccessHackathonCrm = isSuperOrStaff; // CRM submodules (prizes, faqs, contacts) reserved for super/staff
+  const canAccessPrizes = isSuperOrStaff || hasPermission(['prizes']);
+  const canAccessFaqs = isSuperOrStaff || hasPermission(['faq']);
+  const canAccessContacts = isSuperOrStaff || hasPermission(['contact']);
+  const canAccessTerms = isSuperOrStaff || hasPermission(['participationterms']);
+  const canAccessHackathonCrm = canAccessPrizes || canAccessFaqs || canAccessContacts || canAccessTerms;
   const canAccessHackathonsDropdown = canAccessHackathons || canAccessOrganizers || canAccessHackathonCrm;
 
   // 2. Organizations & Sponsors (Clean separation: Organization vs Sponsor Packages)
@@ -435,6 +439,7 @@ export default function AdminLayout() {
     return clean === 'admin schedules' || clean === 'admin schedule' || clean.includes('admin schedule');
   });
   const canAccessSchedules = isSuperOrStaff || hasAdminSchedulesGroup || hasPermission(['schedule']);
+  const canAccessScheduleEvents = isSuperOrStaff || hasPermission(['scheduleevent']);
 
   // 4. Users, Departments & Groups
   const canAccessParticipants = isSuperOrStaff;
@@ -586,7 +591,7 @@ export default function AdminLayout() {
                     )}
 
                     {/* Hackathon Prizes */}
-                    {canAccessHackathonCrm && (
+                    {canAccessPrizes && (
                       <Link
                         to="/admin-control-site/hackathons?tab=prizes"
                         onClick={() => setMobileMenuOpen(false)}
@@ -607,7 +612,7 @@ export default function AdminLayout() {
                     )}
 
                     {/* Hackathon Terms */}
-                    {canAccessHackathonCrm && (
+                    {canAccessTerms && (
                       <Link
                         to="/admin-control-site/hackathons?tab=terms"
                         onClick={() => setMobileMenuOpen(false)}
@@ -628,7 +633,7 @@ export default function AdminLayout() {
                     )}
 
                     {/* Hackathon Contacts */}
-                    {canAccessHackathonCrm && (
+                    {canAccessContacts && (
                       <Link
                         to="/admin-control-site/hackathons?tab=contacts"
                         onClick={() => setMobileMenuOpen(false)}
@@ -767,7 +772,7 @@ export default function AdminLayout() {
             )}
 
             {/* Schedule Management Dropdown Accordion */}
-            {canAccessSchedules && (
+            {(canAccessSchedules || canAccessScheduleEvents) && (
               <div className="space-y-0.5 mb-1">
                 <button
                   type="button"
@@ -790,7 +795,7 @@ export default function AdminLayout() {
                 {/* Collapsible Sub-Items for Schedule */}
                 {scheduleMgmtOpen && (
                   <div className="space-y-0.5 pl-3 ml-2.5 border-l border-slate-100 py-0.5">
-                    <Link
+                    {canAccessSchedules && <Link
                       to="/admin-control-site/schedules"
                       onClick={() => setMobileMenuOpen(false)}
                       className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-normal transition-all ${
@@ -806,9 +811,9 @@ export default function AdminLayout() {
                     >
                       <Calendar className="w-3.5 h-3.5 shrink-0" />
                       <span>Schedules</span>
-                    </Link>
+                    </Link>}
 
-                    <Link
+                    {canAccessScheduleEvents && <Link
                       to="/admin-control-site/schedules?tab=events"
                       onClick={() => setMobileMenuOpen(false)}
                       className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-normal transition-all ${
@@ -824,7 +829,7 @@ export default function AdminLayout() {
                     >
                       <Clock className="w-3.5 h-3.5 shrink-0" />
                       <span>Schedule Events</span>
-                    </Link>
+                    </Link>}
                   </div>
                 )}
               </div>
@@ -1157,11 +1162,11 @@ export default function AdminLayout() {
                   {/* Schedule Management */}
                   <Route
                     path="schedules"
-                    element={canAccessSchedules ? <ScheduleManagement /> : <Navigate to="/admin-control-site" replace />}
+                    element={(canAccessSchedules || canAccessScheduleEvents) ? <ScheduleManagement /> : <Navigate to="/admin-control-site" replace />}
                   />
                   <Route
                     path="schedules/*"
-                    element={canAccessSchedules ? <ScheduleManagement /> : <Navigate to="/admin-control-site" replace />}
+                    element={(canAccessSchedules || canAccessScheduleEvents) ? <ScheduleManagement /> : <Navigate to="/admin-control-site" replace />}
                   />
 
                   {/* User Management */}

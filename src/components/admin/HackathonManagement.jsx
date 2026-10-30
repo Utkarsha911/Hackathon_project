@@ -136,7 +136,11 @@ export default function HackathonManagement() {
 
   const canAccessHackathons = checkHasPermission(['hackathon']);
   const canAccessOrganizers = checkHasPermission(['organizer']);
-  const canAccessHackathonCrm = isSuperOrStaff;
+  const canAccessPrizes = isSuperOrStaff || checkHasPermission(['prizes']);
+  const canAccessFaqs = isSuperOrStaff || checkHasPermission(['faq']);
+  const canAccessContacts = isSuperOrStaff || checkHasPermission(['contact']);
+  const canAccessTerms = isSuperOrStaff || checkHasPermission(['participationterms']);
+  const canAccessHackathonCrm = canAccessPrizes || canAccessFaqs || canAccessContacts || canAccessTerms;
 
   // Auto redirect unauthorized or relocated tab requests
   useEffect(() => {
@@ -144,14 +148,20 @@ export default function HackathonManagement() {
       navigate('/admin-control-site/teams', { replace: true });
     } else if (activeTab === 'guests') {
       navigate('/admin-control-site/participants?tab=guests', { replace: true });
-    } else if (['prizes', 'faqs', 'contacts'].includes(activeTab) && !canAccessHackathonCrm) {
+    } else if (activeTab === 'prizes' && !canAccessPrizes) {
+      setSearchParams({ tab: canAccessHackathons ? 'hackathons' : 'organizers' }, { replace: true });
+    } else if (activeTab === 'faqs' && !canAccessFaqs) {
+      setSearchParams({ tab: canAccessHackathons ? 'hackathons' : 'organizers' }, { replace: true });
+    } else if (activeTab === 'contacts' && !canAccessContacts) {
+      setSearchParams({ tab: canAccessHackathons ? 'hackathons' : 'organizers' }, { replace: true });
+    } else if (activeTab === 'terms' && !canAccessTerms) {
       setSearchParams({ tab: canAccessHackathons ? 'hackathons' : 'organizers' }, { replace: true });
     } else if (activeTab === 'organizers' && !canAccessOrganizers && canAccessHackathons) {
       setSearchParams({ tab: 'hackathons' }, { replace: true });
     } else if (activeTab === 'hackathons' && !canAccessHackathons && canAccessOrganizers) {
       setSearchParams({ tab: 'organizers' }, { replace: true });
     }
-  }, [activeTab, canAccessHackathons, canAccessOrganizers, canAccessHackathonCrm, setSearchParams, navigate]);
+  }, [activeTab, canAccessHackathons, canAccessOrganizers, canAccessPrizes, canAccessFaqs, canAccessContacts, canAccessTerms, canAccessHackathonCrm, setSearchParams, navigate]);
 
   // Primary data state (Hackathons)
   const [hackathons, setHackathons] = useState(() => {
