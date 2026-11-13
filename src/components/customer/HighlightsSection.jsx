@@ -6,22 +6,20 @@ import Section from '../common/Section';
 export default function HighlightsSection() {
   const { hackathon, prizes = [] } = useHackathon();
 
-  // Rank prizes by value so the highest award is always presented as the Grand Prize.
+  // Preserve the backend order for display.
   const orderedPrizes = useMemo(() => {
     if (!Array.isArray(prizes)) return [];
-    return [...prizes].sort((a, b) => {
-      const amountA = Number(a?.prize_money) || 0;
-      const amountB = Number(b?.prize_money) || 0;
-      if (amountA !== amountB) return amountB - amountA;
-
-      const orderA = typeof a?.order === 'number' ? a.order : 999;
-      const orderB = typeof b?.order === 'number' ? b.order : 999;
-      return orderA - orderB;
-    });
+    return [...prizes];
   }, [prizes]);
 
   // Do not render section if no prizes data received
   if (orderedPrizes.length === 0) return null;
+
+  const grandPrizeIndex = orderedPrizes.reduce((highestIndex, prize, index, allPrizes) => {
+    const highestAmount = Number(allPrizes[highestIndex]?.prize_money) || 0;
+    const amount = Number(prize?.prize_money) || 0;
+    return amount > highestAmount ? index : highestIndex;
+  }, 0);
 
   const pool =
     hackathon?.total_prize !== undefined && hackathon?.total_prize !== null
@@ -59,14 +57,15 @@ export default function HighlightsSection() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
           {orderedPrizes.slice(0, 3).map((p, idx) => {
             const amount = Number(p.prize_money) || 0;
-            const Icon = idx === 0 ? Trophy : idx === 1 ? Medal : Award;
-            const place = idx === 0 ? '01' : idx === 1 ? '02' : '03';
+            const isGrandPrize = idx === grandPrizeIndex;
+            const Icon = isGrandPrize ? Trophy : idx === 1 ? Medal : Award;
+            const place = String(idx + 1).padStart(2, '0');
 
             return (
               <div
                 key={p.id || idx}
                 className={`relative overflow-hidden rounded-3xl border p-5 sm:p-6 transition-transform hover:-translate-y-1 ${
-                  idx === 0
+                  isGrandPrize
                     ? 'md:-translate-y-5 bg-gradient-to-br from-brand-orange/30 to-brand-yellow/10 border-brand-yellow/50 shadow-xl shadow-brand-orange/10'
                     : 'bg-white/[0.07] border-white/15 hover:border-brand-orange/50'
                 }`}
@@ -74,16 +73,16 @@ export default function HighlightsSection() {
                 <span className="absolute right-4 top-3 text-5xl font-black text-white/10">{place}</span>
                 <div className="relative">
                   <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${
-                    idx === 0 ? 'bg-brand-yellow text-brand-dark' : 'bg-white/10 text-brand-yellow'
+                    isGrandPrize ? 'bg-brand-yellow text-brand-dark' : 'bg-white/10 text-brand-yellow'
                   }`}>
                     <Icon className="w-6 h-6" strokeWidth={1.8} />
                   </div>
                   <p className="mt-5 text-xs font-bold uppercase tracking-[0.16em] text-slate-300">
-                    {idx === 0 ? 'Grand Prize' : idx === 1 ? 'Runner-up' : 'Third Place'}
+                    {isGrandPrize ? 'Grand Prize' : idx === 1 ? 'Runner-up' : 'Third Place'}
                   </p>
                   <h3 className="mt-1 text-lg font-extrabold text-white">{p.title}</h3>
                   <div className={`text-xl font-extrabold mt-3 inline-flex items-center ${
-                    idx === 0 ? 'text-brand-yellow' : 'text-white'
+                    isGrandPrize ? 'text-brand-yellow' : 'text-white'
                   }`}>
                     {amount > 0 ? (
                       <>
@@ -111,15 +110,24 @@ export default function HighlightsSection() {
         {orderedPrizes.length > 3 && (
           <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {orderedPrizes.slice(3).map((p, idx) => {
+              const actualIndex = idx + 3;
               const amount = Number(p.prize_money) || 0;
+              const isGrandPrize = actualIndex === grandPrizeIndex;
               return (
-                <div key={p.id || idx} className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.05] p-4">
-                  <div className="w-9 h-9 rounded-xl bg-brand-blue/20 text-brand-yellow flex items-center justify-center shrink-0">
-                    <Star className="w-4 h-4" />
+                <div key={p.id || idx} className={`flex items-center gap-3 rounded-2xl border p-4 ${
+                  isGrandPrize
+                    ? 'border-brand-yellow/50 bg-brand-orange/20'
+                    : 'border-white/10 bg-white/[0.05]'
+                }`}>
+                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                    isGrandPrize ? 'bg-brand-yellow text-brand-dark' : 'bg-brand-blue/20 text-brand-yellow'
+                  }`}>
+                    {isGrandPrize ? <Trophy className="w-4 h-4" /> : <Star className="w-4 h-4" />}
                   </div>
                   <div className="min-w-0">
                     <p className="text-sm font-bold text-white truncate">{p.title}</p>
                     <p className="text-xs text-slate-400 inline-flex items-center mt-1">
+                      {isGrandPrize ? 'Grand Prize · ' : ''}
                       {amount > 0 ? <><NepaliRupee className="w-3 h-3" />{amount.toLocaleString()}</> : 'Recognition award'}
                     </p>
                   </div>
