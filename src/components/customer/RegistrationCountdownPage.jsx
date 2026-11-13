@@ -48,6 +48,7 @@ export default function RegistrationCountdownPage() {
 
   const minTeamSize = hackathon?.minimum_team_size || 1;
   const maxTeamSize = hackathon?.maximum_team_size || 4;
+  const registrationFee = Number(hackathon?.registration_fee) || 0;
 
   const formatDate = (dateObj) => {
     if (!dateObj) return '—';
@@ -300,6 +301,18 @@ export default function RegistrationCountdownPage() {
                 <h4 className="text-xs font-bold text-slate-800">Coordinator Contact</h4>
                 <p className="text-xs text-slate-500 mt-1 leading-relaxed">
                   A valid phone number and email address for prompt administrative notifications and status approvals.
+                </p>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200">
+                <div className="w-8 h-8 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-xs font-bold text-[#ea580c] mb-2.5">
+                  4
+                </div>
+                <h4 className="text-xs font-bold text-slate-800">Registration Fee</h4>
+                <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                  {registrationFee > 0
+                    ? `The registration fee is NPR ${registrationFee.toLocaleString()} per team.`
+                    : 'Registration is free for all eligible teams.'}
                 </p>
               </div>
             </div>

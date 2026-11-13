@@ -620,6 +620,14 @@ export default function RegisterTeamPage() {
                         ? `Step 2 of 3: Provide coordinator contact information.`
                         : `Step 3 of 3: Add participants and agree to hackathon terms.`}
                 </p>
+                <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-brand-orange/20 bg-orange-50 px-3 py-1.5 text-xs font-semibold text-brand-orange">
+                  <span>Registration fee:</span>
+                  <span>
+                    {Number(hackathon?.registration_fee) > 0
+                      ? `NPR ${Number(hackathon.registration_fee).toLocaleString()} per team`
+                      : 'Free'}
+                  </span>
+                </div>
               </div>
 
               {!currentUser ? (

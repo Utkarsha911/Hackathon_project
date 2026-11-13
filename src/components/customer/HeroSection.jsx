@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useHackathon } from '../../context/HackathonContext';
 import { getMediaUrl } from '../../services/api';
-import { ArrowRight, Calendar, MapPin, Users, Clock, Award } from 'lucide-react';
+import { ArrowRight, Calendar, MapPin, Users, Clock, Award, Banknote } from 'lucide-react';
 import { EVENT_VERSION, EVENT_YEAR } from '../../config/event';
 import { getTimeRemaining, parseDateBoundary } from '../../utils/registration';
 import Button from '../common/Button';
@@ -107,12 +107,18 @@ export default function HeroSection({ onOpenRegister }) {
   const year = EVENT_YEAR;
   const minTeam = h.minimum_team_size || 1;
   const maxTeam = h.maximum_team_size || h.max_team_size || 4;
+  const registrationFee = Number(h.registration_fee) || 0;
   const bg = h.banner_image ? getMediaUrl(h.banner_image) : null;
 
   const facts = [
     { icon: Calendar, label: 'Date', value: formatDateRange(), sub: h.event_time },
     ...(h.venue ? [{ icon: MapPin, label: 'Venue', value: h.venue }] : []),
     { icon: Users, label: 'Teams', value: `${minTeam}–${maxTeam} members each` },
+    {
+      icon: Banknote,
+      label: 'Registration',
+      value: registrationFee > 0 ? `NPR ${registrationFee.toLocaleString()}` : 'Free entry'
+    },
   ];
 
   return (
