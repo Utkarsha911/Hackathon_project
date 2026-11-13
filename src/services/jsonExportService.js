@@ -4,7 +4,7 @@
  * or full database snapshots directly from JSON data stores.
  */
 
-import { MODEL_VISIBILITY, BACKEND_MODELS } from '../models/modelRegistry';
+import { BACKEND_MODELS } from '../models/modelRegistry';
 
 /**
  * Triggers a browser download of a JSON object or array as a .json file
@@ -21,49 +21,6 @@ export function downloadJsonFile(filename, data) {
   document.body.appendChild(downloadAnchor);
   downloadAnchor.click();
   downloadAnchor.remove();
-}
-
-/**
- * Copies formatted JSON string to user's clipboard
- * @param {object|array} data
- * @returns {Promise<boolean>}
- */
-export async function copyJsonToClipboard(data) {
-  try {
-    const formatted = JSON.stringify(data, null, 2);
-    await navigator.clipboard.writeText(formatted);
-    return true;
-  } catch (err) {
-    console.error('Failed to copy JSON to clipboard:', err);
-    return false;
-  }
-}
-
-/**
- * Formats a model dataset into an official JSON export bundle with metadata
- */
-export function createModelExportPackage(modelName, records) {
-  const modelMeta = BACKEND_MODELS[modelName] || {
-    name: modelName,
-    visibility: 'custom',
-    tableName: modelName.toLowerCase(),
-    description: 'Custom dataset'
-  };
-
-  return {
-    _export_metadata: {
-      exported_at: new Date().toISOString(),
-      platform: 'BIC Hackathon System',
-      backend_origin: 'bic_hackathon_design',
-      model_name: modelName,
-      table_name: modelMeta.tableName,
-      visibility_scope: modelMeta.visibility,
-      total_records: Array.isArray(records) ? records.length : 1,
-      schema_source: modelMeta.sourceFile || 'backend'
-    },
-    schema_fields: modelMeta.fields || [],
-    data: records
-  };
 }
 
 /**

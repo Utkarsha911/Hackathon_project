@@ -13,13 +13,16 @@
   "dependencies": {
     "@ckeditor/ckeditor5-build-classic": "^41.4.2",
     "@ckeditor/ckeditor5-react": "^12.0.0",
+    "@tanstack/react-query": "^5.107.1",
+    "axios": "^1.21.1",
     "jsqr": "^1.4.0",
     "lucide-react": "^1.56.0",
     "qrcode": "^1.5.4",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-router-dom": "^7.18.4",
-    "vgpu": "^0.6.0"
+    "vgpu": "^0.6.0",
+    "zustand": "^5.1.0"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^6.1.1",

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import api, {
   getAuthToken,
   setAuthToken,
@@ -23,13 +23,19 @@ import teamMembersData from '../data/json/team_members.json';
 import notificationsData from '../data/json/notifications.json';
 
 import { isRegistrationOpen, getRegistrationStatus, getTimeRemaining } from '../utils/registration';
+import { useAppStore } from '../store/appStore';
+import { queryClient } from '../services/queryClient';
+import httpClient from '../services/httpClient';
+import { queryKeys } from '../hooks/useQueries';
 
 const HackathonContext = createContext();
 
 export function HackathonProvider({ children }) {
   // Navigation View State: 'customer' (public portal) | 'admin' (private operations) | 'architecture' (model explorer)
-  const [currentView, setCurrentView] = useState('customer');
-  const [adminTab, setAdminTab] = useState('overview'); // overview, sponsorships, tasks, teams, participants, checkins, tables, notifications, export
+  const currentView = useAppStore((state) => state.currentView);
+  const setCurrentView = useAppStore((state) => state.setCurrentView);
+  const adminTab = useAppStore((state) => state.adminTab);
+  const setAdminTab = useAppStore((state) => state.setAdminTab);
   
   // API Connection State (strictly fetched from API)
   const [isApiConnected, setIsApiConnected] = useState(false);
@@ -66,30 +72,13 @@ export function HackathonProvider({ children }) {
   const [eventAttendances, setEventAttendances] = useState([]);
 
   // Global Toast Alert State
-  const [toast, setToast] = useState(null);
-  const toastTimeoutRef = useRef(null);
+  const toast = useAppStore((state) => state.toast);
+  const showToast = useAppStore((state) => state.showToast);
+  const closeToast = useAppStore((state) => state.closeToast);
 
   // Authenticated Current User State (for normal users outside and admins)
-  const [currentUser, setCurrentUserState] = useState(() => getCurrentUser());
-
-  const closeToast = useCallback(() => {
-    if (toastTimeoutRef.current) {
-      clearTimeout(toastTimeoutRef.current);
-      toastTimeoutRef.current = null;
-    }
-    setToast(null);
-  }, []);
-
-  const showToast = useCallback((message, type = 'success', duration = 4000) => {
-    if (toastTimeoutRef.current) {
-      clearTimeout(toastTimeoutRef.current);
-    }
-    setToast({ id: Date.now(), message, type });
-    toastTimeoutRef.current = setTimeout(() => {
-      setToast(null);
-      toastTimeoutRef.current = null;
-    }, duration);
-  }, []);
+  const currentUser = useAppStore((state) => state.currentUser);
+  const setCurrentUserState = useAppStore((state) => state.setCurrentUser);
 
   useEffect(() => {
     let lastLogoutToast = 0;
@@ -150,10 +139,13 @@ export function HackathonProvider({ children }) {
 
     try {
       // 0. Primary Call: GET /api/v1/hackathons/current-hackathon/
-      const currentDetails = await (api.hackathons.getCurrentHackathon
-        ? api.hackathons.getCurrentHackathon()
-        : api.hackathons.getCurrentDetails()
-      ).catch((err) => {
+      const currentDetails = await queryClient.fetchQuery({
+        queryKey: queryKeys.currentHackathon,
+        queryFn: async () => {
+          const { data } = await httpClient.get('/hackathons/current-hackathon/');
+          return data;
+        }
+      }).catch((err) => {
         console.info('Current hackathon endpoint not reachable, trying fallback:', err?.message);
         return null;
       });
@@ -932,4 +924,3 @@ export function useHackathon() {
 }
 
 export { isRegistrationOpen, getRegistrationStatus, getTimeRemaining };
-
