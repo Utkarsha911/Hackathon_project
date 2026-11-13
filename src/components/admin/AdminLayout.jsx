@@ -611,6 +611,27 @@ export default function AdminLayout() {
                       </Link>
                     )}
 
+                    {/* Hackathon FAQs */}
+                    {canAccessFaqs && (
+                      <Link
+                        to="/admin-control-site/hackathons?tab=faqs"
+                        onClick={() => setMobileMenuOpen(false)}
+                        className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-normal transition-all ${
+                          isHackathonFaqsActive
+                            ? 'shadow-xs text-white'
+                            : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                        }`}
+                        style={
+                          isHackathonFaqsActive
+                            ? { backgroundColor: '#ea580c', color: '#ffffff' }
+                            : {}
+                        }
+                      >
+                        <HelpCircle className="w-3.5 h-3.5 shrink-0" />
+                        <span>FAQs</span>
+                      </Link>
+                    )}
+
                     {/* Hackathon Terms */}
                     {canAccessTerms && (
                       <Link
