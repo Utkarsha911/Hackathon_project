@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { useHackathon } from '../../context/HackathonContext';
 import { getUserAvatarUrl, DEFAULT_USER_AVATAR } from '../../services/api';
+import { BadgeCheck } from 'lucide-react';
 import Section from '../common/Section';
 
 function OrganizerCard({ org }) {
@@ -13,6 +14,8 @@ function OrganizerCard({ org }) {
   const img = getUserAvatarUrl(u.profile_picture || org.profile_picture || org.image);
   const role = org.designation || org.position || org.role || 'Committee Member';
   const dept = org.department_name || org.department?.name;
+  const isActive = org.is_active !== false && org.status !== 'inactive';
+  const statusLabel = org.status === 'on_duty' ? 'On duty' : isActive ? 'Active' : 'Unavailable';
 
   return (
     <div className="group relative rounded-2xl bg-white border border-slate-200/80 hover:border-brand-blue/30 p-4 sm:p-5 flex flex-col items-center justify-center text-center transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md hover:shadow-brand-navy/5 shadow-2xs">
@@ -40,12 +43,21 @@ function OrganizerCard({ org }) {
         {role}
       </p>
 
-      {/* Optional Department Badge */}
-      {dept && (
-        <span className="mt-2 px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 text-slate-500 border border-slate-200/60">
-          {dept}
+      <div className="mt-2 flex items-center gap-1.5">
+        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border ${
+          isActive
+            ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
+            : 'bg-slate-100 text-slate-500 border-slate-200/60'
+        }`}>
+          <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-emerald-500' : 'bg-slate-400'}`} />
+          {statusLabel}
         </span>
-      )}
+        {dept && (
+          <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 text-slate-500 border border-slate-200/60">
+            {dept}
+          </span>
+        )}
+      </div>
     </div>
   );
 }
@@ -119,6 +131,7 @@ export default function OrganizersSection() {
         {/* Section Heading in Customer Theme */}
         <div className="text-center mb-8">
           <div className="text-xs font-bold uppercase tracking-[0.14em] text-brand-blue mb-2">
+            <BadgeCheck className="inline-block w-3.5 h-3.5 mr-1 align-[-2px]" />
             The Organizing Committee
           </div>
           <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-ink">
