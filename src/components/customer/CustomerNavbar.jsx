@@ -28,6 +28,7 @@ export default function CustomerNavbar({ onOpenRegister, onOpenLogin, onOpenProf
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [activeHash, setActiveHash] = useState('#top');
   const dropdownRef = useRef(null);
 
   // Monitor scroll position to apply dynamic blur effect when moving downward
@@ -39,6 +40,27 @@ export default function CustomerNavbar({ onOpenRegister, onOpenLogin, onOpenProf
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  useEffect(() => {
+    const sections = navLinks
+      .map((link) => document.querySelector(link.hash))
+      .filter(Boolean);
+
+    if (!sections.length) return undefined;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+        if (visible?.target?.id) setActiveHash(`#${visible.target.id}`);
+      },
+      { rootMargin: '-25% 0px -60% 0px', threshold: [0.1, 0.4, 0.7] }
+    );
+
+    sections.forEach((section) => observer.observe(section));
+    return () => observer.disconnect();
+  }, [navLinks.length]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -93,6 +115,7 @@ export default function CustomerNavbar({ onOpenRegister, onOpenLogin, onOpenProf
           top: elementPosition - navHeight,
           behavior: 'smooth'
         });
+        setActiveHash(targetHash);
         window.history.pushState(null, '', targetHash);
       }
     } else {
@@ -100,17 +123,21 @@ export default function CustomerNavbar({ onOpenRegister, onOpenLogin, onOpenProf
     }
   };
 
-  const linkCls = 'px-3 py-1.5 text-[13px] font-medium text-slate-300 hover:text-white transition-colors';
+  const linkCls = (hash) => `relative px-3 py-2 text-[13px] font-semibold transition-colors ${
+    activeHash === hash ? 'text-white' : 'text-slate-300 hover:text-white'
+  }`;
 
   return (
-    <header className="sticky top-0 z-40 w-full bg-brand-dark/95 backdrop-blur border-b border-white/10">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+    <header className={`sticky top-0 z-40 w-full bg-brand-dark/95 backdrop-blur border-b transition-shadow ${
+      scrolled ? 'border-white/15 shadow-lg shadow-brand-dark/20' : 'border-white/10'
+    }`}>
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-[4.5rem] flex items-center justify-between">
 
-        <Link to="/" className="flex items-center gap-2.5">
+        <Link to="/" className="flex items-center gap-3 shrink-0" aria-label="BIC Hackathon home">
           <HackathonBrand
-            imageClassName="h-8 sm:h-9 w-auto max-w-[170px] object-contain"
-            iconSizeClass="w-10 h-10"
-            textClassName="text-sm font-extrabold text-white"
+            imageClassName="h-9 sm:h-10 w-auto max-w-[190px] object-contain"
+            iconSizeClass="w-11 h-11"
+            textClassName="text-sm sm:text-base font-extrabold text-white"
             subTextClassName="text-[10px] font-mono font-bold text-brand-yellow"
             showSubText={true}
           />
@@ -118,8 +145,11 @@ export default function CustomerNavbar({ onOpenRegister, onOpenLogin, onOpenProf
 
         <nav className="hidden lg:flex items-center gap-1">
           {navLinks.map((l) => (
-            <a key={l.label} href={`/${l.hash}`} onClick={(e) => handleSectionClick(e, l.hash)} className={linkCls}>
+            <a key={l.label} href={`/${l.hash}`} onClick={(e) => handleSectionClick(e, l.hash)} className={linkCls(l.hash)}>
               {l.label}
+              {activeHash === l.hash && (
+                <span className="absolute inset-x-3 -bottom-1 h-0.5 rounded-full bg-brand-yellow" />
+              )}
             </a>
           ))}
         </nav>
@@ -194,7 +224,7 @@ export default function CustomerNavbar({ onOpenRegister, onOpenLogin, onOpenProf
           )}
 
           {isRegistrationOpen && (
-            <Button onClick={onOpenRegister} className="!px-5 !py-2 !text-xs">
+            <Button onClick={onOpenRegister} className="!px-5 !py-2 !text-xs shadow-md shadow-brand-orange/20">
               Register
             </Button>
           )}
@@ -218,9 +248,12 @@ export default function CustomerNavbar({ onOpenRegister, onOpenLogin, onOpenProf
                 key={l.label}
                 href={`/${l.hash}`}
                 onClick={(e) => { handleMobileNavClick(); handleSectionClick(e, l.hash); }}
-                className="px-3 py-2 rounded-xl hover:bg-white/10 transition"
+                className={`px-3 py-2.5 rounded-xl transition flex items-center justify-between ${
+                  activeHash === l.hash ? 'bg-white/10 text-white' : 'hover:bg-white/10'
+                }`}
               >
                 {l.label}
+                {activeHash === l.hash && <span className="h-1.5 w-1.5 rounded-full bg-brand-yellow" />}
               </a>
             ))}
             {currentUser ? (

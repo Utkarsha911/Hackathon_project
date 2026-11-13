@@ -1,11 +1,7 @@
 import React, { useMemo } from 'react';
-import { Trophy, Award, Medal, Star, NepaliRupee } from 'lucide-react';
+import { Trophy, Award, Medal, Star, NepaliRupee, BadgeCheck } from 'lucide-react';
 import { useHackathon } from '../../context/HackathonContext';
-import { getUserAvatarUrl, DEFAULT_USER_AVATAR } from '../../services/api';
 import Section from '../common/Section';
-import Card from '../common/Card';
-
-const PRIZE_ICONS = [Trophy, Medal, Award, Star];
 
 export default function HighlightsSection() {
   const { hackathon, prizes = [] } = useHackathon();
@@ -20,12 +16,6 @@ export default function HighlightsSection() {
     });
   }, [prizes]);
 
-  // Find the highest prize money value to highlight
-  const maxPrizeMoney = useMemo(() => {
-    if (!orderedPrizes.length) return 0;
-    return Math.max(...orderedPrizes.map((p) => Number(p?.prize_money) || 0));
-  }, [orderedPrizes]);
-
   // Do not render section if no prizes data received
   if (orderedPrizes.length === 0) return null;
 
@@ -35,25 +25,26 @@ export default function HighlightsSection() {
       : orderedPrizes.reduce((acc, p) => acc + (Number(p.prize_money) || 0), 0);
 
   return (
-    <Section id="prizes" tone="tint" py="py-12 sm:py-16">
-      <div className="max-w-3xl mx-auto">
+    <Section id="prizes" tone="dark" py="py-16 sm:py-24">
+      <div className="max-w-5xl mx-auto">
         {/* Centered Heading in Customer Theme */}
         <div className="text-center mb-8">
-          <div className="text-xs font-bold uppercase tracking-[0.14em] text-brand-blue mb-2">
+          <div className="text-xs font-bold uppercase tracking-[0.16em] text-brand-yellow mb-2">
+            <BadgeCheck className="inline-block w-3.5 h-3.5 mr-1 align-[-2px]" />
             Rewards & Honors
           </div>
-          <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-ink">
+          <h2 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-white">
             Prizes & Recognition
           </h2>
-          <p className="mt-2 text-xs sm:text-sm text-slate-500 max-w-lg mx-auto">
+          <p className="mt-3 text-xs sm:text-sm text-slate-300 max-w-lg mx-auto">
             Rewarding technical excellence, prototype execution, and impactful innovation.
           </p>
 
           {pool > 0 && (
-            <div className="mt-4 inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white border border-brand-blue/20 shadow-2xs">
-              <Trophy className="w-4 h-4 text-brand-blue shrink-0" />
-              <span className="text-xs font-medium text-slate-500">Total Prize Pool:</span>
-              <span className="inline-flex items-center text-xs sm:text-sm font-extrabold text-ink">
+            <div className="mt-5 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 border border-white/15">
+              <Trophy className="w-4 h-4 text-brand-yellow shrink-0" />
+              <span className="text-xs font-medium text-slate-300">Total prize pool</span>
+              <span className="inline-flex items-center text-xs sm:text-sm font-extrabold text-white">
                 <NepaliRupee className="w-3.5 h-3.5 stroke-[2.5]" />
                 {pool.toLocaleString()}
               </span>
@@ -61,68 +52,49 @@ export default function HighlightsSection() {
           )}
         </div>
 
-        {/* Smaller Cards in Centered Grid */}
-        <div
-          className={`grid grid-cols-1 ${
-            orderedPrizes.length === 2
-              ? 'sm:grid-cols-2 max-w-xl mx-auto'
-              : 'sm:grid-cols-2 md:grid-cols-3'
-          } gap-3.5`}
-        >
-          {orderedPrizes.map((p, idx) => {
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+          {orderedPrizes.slice(0, 3).map((p, idx) => {
             const amount = Number(p.prize_money) || 0;
-            const isHighest = amount > 0 && amount === maxPrizeMoney;
-            const Icon = isHighest ? Trophy : PRIZE_ICONS[idx % PRIZE_ICONS.length];
+            const Icon = idx === 0 ? Trophy : idx === 1 ? Medal : Award;
+            const place = idx === 0 ? '01' : idx === 1 ? '02' : '03';
 
             return (
               <div
                 key={p.id || idx}
-                className={`flex items-start gap-3 p-4 rounded-2xl transition-all ${
-                  isHighest
-                    ? 'bg-brand-tint/80 border border-brand-blue/40 shadow-xs ring-1 ring-brand-blue/20'
-                    : 'bg-white border border-slate-200/80 shadow-2xs hover:border-slate-300'
+                className={`relative overflow-hidden rounded-3xl border p-5 sm:p-6 transition-transform hover:-translate-y-1 ${
+                  idx === 0
+                    ? 'md:-translate-y-5 bg-gradient-to-br from-brand-orange/30 to-brand-yellow/10 border-brand-yellow/50 shadow-xl shadow-brand-orange/10'
+                    : 'bg-white/[0.07] border-white/15 hover:border-brand-orange/50'
                 }`}
               >
-                <div
-                  className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
-                    isHighest ? 'bg-brand-blue text-white shadow-xs' : 'bg-slate-100 text-brand-blue'
-                  }`}
-                >
-                  <Icon className="w-4 h-4" strokeWidth={1.75} />
-                </div>
-
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="text-xs sm:text-sm font-bold text-ink leading-snug">
-                      {p.title}
-                    </span>
-                    {isHighest && (
-                      <span className="px-1.5 py-0.2 rounded text-[9px] font-extrabold uppercase tracking-wider bg-brand-blue text-white">
-                        Top Prize
-                      </span>
-                    )}
+                <span className="absolute right-4 top-3 text-5xl font-black text-white/10">{place}</span>
+                <div className="relative">
+                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${
+                    idx === 0 ? 'bg-brand-yellow text-brand-dark' : 'bg-white/10 text-brand-yellow'
+                  }`}>
+                    <Icon className="w-6 h-6" strokeWidth={1.8} />
                   </div>
-
-                  <div
-                    className={`text-xs sm:text-sm font-bold mt-1 inline-flex items-center ${
-                      isHighest ? 'text-brand-blue' : 'text-slate-800'
-                    }`}
-                  >
+                  <p className="mt-5 text-xs font-bold uppercase tracking-[0.16em] text-slate-300">
+                    {idx === 0 ? 'Grand Prize' : idx === 1 ? 'Runner-up' : 'Third Place'}
+                  </p>
+                  <h3 className="mt-1 text-lg font-extrabold text-white">{p.title}</h3>
+                  <div className={`text-xl font-extrabold mt-3 inline-flex items-center ${
+                    idx === 0 ? 'text-brand-yellow' : 'text-white'
+                  }`}>
                     {amount > 0 ? (
                       <>
-                        <NepaliRupee className="w-3 h-3 stroke-[2.5]" />
+                        <NepaliRupee className="w-4 h-4 stroke-[2.5]" />
                         {amount.toLocaleString()}
                       </>
                     ) : (
-                      <span className="text-[11px] text-slate-500 font-normal">
+                      <span className="text-xs text-slate-300 font-normal">
                         Trophy & certificate
                       </span>
                     )}
                   </div>
-
                   {p.description && (
                     <div
-                      className="text-xs text-slate-600 mt-2 leading-relaxed prize-html-content"
+                      className="text-xs text-slate-300 mt-3 leading-relaxed prize-html-content"
                       dangerouslySetInnerHTML={{ __html: p.description }}
                     />
                   )}
@@ -131,6 +103,27 @@ export default function HighlightsSection() {
             );
           })}
         </div>
+
+        {orderedPrizes.length > 3 && (
+          <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {orderedPrizes.slice(3).map((p, idx) => {
+              const amount = Number(p.prize_money) || 0;
+              return (
+                <div key={p.id || idx} className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.05] p-4">
+                  <div className="w-9 h-9 rounded-xl bg-brand-blue/20 text-brand-yellow flex items-center justify-center shrink-0">
+                    <Star className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold text-white truncate">{p.title}</p>
+                    <p className="text-xs text-slate-400 inline-flex items-center mt-1">
+                      {amount > 0 ? <><NepaliRupee className="w-3 h-3" />{amount.toLocaleString()}</> : 'Recognition award'}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </Section>
   );
