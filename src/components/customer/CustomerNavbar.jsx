@@ -41,27 +41,6 @@ export default function CustomerNavbar({ onOpenRegister, onOpenLogin, onOpenProf
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  useEffect(() => {
-    const sections = navLinks
-      .map((link) => document.querySelector(link.hash))
-      .filter(Boolean);
-
-    if (!sections.length) return undefined;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const visible = entries
-          .filter((entry) => entry.isIntersecting)
-          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
-        if (visible?.target?.id) setActiveHash(`#${visible.target.id}`);
-      },
-      { rootMargin: '-25% 0px -60% 0px', threshold: [0.1, 0.4, 0.7] }
-    );
-
-    sections.forEach((section) => observer.observe(section));
-    return () => observer.disconnect();
-  }, [navLinks.length]);
-
   // Close dropdown when clicking outside
   useEffect(() => {
     function handleClickOutside(event) {
@@ -99,6 +78,27 @@ export default function CustomerNavbar({ onOpenRegister, onOpenLogin, onOpenProf
     ...(hasOrganizersData ? [{ label: 'Organizers', hash: '#organizers' }] : []),
     ...(hasFaqData ? [{ label: 'FAQ', hash: '#faq' }] : []),
   ];
+
+  useEffect(() => {
+    const sections = navLinks
+      .map((link) => document.querySelector(link.hash))
+      .filter(Boolean);
+
+    if (!sections.length) return undefined;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+        if (visible?.target?.id) setActiveHash(`#${visible.target.id}`);
+      },
+      { rootMargin: '-25% 0px -60% 0px', threshold: [0.1, 0.4, 0.7] }
+    );
+
+    sections.forEach((section) => observer.observe(section));
+    return () => observer.disconnect();
+  }, [navLinks.length]);
 
   const handleMobileNavClick = () => {
     setMobileMenuOpen(false);
