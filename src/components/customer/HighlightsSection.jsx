@@ -6,10 +6,14 @@ import Section from '../common/Section';
 export default function HighlightsSection() {
   const { hackathon, prizes = [] } = useHackathon();
 
-  // Keep prizes in their defined order (e.g. order 1, 2, 4...)
+  // Rank prizes by value so the highest award is always presented as the Grand Prize.
   const orderedPrizes = useMemo(() => {
     if (!Array.isArray(prizes)) return [];
     return [...prizes].sort((a, b) => {
+      const amountA = Number(a?.prize_money) || 0;
+      const amountB = Number(b?.prize_money) || 0;
+      if (amountA !== amountB) return amountB - amountA;
+
       const orderA = typeof a?.order === 'number' ? a.order : 999;
       const orderB = typeof b?.order === 'number' ? b.order : 999;
       return orderA - orderB;
