@@ -156,11 +156,14 @@ export default function CustomerNavbar({ onOpenRegister, onOpenLogin, onOpenProf
                 aria-current={location.pathname === l.href ? 'page' : undefined}
               >
                 {l.label}
+                {location.pathname === l.href && (
+                  <span className="absolute inset-x-3 -bottom-1 h-0.5 rounded-full bg-brand-yellow" />
+                )}
               </Link>
             ) : (
               <a key={l.label} href={`/${l.hash}`} onClick={(e) => handleSectionClick(e, l.hash)} className={linkCls(isHomePage && activeHash === l.hash)}>
                 {l.label}
-                {activeHash === l.hash && (
+                {isHomePage && activeHash === l.hash && (
                   <span className="absolute inset-x-3 -bottom-1 h-0.5 rounded-full bg-brand-yellow" />
                 )}
               </a>

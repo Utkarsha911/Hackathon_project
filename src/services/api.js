@@ -983,6 +983,10 @@ export const api = {
     organizerTasks: {
       getAll: (params = {}, options = {}) =>
         request(`/hackathons/organizer-tasks/${buildQueryString(params)}`, options),
+      getAllTasks: (params = {}, options = {}) =>
+        request(`/hackathons/organizer-tasks/all-tasks/${buildQueryString(params)}`, options),
+      getMyTasks: (params = {}, options = {}) =>
+        request(`/hackathons/organizer-tasks/my-tasks/${buildQueryString(params)}`, options),
       getById: (id, options = {}) =>
         request(`/hackathons/organizer-tasks/${id}/`, options),
       create: (data, options = {}) =>
@@ -1543,6 +1547,10 @@ export const api = {
   organizerTasks: {
     getAll: (params = {}, options = {}) =>
       request(`/hackathons/organizer-tasks/${buildQueryString(params)}`, options),
+    getAllTasks: (params = {}, options = {}) =>
+      request(`/hackathons/organizer-tasks/all-tasks/${buildQueryString(params)}`, options),
+    getMyTasks: (params = {}, options = {}) =>
+      request(`/hackathons/organizer-tasks/my-tasks/${buildQueryString(params)}`, options),
     getById: (id, options = {}) =>
       request(`/hackathons/organizer-tasks/${id}/`, options),
     create: (data, options = {}) =>

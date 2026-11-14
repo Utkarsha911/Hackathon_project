@@ -51,7 +51,37 @@ export default function OrganizerTaskManagement() {
   const [searchParams, setSearchParams] = useSearchParams();
   const initialStatus = searchParams.get('status') || 'all';
 
-  const { showToast } = useHackathon();
+  const { showToast, currentUser } = useHackathon();
+
+  const canViewAllTasks = (() => {
+    const hasPermission = (permission) => {
+      if (typeof permission === 'string') {
+        return permission.toLowerCase().replace(/^.*\./, '') === 'can_view_all_tasks';
+      }
+      return permission?.codename?.toLowerCase() === 'can_view_all_tasks' ||
+        permission?.name?.toLowerCase() === 'can_view_all_tasks' ||
+        permission?.permission?.toLowerCase() === 'can_view_all_tasks';
+    };
+    if (
+      currentUser?.can_view_all_tasks === true ||
+      currentUser?.canViewAllTasks === true ||
+      currentUser?.permissions_name?.can_view_all_tasks === true
+    ) return true;
+    const directPermissions = currentUser?.permissions || currentUser?.user_permissions || [];
+    if (Array.isArray(directPermissions) && directPermissions.some(hasPermission)) return true;
+
+    return Array.isArray(currentUser?.groups) && currentUser.groups.some((group) => {
+      if (!group || typeof group !== 'object') return false;
+      if (Array.isArray(group.permissions) && group.permissions.some(hasPermission)) return true;
+      return group.permissions_name &&
+        (Object.prototype.hasOwnProperty.call(group.permissions_name, 'can_view_all_tasks') ||
+          Object.values(group.permissions_name).some((permissions) =>
+            Array.isArray(permissions) && permissions.some(hasPermission)
+          ));
+    });
+  })();
+  const isSuperuser = currentUser?.is_superuser === true;
+  const taskScope = searchParams.get('tab') === 'all' ? 'all' : 'my';
 
   // Data states
   const [tasks, setTasks] = useState([]);
@@ -170,7 +200,11 @@ export default function OrganizerTaskManagement() {
           params.department = currentDepartment;
         }
 
-        const res = await api.organizerTasks.getAll(params, { forceRefresh: true });
+        const shouldLoadAllTasks = taskScope === 'all';
+        const taskRequest = shouldLoadAllTasks
+          ? api.organizerTasks.getAllTasks
+          : api.organizerTasks.getMyTasks;
+        const res = await taskRequest(params, { forceRefresh: true });
         const list = Array.isArray(res)
           ? res
           : Array.isArray(res?.results)
@@ -197,7 +231,7 @@ export default function OrganizerTaskManagement() {
         setIsLoading(false);
       }
     },
-    [searchQuery, statusFilter, priorityFilter, departmentFilter, showToast]
+    [searchQuery, statusFilter, priorityFilter, departmentFilter, showToast, canViewAllTasks, isSuperuser, taskScope]
   );
 
   // Initial fetch

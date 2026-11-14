@@ -220,6 +220,7 @@ export default function AdminLayout() {
   const [sponsorMgmtOpen, setSponsorMgmtOpen] = useState(true);
   const [scheduleMgmtOpen, setScheduleMgmtOpen] = useState(true);
   const [userMgmtOpen, setUserMgmtOpen] = useState(true);
+  const [organizerTasksOpen, setOrganizerTasksOpen] = useState(true);
 
   // Group permission objects for non-staff / non-superuser users
   const [userGroupObjects, setUserGroupObjects] = useState([]);
@@ -475,6 +476,28 @@ export default function AdminLayout() {
 
   // 5. Organizer Tasks & Activity Logs
   const canAccessOrganizerTasks = hasPermission(['organizertasks']);
+  const hasAllTasksPermission = (() => {
+    const matches = (permission) => {
+      if (typeof permission === 'string') {
+        return permission.toLowerCase().replace(/^.*\./, '') === 'can_view_all_tasks';
+      }
+      return permission?.codename?.toLowerCase() === 'can_view_all_tasks' ||
+        permission?.name?.toLowerCase() === 'can_view_all_tasks' ||
+        permission?.permission?.toLowerCase() === 'can_view_all_tasks';
+    };
+    const directPermissions = currentUser?.permissions || currentUser?.user_permissions || [];
+    if (currentUser?.is_superuser === true || currentUser?.can_view_all_tasks === true) return true;
+    if (Array.isArray(directPermissions) && directPermissions.some(matches)) return true;
+    return userGroupsList.some((group) => {
+      if (!group || typeof group !== 'object') return false;
+      if (Array.isArray(group.permissions) && group.permissions.some(matches)) return true;
+      return group.permissions_name &&
+        (Object.prototype.hasOwnProperty.call(group.permissions_name, 'can_view_all_tasks') ||
+          Object.values(group.permissions_name).some((permissions) =>
+            Array.isArray(permissions) && permissions.some(matches)
+          ));
+    });
+  })();
   const canAccessLogs = isSuperOrStaff || hasPermission(['activity']);
 
   // Header Title mapping
@@ -1036,25 +1059,56 @@ export default function AdminLayout() {
               </div>
             )}
 
-            {/* Organizer Tasks - Single Direct Link */}
+            {/* Organizer Tasks */}
             {canAccessOrganizerTasks && (
-              <div className="mb-1">
-                <Link
-                  to="/admin-control-site/organizer-tasks"
+              <div className="space-y-0.5 mb-1">
+                <button
+                  type="button"
+                  onClick={() => setOrganizerTasksOpen((prev) => !prev)}
+                  className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-slate-700 hover:bg-slate-100/80 hover:text-slate-900 transition-colors group cursor-pointer"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <ClipboardList className="w-4 h-4 text-slate-600 shrink-0" />
+                    <span className="text-xs font-normal text-slate-700">Organizer Tasks</span>
+                  </div>
+                  {organizerTasksOpen ? (
+                    <ChevronUp className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                  ) : (
+                    <ChevronDown className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                  )}
+                </button>
+                {organizerTasksOpen && (
+                <div className="space-y-0.5 pl-3 ml-2.5 border-l border-slate-100 py-0.5">
+                  <Link
+                    to="/admin-control-site/organizer-tasks?tab=my"
                   onClick={() => setMobileMenuOpen(false)}
-                  className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-normal transition-all ${
-                    isOrganizerTasksActive
+                  className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-normal transition-all ${
+                    isOrganizerTasksActive && location.search !== '?tab=all'
                       ? 'shadow-xs text-white'
                       : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
                   }`}
-                  style={isOrganizerTasksActive ? { backgroundColor: '#ea580c', color: '#ffffff' } : {}}
+                  style={isOrganizerTasksActive && location.search !== '?tab=all' ? { backgroundColor: '#ea580c', color: '#ffffff' } : {}}
                 >
-                  <ClipboardList
-                    className="w-4 h-4 shrink-0"
-                    style={isOrganizerTasksActive ? { color: '#ffffff' } : { color: '#64748b' }}
-                  />
-                  <span>Organizer Tasks</span>
-                </Link>
+                    <ClipboardList className="w-3.5 h-3.5 shrink-0" />
+                    <span>My Tasks</span>
+                  </Link>
+                  {hasAllTasksPermission && (
+                  <Link
+                    to="/admin-control-site/organizer-tasks?tab=all"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-normal transition-all ${
+                      isOrganizerTasksActive && location.search === '?tab=all'
+                        ? 'shadow-xs text-white'
+                        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                    }`}
+                    style={isOrganizerTasksActive && location.search === '?tab=all' ? { backgroundColor: '#ea580c', color: '#ffffff' } : {}}
+                  >
+                    <ClipboardList className="w-3.5 h-3.5 shrink-0" />
+                    <span>All Tasks</span>
+                  </Link>
+                  )}
+                </div>
+                )}
               </div>
             )}
 

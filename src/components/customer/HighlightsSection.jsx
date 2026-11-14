@@ -20,12 +20,24 @@ export default function HighlightsSection() {
   if (orderedPrizes.length === 0) return null;
 
   const pool = orderedPrizes.reduce((acc, p) => acc + (Number(p.prize_money) || 0), 0);
-  const podiumPrizes = orderedPrizes.slice(0, 3).map((prize, index) => ({
+  const placementById = useMemo(() => {
+    const ranked = [...orderedPrizes]
+      .map((prize, index) => ({ prize, index, amount: Number(prize?.prize_money) || 0 }))
+      .sort((a, b) => b.amount - a.amount || a.index - b.index);
+
+    return new Map(ranked.map(({ prize }, index) => [prize.id, index + 1]));
+  }, [orderedPrizes]);
+
+  const podiumPrizes = orderedPrizes.slice(0, 3).map((prize) => ({
     ...prize,
-    rank: index + 1
+    rank: placementById.get(prize.id)
   }));
-  const podiumLayout = [podiumPrizes[1], podiumPrizes[0], podiumPrizes[2]].filter(Boolean);
   const normalizeTitle = (title) => String(title || '').replace(/\bmistery\b/gi, 'Mystery');
+  const rankHumor = {
+    1: 'The big one. No pressure.',
+    2: 'Very close. Still brag-worthy.',
+    3: 'The plot twist everyone remembers.',
+  };
 
   return (
     <Section id="prizes" tone="dark" py="py-16 sm:py-24">
@@ -40,7 +52,7 @@ export default function HighlightsSection() {
             Prizes & Recognition
           </h2>
           <p className="mt-3 text-xs sm:text-sm text-slate-300 max-w-lg mx-auto">
-            Rewarding technical excellence, prototype execution, and impactful innovation.
+            Three ways to leave with a trophy, a story, and excellent bragging rights.
           </p>
 
           {pool > 0 && (
@@ -55,7 +67,7 @@ export default function HighlightsSection() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-          {podiumLayout.map((p) => {
+          {podiumPrizes.map((p) => {
             const amount = Number(p.prize_money) || 0;
             const isGrandPrize = p.rank === 1;
             const Icon = isGrandPrize ? Trophy : p.rank === 2 ? Medal : Award;
@@ -65,10 +77,10 @@ export default function HighlightsSection() {
               <div
                 key={p.id || p.rank}
                 className={`relative ${
-                  p.rank === 1 ? 'order-1 md:order-2' : p.rank === 2 ? 'order-2 md:order-1' : 'order-3 md:order-3'
-                } overflow-hidden rounded-3xl border p-5 sm:p-6 transition-transform hover:-translate-y-1 ${
+                  'overflow-hidden rounded-3xl border p-5 sm:p-6 transition-transform hover:-translate-y-1'
+                } ${
                   isGrandPrize
-                    ? 'md:-translate-y-5 bg-gradient-to-br from-brand-orange/30 to-brand-yellow/10 border-brand-yellow/50 shadow-xl shadow-brand-orange/10'
+                    ? 'bg-gradient-to-br from-brand-orange/30 to-brand-yellow/10 border-brand-yellow/50 shadow-xl shadow-brand-orange/10'
                     : 'bg-white/[0.07] border-white/15 hover:border-brand-orange/50'
                 }`}
               >
@@ -82,6 +94,7 @@ export default function HighlightsSection() {
                   <p className="mt-5 text-xs font-bold uppercase tracking-[0.16em] text-slate-300">
                     {p.rank === 1 ? 'First Place' : p.rank === 2 ? 'Second Place' : 'Third Place'}
                   </p>
+                  <p className="mt-1 text-[11px] italic text-brand-yellow/80">{rankHumor[p.rank]}</p>
                   <h3 className="mt-1 text-lg font-extrabold text-white">{normalizeTitle(p.title)}</h3>
                   <div className={`text-xl font-extrabold mt-3 inline-flex items-center ${
                     isGrandPrize ? 'text-brand-yellow' : 'text-white'
