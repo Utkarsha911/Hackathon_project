@@ -93,6 +93,21 @@ export default function AdminLayout() {
   const location = useLocation();
   const navigate = useNavigate();
 
+  useEffect(() => {
+    let robots = document.querySelector('meta[name="robots"]');
+    if (!robots) {
+      robots = document.createElement('meta');
+      robots.name = 'robots';
+      document.head.appendChild(robots);
+    }
+    robots.content = 'noindex, nofollow, noarchive';
+
+    return () => {
+      document.title = 'BIC Hackathon | Innovation & Collaboration Platform';
+      robots.content = 'index, follow';
+    };
+  }, []);
+
   // Authentication State
   const [currentUser, setCurrentUser] = useState(() => {
     return (
@@ -109,6 +124,15 @@ export default function AdminLayout() {
   // Available Hackathons for Global Admin Filter
   const [adminHackathons, setAdminHackathons] = useState([]);
   const [selectedHackathonId, setSelectedHackathonId] = useState(() => getSelectedAdminHackathon() || '');
+
+  useEffect(() => {
+    const selectedHackathon = adminHackathons.find(
+      (hackathon) => String(hackathon.id) === String(selectedHackathonId)
+    );
+    const editionTitle = selectedHackathon?.title || 'BIC Hackathon';
+    const version = selectedHackathon?.version ? ` ${selectedHackathon.version}` : '';
+    document.title = `${editionTitle}${version} | Admin`;
+  }, [adminHackathons, selectedHackathonId]);
 
   // Fetch hackathons on mount to populate the top-right filter dropdown
   useEffect(() => {

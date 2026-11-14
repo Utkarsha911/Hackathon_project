@@ -16,17 +16,52 @@ import UserAuthModal from './UserAuthModal';
 import Footer from '../common/Footer';
 import Toast from '../common/Toast';
 import { useHackathon } from '../../context/HackathonContext';
+import { getMediaUrl } from '../../services/api';
 import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
 import { FileText, Shield, X } from 'lucide-react';
 
 export default function CustomerPortal() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { terms, isRegistrationOpen } = useHackathon();
+  const { terms, hackathon, isRegistrationOpen } = useHackathon();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [authReason, setAuthReason] = useState('login'); // 'login' | 'register'
   const [showTermsModal, setShowTermsModal] = useState(false);
+
+  useEffect(() => {
+    if (!hackathon?.start_date) return undefined;
+
+    const startDate = new Date(hackathon.start_date);
+    const endDate = new Date(hackathon.end_date || hackathon.start_date);
+    const year = Number.isNaN(startDate.getTime()) ? '' : startDate.getFullYear();
+    const formatDate = (date, includeMonth = true) => (
+      Number.isNaN(date.getTime())
+        ? ''
+        : date.toLocaleDateString('en-US', {
+          ...(includeMonth ? { month: 'short' } : {}),
+          day: 'numeric'
+        })
+    );
+    const sameMonth = startDate.getMonth() === endDate.getMonth();
+    const dateLabel = sameMonth
+      ? `${formatDate(startDate)}–${formatDate(endDate, false)}, ${year}`
+      : `${formatDate(startDate)}–${formatDate(endDate)}, ${year}`;
+    const title = `${hackathon.title || 'BIC Hackathon'}${hackathon.version ? ` ${hackathon.version}` : ''} | ${dateLabel}${hackathon.venue ? ` | ${hackathon.venue}` : ''}`;
+    const duration = hackathon.event_time || 'hands-on';
+    const description = `${duration} hackathon for teams of ${hackathon.minimum_team_size || 1}–${hackathon.maximum_team_size || 4}${hackathon.venue ? ` at ${hackathon.venue}` : ''}. ${dateLabel}. Explore the event and register your team.`;
+
+    document.title = title;
+    document.querySelector('meta[name="description"]')?.setAttribute('content', description);
+    document.querySelector('meta[property="og:title"]')?.setAttribute('content', title);
+    document.querySelector('meta[property="og:description"]')?.setAttribute('content', description);
+    document.querySelector('meta[property="og:url"]')?.setAttribute('content', window.location.origin);
+    if (hackathon.banner_image) {
+      document.querySelector('meta[property="og:image"]')?.setAttribute('content', getMediaUrl(hackathon.banner_image));
+    }
+
+    return undefined;
+  }, [hackathon]);
 
   // Smooth animated scrolling for all section navigation links
   useEffect(() => {
