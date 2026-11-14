@@ -157,7 +157,7 @@ export default function CustomerPortal() {
         <AboutSection onOpenRegister={handleOpenRegister} />
         <ChallengesSection />
         <OrganizersSection />
-        <HighlightsSection />
+        <HighlightsSection onOpenRegister={handleOpenRegister} />
         <ScheduleSection />
         <RulesSection />
         <SponsorsSection />

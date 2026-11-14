@@ -1,30 +1,32 @@
 import React, { useMemo } from 'react';
-import { Trophy, Award, Medal, Star, NepaliRupee, BadgeCheck } from 'lucide-react';
+import { Trophy, Award, Medal, Star, BadgeCheck, ArrowRight } from 'lucide-react';
 import { useHackathon } from '../../context/HackathonContext';
 import Section from '../common/Section';
+import { formatNpr } from '../../utils/currency';
+import Button from '../common/Button';
 
-export default function HighlightsSection() {
-  const { hackathon, prizes = [] } = useHackathon();
+export default function HighlightsSection({ onOpenRegister }) {
+  const { prizes = [], isRegistrationOpen } = useHackathon();
 
-  // Preserve the backend order for display.
   const orderedPrizes = useMemo(() => {
     if (!Array.isArray(prizes)) return [];
-    return [...prizes];
+    return [...prizes].sort((a, b) => {
+      const orderDifference = (Number(a?.order) || 0) - (Number(b?.order) || 0);
+      if (orderDifference !== 0) return orderDifference;
+      return String(a?.id || '').localeCompare(String(b?.id || ''));
+    });
   }, [prizes]);
 
   // Do not render section if no prizes data received
   if (orderedPrizes.length === 0) return null;
 
-  const grandPrizeIndex = orderedPrizes.reduce((highestIndex, prize, index, allPrizes) => {
-    const highestAmount = Number(allPrizes[highestIndex]?.prize_money) || 0;
-    const amount = Number(prize?.prize_money) || 0;
-    return amount > highestAmount ? index : highestIndex;
-  }, 0);
-
-  const pool =
-    hackathon?.total_prize !== undefined && hackathon?.total_prize !== null
-      ? Number(hackathon.total_prize) || 0
-      : orderedPrizes.reduce((acc, p) => acc + (Number(p.prize_money) || 0), 0);
+  const pool = orderedPrizes.reduce((acc, p) => acc + (Number(p.prize_money) || 0), 0);
+  const podiumPrizes = orderedPrizes.slice(0, 3).map((prize, index) => ({
+    ...prize,
+    rank: index + 1
+  }));
+  const podiumLayout = [podiumPrizes[1], podiumPrizes[0], podiumPrizes[2]].filter(Boolean);
+  const normalizeTitle = (title) => String(title || '').replace(/\bmistery\b/gi, 'Mystery');
 
   return (
     <Section id="prizes" tone="dark" py="py-16 sm:py-24">
@@ -47,24 +49,25 @@ export default function HighlightsSection() {
               <Trophy className="w-4 h-4 text-brand-yellow shrink-0" />
               <span className="text-xs font-medium text-slate-300">Total prize pool</span>
               <span className="inline-flex items-center text-xs sm:text-sm font-extrabold text-white">
-                <NepaliRupee className="w-3.5 h-3.5 stroke-[2.5]" />
-                {pool.toLocaleString()}
+                    {formatNpr(pool)}
               </span>
             </div>
           )}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-          {orderedPrizes.slice(0, 3).map((p, idx) => {
+          {podiumLayout.map((p) => {
             const amount = Number(p.prize_money) || 0;
-            const isGrandPrize = idx === grandPrizeIndex;
-            const Icon = isGrandPrize ? Trophy : idx === 1 ? Medal : Award;
-            const place = String(idx + 1).padStart(2, '0');
+            const isGrandPrize = p.rank === 1;
+            const Icon = isGrandPrize ? Trophy : p.rank === 2 ? Medal : Award;
+            const place = String(p.rank).padStart(2, '0');
 
             return (
               <div
-                key={p.id || idx}
-                className={`relative overflow-hidden rounded-3xl border p-5 sm:p-6 transition-transform hover:-translate-y-1 ${
+                key={p.id || p.rank}
+                className={`relative ${
+                  p.rank === 1 ? 'order-1 md:order-2' : p.rank === 2 ? 'order-2 md:order-1' : 'order-3 md:order-3'
+                } overflow-hidden rounded-3xl border p-5 sm:p-6 transition-transform hover:-translate-y-1 ${
                   isGrandPrize
                     ? 'md:-translate-y-5 bg-gradient-to-br from-brand-orange/30 to-brand-yellow/10 border-brand-yellow/50 shadow-xl shadow-brand-orange/10'
                     : 'bg-white/[0.07] border-white/15 hover:border-brand-orange/50'
@@ -78,17 +81,14 @@ export default function HighlightsSection() {
                     <Icon className="w-6 h-6" strokeWidth={1.8} />
                   </div>
                   <p className="mt-5 text-xs font-bold uppercase tracking-[0.16em] text-slate-300">
-                    {isGrandPrize ? 'Grand Prize' : idx === 1 ? 'Runner-up' : 'Third Place'}
+                    {p.rank === 1 ? 'First Place' : p.rank === 2 ? 'Second Place' : 'Third Place'}
                   </p>
-                  <h3 className="mt-1 text-lg font-extrabold text-white">{p.title}</h3>
+                  <h3 className="mt-1 text-lg font-extrabold text-white">{normalizeTitle(p.title)}</h3>
                   <div className={`text-xl font-extrabold mt-3 inline-flex items-center ${
                     isGrandPrize ? 'text-brand-yellow' : 'text-white'
                   }`}>
                     {amount > 0 ? (
-                      <>
-                        <NepaliRupee className="w-4 h-4 stroke-[2.5]" />
-                        {amount.toLocaleString()}
-                      </>
+                      formatNpr(amount)
                     ) : (
                       <span className="text-xs text-slate-300 font-normal">
                         Trophy & certificate
@@ -110,30 +110,38 @@ export default function HighlightsSection() {
         {orderedPrizes.length > 3 && (
           <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {orderedPrizes.slice(3).map((p, idx) => {
-              const actualIndex = idx + 3;
               const amount = Number(p.prize_money) || 0;
-              const isGrandPrize = actualIndex === grandPrizeIndex;
               return (
                 <div key={p.id || idx} className={`flex items-center gap-3 rounded-2xl border p-4 ${
-                  isGrandPrize
-                    ? 'border-brand-yellow/50 bg-brand-orange/20'
-                    : 'border-white/10 bg-white/[0.05]'
+                  'border-white/10 bg-white/[0.05]'
                 }`}>
-                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
-                    isGrandPrize ? 'bg-brand-yellow text-brand-dark' : 'bg-brand-blue/20 text-brand-yellow'
-                  }`}>
-                    {isGrandPrize ? <Trophy className="w-4 h-4" /> : <Star className="w-4 h-4" />}
+                  <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 bg-brand-blue/20 text-brand-yellow">
+                    <Star className="w-4 h-4" />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-sm font-bold text-white truncate">{p.title}</p>
+                    <p className="text-sm font-bold text-white truncate">{normalizeTitle(p.title)}</p>
                     <p className="text-xs text-slate-400 inline-flex items-center mt-1">
-                      {isGrandPrize ? 'Grand Prize · ' : ''}
-                      {amount > 0 ? <><NepaliRupee className="w-3 h-3" />{amount.toLocaleString()}</> : 'Recognition award'}
+                      {amount > 0 ? formatNpr(amount) : 'Recognition award'}
                     </p>
                   </div>
                 </div>
               );
             })}
+          </div>
+        )}
+        {onOpenRegister && (
+          <div className="mt-8 flex flex-col items-center gap-3">
+            <Button
+              onClick={onOpenRegister}
+              disabled={!isRegistrationOpen}
+              className={!isRegistrationOpen ? 'cursor-not-allowed opacity-60' : ''}
+            >
+              <span>{isRegistrationOpen ? 'Register your team' : 'Registration closed'}</span>
+              {isRegistrationOpen && <ArrowRight className="h-4 w-4" />}
+            </Button>
+            <a href="#rules" className="text-xs font-semibold text-slate-300 hover:text-brand-yellow">
+              View rules and judging details
+            </a>
           </div>
         )}
       </div>
