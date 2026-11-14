@@ -119,7 +119,7 @@ export default function CustomerPortal() {
       {/* Page Sections */}
       <main className="flex-grow">
         <HeroSection onOpenRegister={handleOpenRegister} />
-        <AboutSection />
+        <AboutSection onOpenRegister={handleOpenRegister} />
         <ChallengesSection />
         <OrganizersSection />
         <HighlightsSection />
