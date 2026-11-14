@@ -93,7 +93,8 @@ export default function HeroSection({ onOpenRegister }) {
   }
 
   const h = hackathon || {};
-  const year = EVENT_YEAR;
+  const parsedEventYear = h.start_date ? new Date(h.start_date).getFullYear() : NaN;
+  const year = Number.isNaN(parsedEventYear) ? EVENT_YEAR : parsedEventYear;
   const bg = h.banner_image ? getMediaUrl(h.banner_image) : null;
 
   return (

@@ -4,7 +4,6 @@ import { useHackathon } from '../../context/HackathonContext';
 import Section from '../common/Section';
 import SectionHeading from '../common/SectionHeading';
 import { formatRegistrationFeeType } from '../../utils/registration';
-import { EVENT_YEAR } from '../../config/event';
 
 const PILLARS = [
   { icon: Users, title: 'Collaborate', text: 'Work in diverse teams' },
@@ -19,7 +18,7 @@ function formatEventDates(startDate, endDate) {
 
   const startMonth = start.toLocaleString('default', { month: 'short' });
   const endMonth = end.toLocaleString('default', { month: 'short' });
-  const year = EVENT_YEAR || start.getFullYear();
+  const year = start.getFullYear();
   return startMonth === endMonth
     ? `${startMonth} ${start.getDate()} – ${end.getDate()}, ${year}`
     : `${startMonth} ${start.getDate()} – ${endMonth} ${end.getDate()}, ${year}`;
