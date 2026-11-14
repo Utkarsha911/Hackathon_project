@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useHackathon } from '../../context/HackathonContext';
 import { getMediaUrl } from '../../services/api';
-import { ArrowRight, Calendar, MapPin, Users, Clock, Award, Banknote } from 'lucide-react';
+import { ArrowRight, Clock, Award } from 'lucide-react';
 import { EVENT_VERSION, EVENT_YEAR } from '../../config/event';
 import { getTimeRemaining, parseDateBoundary } from '../../utils/registration';
 import Button from '../common/Button';
@@ -74,17 +74,6 @@ function HeroCountdown({ registrationStatus, hackathon }) {
 export default function HeroSection({ onOpenRegister }) {
   const { hackathon, isLoadingApi, isRegistrationOpen, registrationStatus } = useHackathon();
 
-  // Month/day come from the API; the year is the event year (the stored dates still carry 2024).
-  const formatDateRange = () => {
-    const s = new Date(hackathon?.start_date);
-    const e = new Date(hackathon?.end_date);
-    if (isNaN(s.getTime()) || isNaN(e.getTime())) return 'Dates coming soon';
-    const sMonth = s.toLocaleString('default', { month: 'short' });
-    const eMonth = e.toLocaleString('default', { month: 'short' });
-    if (sMonth === eMonth) return `${sMonth} ${s.getDate()} – ${e.getDate()}, ${EVENT_YEAR}`;
-    return `${sMonth} ${s.getDate()} – ${eMonth} ${e.getDate()}, ${EVENT_YEAR}`;
-  };
-
   // Modern Skeleton state while fetching API
   if (isLoadingApi && !hackathon) {
     return (
@@ -105,21 +94,7 @@ export default function HeroSection({ onOpenRegister }) {
 
   const h = hackathon || {};
   const year = EVENT_YEAR;
-  const minTeam = h.minimum_team_size || 1;
-  const maxTeam = h.maximum_team_size || h.max_team_size || 4;
-  const registrationFee = Number(h.registration_fee) || 0;
   const bg = h.banner_image ? getMediaUrl(h.banner_image) : null;
-
-  const facts = [
-    { icon: Calendar, label: 'Date', value: formatDateRange(), sub: h.event_time },
-    ...(h.venue ? [{ icon: MapPin, label: 'Venue', value: h.venue }] : []),
-    { icon: Users, label: 'Teams', value: `${minTeam}–${maxTeam} members each` },
-    {
-      icon: Banknote,
-      label: 'Registration',
-      value: registrationFee > 0 ? `NPR ${registrationFee.toLocaleString()}` : 'Free entry'
-    },
-  ];
 
   return (
     <section id="top" className="relative min-h-screen min-h-[100dvh] flex flex-col justify-center bg-brand-dark text-white overflow-hidden">
@@ -158,19 +133,6 @@ export default function HeroSection({ onOpenRegister }) {
         </p>
 
         <HeroCountdown registrationStatus={registrationStatus} hackathon={h} />
-
-        <div className="mt-8 sm:mt-10 flex flex-col sm:flex-row sm:items-stretch gap-4 sm:gap-0 max-w-3xl">
-          {facts.map((f, idx) => (
-            <div key={f.label} className={`flex items-start gap-3 sm:pr-6 ${idx > 0 ? 'sm:pl-6 sm:border-l sm:border-white/20' : ''}`}>
-              <f.icon className="w-5 h-5 sm:w-6 sm:h-6 text-slate-200 shrink-0 mt-0.5" />
-              <div className="text-sm">
-                <div className="text-xs text-slate-400">{f.label}</div>
-                <div className="font-semibold text-white leading-snug">{f.value}</div>
-                {f.sub && <div className="text-slate-300 text-xs">{f.sub}</div>}
-              </div>
-            </div>
-          ))}
-        </div>
 
         <div className="mt-8 sm:mt-9 flex flex-wrap items-center gap-3">
           {isRegistrationOpen ? (

@@ -1,9 +1,10 @@
 import React from 'react';
-import { Lightbulb, Rocket, Users } from 'lucide-react';
+import { Banknote, Calendar, Clock, Lightbulb, MapPin, Rocket, Users } from 'lucide-react';
 import { useHackathon } from '../../context/HackathonContext';
 import Section from '../common/Section';
 import SectionHeading from '../common/SectionHeading';
 import { formatRegistrationFeeType } from '../../utils/registration';
+import { EVENT_YEAR } from '../../config/event';
 
 const PILLARS = [
   { icon: Users, title: 'Collaborate', text: 'Work in diverse teams' },
@@ -11,55 +12,98 @@ const PILLARS = [
   { icon: Lightbulb, title: 'Make an impact', text: 'Create change for Nepal' },
 ];
 
+function formatEventDates(startDate, endDate) {
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return 'Dates coming soon';
+
+  const startMonth = start.toLocaleString('default', { month: 'short' });
+  const endMonth = end.toLocaleString('default', { month: 'short' });
+  const year = EVENT_YEAR || start.getFullYear();
+  return startMonth === endMonth
+    ? `${startMonth} ${start.getDate()} – ${end.getDate()}, ${year}`
+    : `${startMonth} ${start.getDate()} – ${endMonth} ${end.getDate()}, ${year}`;
+}
+
 export default function AboutSection() {
   const { hackathon } = useHackathon();
   const h = hackathon || {};
   if (!h.title) return null;
 
+  const minTeamSize = h.minimum_team_size || 1;
+  const maxTeamSize = h.maximum_team_size || 4;
+  const registrationFee = Number(h.registration_fee) || 0;
+  const eventDetails = [
+    {
+      icon: Calendar,
+      label: 'Event date',
+      value: formatEventDates(h.start_date, h.end_date),
+      detail: h.event_time || 'Event schedule coming soon'
+    },
+    {
+      icon: MapPin,
+      label: 'Venue',
+      value: h.venue || 'Venue coming soon',
+      detail: 'In-person event'
+    },
+    {
+      icon: Users,
+      label: 'Team size',
+      value: `${minTeamSize}–${maxTeamSize} members`,
+      detail: 'Members per team'
+    },
+    {
+      icon: Banknote,
+      label: 'Registration',
+      value: registrationFee > 0 ? `NPR ${registrationFee.toLocaleString()}` : 'Free entry',
+      detail: registrationFee > 0 ? formatRegistrationFeeType(h.registration_fee_type) : 'Open to eligible teams'
+    }
+  ];
+
   return (
     <Section id="about" py="py-16 sm:py-20">
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
-        <div>
-          <SectionHeading label="About the event" title={`What is ${h.title || 'the hackathon'}?`} className="mb-4" />
+      <SectionHeading label="About the event" title={`What is ${h.title}?`}>
+        {h.description || 'Technology is most powerful when it brings people together to solve real problems.'}
+      </SectionHeading>
 
-          <div className="mt-8 grid grid-cols-3 divide-x divide-slate-200 max-w-lg">
-            {PILLARS.map((p) => (
-              <div key={p.title} className="px-3 first:pl-0 text-center first:text-left">
-                <p.icon className="w-8 h-8 text-brand-blue mb-2 mx-auto first:mx-0" strokeWidth={1.5} />
-                <div className="text-sm font-bold text-ink">{p.title}</div>
-                <div className="text-xs text-slate-500 mt-0.5">{p.text}</div>
+      <div className="mt-10 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {eventDetails.map((detail) => (
+          <div
+            key={detail.label}
+            className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md"
+          >
+            <div className="flex items-center gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-orange-50 text-brand-orange">
+                <detail.icon className="h-5 w-5" strokeWidth={1.8} />
+              </span>
+              <span className="text-xs font-bold uppercase tracking-[0.12em] text-slate-400">
+                {detail.label}
+              </span>
+            </div>
+            <p className="mt-4 text-sm font-bold leading-snug text-slate-900">{detail.value}</p>
+            <p className="mt-1 text-xs text-slate-500">{detail.detail}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-10 grid grid-cols-1 gap-6 rounded-2xl bg-slate-50 p-6 sm:p-8 lg:grid-cols-[1fr_auto] lg:items-center">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[0.14em] text-brand-blue">The experience</p>
+          <div className="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-3">
+            {PILLARS.map((pillar) => (
+              <div key={pillar.title} className="flex items-start gap-3">
+                <pillar.icon className="mt-0.5 h-5 w-5 shrink-0 text-brand-blue" strokeWidth={1.8} />
+                <div>
+                  <p className="text-sm font-bold text-ink">{pillar.title}</p>
+                  <p className="mt-0.5 text-xs text-slate-500">{pillar.text}</p>
+                </div>
               </div>
             ))}
           </div>
         </div>
-
-        <div className="relative rounded-2xl overflow-hidden min-h-[240px] bg-gradient-to-br from-brand-dark via-brand-navy to-brand-blue p-8 flex flex-col justify-center text-white">
-          <svg className="absolute bottom-0 left-0 w-full" viewBox="0 0 400 120" preserveAspectRatio="none" aria-hidden="true">
-            <path d="M0 120 L70 50 L110 80 L190 10 L260 85 L310 45 L400 110 L400 120 Z" fill="rgba(255,255,255,0.18)" />
-            <path d="M0 120 L90 80 L150 100 L230 55 L320 105 L400 75 L400 120 Z" fill="rgba(5,11,26,0.35)" />
-          </svg>
-          <p className="relative text-base sm:text-lg font-medium leading-relaxed max-w-md">
-            {h.description || 'Technology is most powerful when it brings people together to solve real problems.'}
-          </p>
-          <p className="relative mt-4 text-sm font-semibold text-blue-200">— {h.title || 'BIC Hackathon'}</p>
-        </div>
-      </div>
-
-      <div className="mt-10 rounded-2xl border border-orange-200 bg-orange-50/60 p-5 sm:p-6">
-        <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-orange-700">Registration fee</p>
-            <p className="mt-1 text-lg font-bold text-slate-900">
-              {Number(h.registration_fee) > 0
-                ? `NPR ${Number(h.registration_fee).toLocaleString()}`
-                : 'Free entry'}
-            </p>
-          </div>
-          {Number(h.registration_fee) > 0 && (
-            <span className="text-sm font-semibold text-orange-700">
-              {formatRegistrationFeeType(h.registration_fee_type)}
-            </span>
-          )}
+        <div className="hidden items-center gap-2 text-slate-400 lg:flex" aria-hidden="true">
+          <Clock className="h-5 w-5" />
+          <span className="text-xs font-semibold">{h.event_time || 'Build together'}</span>
         </div>
       </div>
     </Section>
