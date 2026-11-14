@@ -1,8 +1,7 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { ArrowDown, Calendar, MapPin, Users } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { useHackathon } from '../../context/HackathonContext';
-import { getMediaUrl } from '../../services/api';
+import api, { getMediaUrl } from '../../services/api';
 import Footer from '../common/Footer';
 import CustomerNavbar from './CustomerNavbar';
 import Section from '../common/Section';
@@ -16,9 +15,33 @@ function formatDateRange(startDate, endDate) {
 }
 
 export default function PreviousHackathonsPage() {
-  const { previousHackathons = [] } = useHackathon();
+  const [previousHackathons, setPreviousHackathons] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  if (previousHackathons.length === 0) return null;
+  useEffect(() => {
+    let isMounted = true;
+
+    api.request('/hackathons/previous-hackathons/')
+      .then((response) => {
+        const editions = Array.isArray(response)
+          ? response
+          : Array.isArray(response?.results)
+            ? response.results
+            : [];
+        if (isMounted) setPreviousHackathons(editions);
+      })
+      .catch((requestError) => {
+        if (isMounted) setError(requestError.message || 'Unable to load previous hackathons.');
+      })
+      .finally(() => {
+        if (isMounted) setIsLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   return (
     <div className="theme-brand min-h-screen bg-white text-slate-900">
@@ -37,6 +60,13 @@ export default function PreviousHackathonsPage() {
         </Section>
 
         <Section py="py-12 sm:py-16">
+          {isLoading ? (
+            <p className="mx-auto max-w-5xl text-sm text-slate-500" role="status">Loading previous hackathons...</p>
+          ) : error ? (
+            <p className="mx-auto max-w-5xl text-sm text-red-600" role="alert">{error}</p>
+          ) : previousHackathons.length === 0 ? (
+            <p className="mx-auto max-w-5xl text-sm text-slate-500">No previous hackathons are available yet.</p>
+          ) : (
           <div className="relative mx-auto max-w-5xl">
             <div className="absolute left-5 top-6 bottom-8 w-px bg-gradient-to-b from-brand-orange via-brand-blue to-slate-200 sm:left-1/2 sm:-translate-x-1/2" />
             <div className="space-y-10 sm:space-y-16">
@@ -82,6 +112,7 @@ export default function PreviousHackathonsPage() {
               More stories ahead
             </div>
           </div>
+          )}
           <Link to="/" className="mt-10 inline-flex text-sm font-semibold text-brand-blue hover:text-brand-orange">
             Back to current edition
           </Link>

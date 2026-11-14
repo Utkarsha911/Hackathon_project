@@ -44,7 +44,6 @@ export function HackathonProvider({ children }) {
 
   // Normal / Public Models State (NO static data - fetched directly from API)
   const [hackathon, setHackathon] = useState(null);
-  const [previousHackathons, setPreviousHackathons] = useState([]);
   const [prizes, setPrizes] = useState([]);
   const [challenges, setChallenges] = useState([]);
   const [schedules, setSchedules] = useState([]);
@@ -272,14 +271,6 @@ export function HackathonProvider({ children }) {
         }
 
       }
-
-      const previousHackathonsRes = await api.hackathons.getAll({ previous: true }).catch(() => null);
-      const previousHackathonsList = Array.isArray(previousHackathonsRes)
-        ? previousHackathonsRes
-        : Array.isArray(previousHackathonsRes?.results)
-          ? previousHackathonsRes.results
-          : [];
-      setPreviousHackathons(previousHackathonsList);
 
       // If modular relations are not bundled in current-hackathon, query modular endpoints
       if (!hasEmbeddedRelations) {
@@ -862,7 +853,6 @@ export function HackathonProvider({ children }) {
     logout,
     // Datasets
     hackathon,
-    previousHackathons,
     setHackathon,
     current_hackathon: hackathon,
     isTshirtIncluded: Boolean(

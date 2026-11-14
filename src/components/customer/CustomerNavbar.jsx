@@ -18,8 +18,7 @@ export default function CustomerNavbar({ onOpenRegister, onOpenLogin, onOpenProf
     scheduleEvents = [],
     prizes = [],
     organizers = [],
-    faqs = [],
-    previousHackathons = []
+    faqs = []
   } = useHackathon();
 
   const hasScheduleData =
@@ -78,7 +77,7 @@ export default function CustomerNavbar({ onOpenRegister, onOpenLogin, onOpenProf
     ...(hasPrizesData ? [{ label: 'Prizes', hash: '#prizes' }] : []),
     ...(hasOrganizersData ? [{ label: 'Organizers', hash: '#organizers' }] : []),
     ...(hasFaqData ? [{ label: 'FAQ', hash: '#faq' }] : []),
-    ...(previousHackathons.length > 0 ? [{ label: 'History', href: '/previous-hackathons' }] : []),
+    { label: 'History', href: '/previous-hackathons' },
   ];
 
   useEffect(() => {
@@ -126,9 +125,10 @@ export default function CustomerNavbar({ onOpenRegister, onOpenLogin, onOpenProf
     }
   };
 
-  const linkCls = (hash) => `relative px-3 py-2 text-[13px] font-semibold transition-colors ${
-    activeHash === hash ? 'text-white' : 'text-slate-300 hover:text-white'
+  const linkCls = (isActive) => `relative px-3 py-2 text-[13px] font-semibold transition-colors ${
+    isActive ? 'text-white' : 'text-slate-300 hover:text-white'
   }`;
+  const isHomePage = location.pathname === '/';
 
   return (
     <header className={`sticky top-0 z-40 w-full bg-brand-dark/95 backdrop-blur border-b transition-shadow ${
@@ -149,11 +149,16 @@ export default function CustomerNavbar({ onOpenRegister, onOpenLogin, onOpenProf
         <nav className="hidden lg:flex items-center gap-1">
           {navLinks.map((l) => (
             l.href ? (
-              <Link key={l.label} to={l.href} className={linkCls('')}>
+              <Link
+                key={l.label}
+                to={l.href}
+                className={linkCls(location.pathname === l.href)}
+                aria-current={location.pathname === l.href ? 'page' : undefined}
+              >
                 {l.label}
               </Link>
             ) : (
-              <a key={l.label} href={`/${l.hash}`} onClick={(e) => handleSectionClick(e, l.hash)} className={linkCls(l.hash)}>
+              <a key={l.label} href={`/${l.hash}`} onClick={(e) => handleSectionClick(e, l.hash)} className={linkCls(isHomePage && activeHash === l.hash)}>
                 {l.label}
                 {activeHash === l.hash && (
                   <span className="absolute inset-x-3 -bottom-1 h-0.5 rounded-full bg-brand-yellow" />
@@ -258,7 +263,10 @@ export default function CustomerNavbar({ onOpenRegister, onOpenLogin, onOpenProf
                   key={l.label}
                   to={l.href}
                   onClick={handleMobileNavClick}
-                  className="px-3 py-2.5 rounded-xl transition flex items-center justify-between hover:bg-white/10"
+                  className={`px-3 py-2.5 rounded-xl transition flex items-center justify-between ${
+                    location.pathname === l.href ? 'bg-white/10 text-white' : 'hover:bg-white/10'
+                  }`}
+                  aria-current={location.pathname === l.href ? 'page' : undefined}
                 >
                   {l.label}
                 </Link>
@@ -268,11 +276,11 @@ export default function CustomerNavbar({ onOpenRegister, onOpenLogin, onOpenProf
                   href={`/${l.hash}`}
                   onClick={(e) => { handleMobileNavClick(); handleSectionClick(e, l.hash); }}
                   className={`px-3 py-2.5 rounded-xl transition flex items-center justify-between ${
-                    activeHash === l.hash ? 'bg-white/10 text-white' : 'hover:bg-white/10'
+                    isHomePage && activeHash === l.hash ? 'bg-white/10 text-white' : 'hover:bg-white/10'
                   }`}
                 >
                   {l.label}
-                  {activeHash === l.hash && <span className="h-1.5 w-1.5 rounded-full bg-brand-yellow" />}
+                  {isHomePage && activeHash === l.hash && <span className="h-1.5 w-1.5 rounded-full bg-brand-yellow" />}
                 </a>
               )
             ))}
