@@ -1222,14 +1222,14 @@ export default function AdminLayout() {
                 </select>
               </div>
 
-              <Link
-                to="/"
+              <a
+                href="/"
                 className="flex items-center gap-1.5 px-2.5 sm:px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 shadow-xs"
                 title="Return to Public Hackathon Website"
               >
                 <ArrowLeft className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">Public Site</span>
-              </Link>
+              </a>
             </div>
           </header>
 
