@@ -80,13 +80,16 @@ export default function AboutSection({ onOpenRegister }) {
           </SectionHeading>
         </div>
         {aboutImage && (
-          <figure className="overflow-hidden rounded-3xl bg-slate-100 shadow-xl">
-            <img
-              src={aboutImage}
-              alt={`${h.title} event`}
-              className="block h-[260px] w-full object-cover sm:h-[320px]"
-            />
-            <figcaption className="border-t border-slate-200 bg-white px-5 py-3 text-xs font-medium text-slate-600">
+          <figure className="overflow-hidden rounded-3xl bg-brand-dark shadow-xl">
+            <div className="relative">
+              <img
+                src={aboutImage}
+                alt={`${h.title} event`}
+                className="block h-[220px] w-full object-cover sm:h-[260px]"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-brand-dark/85 via-brand-dark/20 to-transparent" />
+            </div>
+            <figcaption className="bg-brand-dark px-5 py-3 text-xs font-medium text-slate-200">
               {photoCaption}
             </figcaption>
           </figure>
@@ -121,8 +124,8 @@ export default function AboutSection({ onOpenRegister }) {
         </div>
       )}
 
-      <div className="mt-8 flex flex-col items-center gap-2 sm:flex-row sm:justify-between">
-        <div className="flex flex-col items-start gap-2 lg:items-end">
+      <div className="mt-8 flex flex-col items-center gap-2 text-center">
+        <div className="flex flex-col items-center gap-2">
           <Button
             onClick={onOpenRegister}
             disabled={!isRegistrationOpen}
