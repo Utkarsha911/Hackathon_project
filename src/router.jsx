@@ -4,6 +4,7 @@ import { createBrowserRouter, Navigate, Outlet } from 'react-router-dom';
 const CustomerPortal = lazy(() => import('./components/customer/CustomerPortal'));
 const CustomerProfilePage = lazy(() => import('./components/customer/CustomerProfilePage'));
 const RegisterTeamPage = lazy(() => import('./components/customer/RegisterTeamPage'));
+const PreviousHackathonsPage = lazy(() => import('./components/customer/PreviousHackathonsPage'));
 const AdminLayout = lazy(() => import('./components/admin/AdminLayout'));
 
 function LoadingFallback() {
@@ -43,6 +44,10 @@ const router = createBrowserRouter([
       {
         path: 'profile',
         element: <CustomerProfilePage />,
+      },
+      {
+        path: 'previous-hackathons',
+        element: <PreviousHackathonsPage />,
       },
       {
         path: 'customer-profile',

@@ -18,7 +18,8 @@ export default function CustomerNavbar({ onOpenRegister, onOpenLogin, onOpenProf
     scheduleEvents = [],
     prizes = [],
     organizers = [],
-    faqs = []
+    faqs = [],
+    previousHackathons = []
   } = useHackathon();
 
   const hasScheduleData =
@@ -77,10 +78,12 @@ export default function CustomerNavbar({ onOpenRegister, onOpenLogin, onOpenProf
     ...(hasPrizesData ? [{ label: 'Prizes', hash: '#prizes' }] : []),
     ...(hasOrganizersData ? [{ label: 'Organizers', hash: '#organizers' }] : []),
     ...(hasFaqData ? [{ label: 'FAQ', hash: '#faq' }] : []),
+    ...(previousHackathons.length > 0 ? [{ label: 'Previous editions', href: '/previous-hackathons' }] : []),
   ];
 
   useEffect(() => {
     const sections = navLinks
+      .filter((link) => link.hash)
       .map((link) => document.querySelector(link.hash))
       .filter(Boolean);
 
@@ -145,12 +148,18 @@ export default function CustomerNavbar({ onOpenRegister, onOpenLogin, onOpenProf
 
         <nav className="hidden lg:flex items-center gap-1">
           {navLinks.map((l) => (
-            <a key={l.label} href={`/${l.hash}`} onClick={(e) => handleSectionClick(e, l.hash)} className={linkCls(l.hash)}>
-              {l.label}
-              {activeHash === l.hash && (
-                <span className="absolute inset-x-3 -bottom-1 h-0.5 rounded-full bg-brand-yellow" />
-              )}
-            </a>
+            l.href ? (
+              <Link key={l.label} to={l.href} className={linkCls('')}>
+                {l.label}
+              </Link>
+            ) : (
+              <a key={l.label} href={`/${l.hash}`} onClick={(e) => handleSectionClick(e, l.hash)} className={linkCls(l.hash)}>
+                {l.label}
+                {activeHash === l.hash && (
+                  <span className="absolute inset-x-3 -bottom-1 h-0.5 rounded-full bg-brand-yellow" />
+                )}
+              </a>
+            )
           ))}
         </nav>
 
@@ -244,17 +253,28 @@ export default function CustomerNavbar({ onOpenRegister, onOpenLogin, onOpenProf
         <div className="lg:hidden bg-brand-dark border-t border-white/10 px-4 pt-2 pb-5 animate-fade-in">
           <nav className="flex flex-col space-y-1 text-sm font-medium text-slate-200">
             {navLinks.map((l) => (
-              <a
-                key={l.label}
-                href={`/${l.hash}`}
-                onClick={(e) => { handleMobileNavClick(); handleSectionClick(e, l.hash); }}
-                className={`px-3 py-2.5 rounded-xl transition flex items-center justify-between ${
-                  activeHash === l.hash ? 'bg-white/10 text-white' : 'hover:bg-white/10'
-                }`}
-              >
-                {l.label}
-                {activeHash === l.hash && <span className="h-1.5 w-1.5 rounded-full bg-brand-yellow" />}
-              </a>
+              l.href ? (
+                <Link
+                  key={l.label}
+                  to={l.href}
+                  onClick={handleMobileNavClick}
+                  className="px-3 py-2.5 rounded-xl transition flex items-center justify-between hover:bg-white/10"
+                >
+                  {l.label}
+                </Link>
+              ) : (
+                <a
+                  key={l.label}
+                  href={`/${l.hash}`}
+                  onClick={(e) => { handleMobileNavClick(); handleSectionClick(e, l.hash); }}
+                  className={`px-3 py-2.5 rounded-xl transition flex items-center justify-between ${
+                    activeHash === l.hash ? 'bg-white/10 text-white' : 'hover:bg-white/10'
+                  }`}
+                >
+                  {l.label}
+                  {activeHash === l.hash && <span className="h-1.5 w-1.5 rounded-full bg-brand-yellow" />}
+                </a>
+              )
             ))}
             {currentUser ? (
               <>
