@@ -3,6 +3,7 @@ import { Lightbulb, Rocket, Users } from 'lucide-react';
 import { useHackathon } from '../../context/HackathonContext';
 import Section from '../common/Section';
 import SectionHeading from '../common/SectionHeading';
+import { formatRegistrationFeeType } from '../../utils/registration';
 
 const PILLARS = [
   { icon: Users, title: 'Collaborate', text: 'Work in diverse teams' },
@@ -41,6 +42,24 @@ export default function AboutSection() {
             {h.description || 'Technology is most powerful when it brings people together to solve real problems.'}
           </p>
           <p className="relative mt-4 text-sm font-semibold text-blue-200">— {h.title || 'BIC Hackathon'}</p>
+        </div>
+      </div>
+
+      <div className="mt-10 rounded-2xl border border-orange-200 bg-orange-50/60 p-5 sm:p-6">
+        <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wider text-orange-700">Registration fee</p>
+            <p className="mt-1 text-lg font-bold text-slate-900">
+              {Number(h.registration_fee) > 0
+                ? `NPR ${Number(h.registration_fee).toLocaleString()}`
+                : 'Free entry'}
+            </p>
+          </div>
+          {Number(h.registration_fee) > 0 && (
+            <span className="text-sm font-semibold text-orange-700">
+              {formatRegistrationFeeType(h.registration_fee_type)}
+            </span>
+          )}
         </div>
       </div>
     </Section>

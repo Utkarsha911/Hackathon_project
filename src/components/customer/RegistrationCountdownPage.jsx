@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { useHackathon } from '../../context/HackathonContext';
 import { getTimeRemaining } from '../../utils/registration';
+import { formatRegistrationFeeType } from '../../utils/registration';
 import HackathonBrand from '../common/HackathonBrand';
 import CustomerNavbar from './CustomerNavbar';
 import Footer from '../common/Footer';
@@ -311,7 +312,7 @@ export default function RegistrationCountdownPage() {
                 <h4 className="text-xs font-bold text-slate-800">Registration Fee</h4>
                 <p className="text-xs text-slate-500 mt-1 leading-relaxed">
                   {registrationFee > 0
-                    ? `The registration fee is NPR ${registrationFee.toLocaleString()} per team.`
+                    ? `The registration fee is NPR ${registrationFee.toLocaleString()} ${formatRegistrationFeeType(hackathon?.registration_fee_type)}.`
                     : 'Registration is free for all eligible teams.'}
                 </p>
               </div>

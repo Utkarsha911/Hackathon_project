@@ -41,6 +41,7 @@ import RegistrationCountdownPage from './RegistrationCountdownPage';
 import TeamParticipantsModal from './TeamParticipantsModal';
 import { generateQrDataUrl } from '../../utils/qrUtils';
 import api from '../../services/api';
+import { formatRegistrationFeeType } from '../../utils/registration';
 
 const FOOD_PREFERENCES = [
   { value: 'non_vegetarian', label: 'Non-Vegetarian' },
@@ -624,7 +625,7 @@ export default function RegisterTeamPage() {
                   <span>Registration fee:</span>
                   <span>
                     {Number(hackathon?.registration_fee) > 0
-                      ? `NPR ${Number(hackathon.registration_fee).toLocaleString()} per team`
+                      ? `NPR ${Number(hackathon.registration_fee).toLocaleString()} ${formatRegistrationFeeType(hackathon.registration_fee_type)}`
                       : 'Free'}
                   </span>
                 </div>

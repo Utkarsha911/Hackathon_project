@@ -200,3 +200,23 @@ export function isRegistrationOpen(hackathon) {
   return getRegistrationStatus(hackathon).isOpen;
 }
 
+/**
+ * Formats the backend registration fee type for customer and admin labels.
+ *
+ * @param {string|null|undefined} feeType
+ * @returns {string}
+ */
+export function formatRegistrationFeeType(feeType) {
+  const normalized = String(feeType || 'per_team').trim().toLowerCase();
+  const labels = {
+    per_team: 'per team',
+    team: 'per team',
+    per_member: 'per participant',
+    per_participant: 'per participant',
+    member: 'per participant',
+    participant: 'per participant'
+  };
+
+  if (labels[normalized]) return labels[normalized];
+  return normalized.replace(/[_-]+/g, ' ');
+}
