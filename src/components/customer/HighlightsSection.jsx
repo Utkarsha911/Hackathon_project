@@ -1,12 +1,11 @@
 import React, { useMemo } from 'react';
-import { Trophy, Award, Medal, Star, BadgeCheck, ArrowRight } from 'lucide-react';
+import { Trophy, Award, Medal, Star, BadgeCheck } from 'lucide-react';
 import { useHackathon } from '../../context/HackathonContext';
 import Section from '../common/Section';
 import { formatNpr } from '../../utils/currency';
-import Button from '../common/Button';
 
-export default function HighlightsSection({ onOpenRegister }) {
-  const { prizes = [], isRegistrationOpen } = useHackathon();
+export default function HighlightsSection() {
+  const { prizes = [] } = useHackathon();
 
   const orderedPrizes = useMemo(() => {
     if (!Array.isArray(prizes)) return [];
@@ -129,21 +128,11 @@ export default function HighlightsSection({ onOpenRegister }) {
             })}
           </div>
         )}
-        {onOpenRegister && (
-          <div className="mt-8 flex flex-col items-center gap-3">
-            <Button
-              onClick={onOpenRegister}
-              disabled={!isRegistrationOpen}
-              className={!isRegistrationOpen ? 'cursor-not-allowed opacity-60' : ''}
-            >
-              <span>{isRegistrationOpen ? 'Register your team' : 'Registration closed'}</span>
-              {isRegistrationOpen && <ArrowRight className="h-4 w-4" />}
-            </Button>
-            <a href="#rules" className="text-xs font-semibold text-slate-300 hover:text-brand-yellow">
-              View rules and judging details
-            </a>
-          </div>
-        )}
+        <div className="mt-8 flex justify-center">
+          <a href="#rules" className="text-xs font-semibold text-slate-300 hover:text-brand-yellow">
+            View rules and judging details
+          </a>
+        </div>
       </div>
     </Section>
   );

@@ -83,12 +83,12 @@ export default function Footer() {
 
   return (
     <footer className="bg-brand-dark text-slate-400 text-sm">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-10">
+      <div className="max-w-6xl mx-auto px-5 sm:px-6 lg:px-8 py-10 sm:py-12">
+        <div className="grid grid-cols-1 gap-8 mb-10 sm:grid-cols-2 sm:gap-x-10 sm:gap-y-9 md:grid-cols-4 md:gap-8">
 
-          <div>
+          <div className="sm:col-span-2 md:col-span-1">
             <HackathonBrand
-              imageClassName="h-9 w-auto max-w-[170px] object-contain"
+              imageClassName="h-8 w-auto max-w-[170px] object-contain"
               iconSizeClass="w-10 h-10"
               textClassName="text-sm font-extrabold text-white"
               subTextClassName="text-[10px] font-mono font-bold text-brand-yellow"
@@ -97,7 +97,7 @@ export default function Footer() {
 
           <div>
             <h4 className={colTitle}>Quick Links</h4>
-            <ul className="space-y-2.5">
+            <ul className="space-y-2.5 text-sm">
               {quickLinks.map((item) => (
                 <li key={item.label}>
                   <a href={item.href} onClick={(e) => handleSectionClick(e, item.href)} className={linkCls}>{item.label}</a>
@@ -108,7 +108,7 @@ export default function Footer() {
 
           <div>
             <h4 className={colTitle}>Resources</h4>
-            <ul className="space-y-2.5">
+            <ul className="space-y-2.5 text-sm">
               {resources.map((item) => (
                 <li key={item.label}>
                   <a href={item.href} onClick={(e) => handleSectionClick(e, item.href)} className={linkCls}>{item.label}</a>
@@ -119,24 +119,36 @@ export default function Footer() {
 
           <div>
             <h4 className={colTitle}>Find us</h4>
-            <ul className="space-y-2.5">
-              <li className="text-slate-200 font-medium">Boston International College</li>
-              <li>Bharatpur-10, Chitwan, Nepal</li>
+            <ul className="space-y-2.5 text-sm leading-relaxed">
+              <li className="max-w-[18rem] text-slate-200 font-medium">Boston International College</li>
+              <li className="max-w-[18rem]">Bharatpur-10, Chitwan, Nepal</li>
               <li>
-                <a href={`mailto:${CONTACT_EMAIL}`} className={linkCls}>{CONTACT_EMAIL}</a>
+                <a href={`mailto:${CONTACT_EMAIL}`} className={`${linkCls} break-all`}>{CONTACT_EMAIL}</a>
               </li>
               <li>
-                {CONTACT_PHONES.map((n, i) => (
-                  <React.Fragment key={n}>{i > 0 && ', '}<a href={`tel:${n.replace(/-/g, '')}`} className={linkCls}>{n}</a></React.Fragment>
-                ))}
+                <div className="flex flex-col items-start gap-1">
+                  {CONTACT_PHONES.map((n) => (
+                    <a key={n} href={`tel:${n.replace(/-/g, '')}`} className={linkCls}>{n}</a>
+                  ))}
+                </div>
               </li>
             </ul>
           </div>
         </div>
 
-        <div className="pt-6 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs">
-          <div>© {EVENT_YEAR} Boston International College. All rights reserved.</div>
-          <div className="flex items-center gap-2">
+        <div className="pt-6 border-t border-white/10 flex flex-col items-start gap-5 text-xs sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+          <div className="max-w-xs leading-relaxed">
+            <div>© {EVENT_YEAR} Boston International College. All rights reserved.</div>
+            <a
+              href="https://www.linkedin.com/in/elis-kandel/"
+              target="_blank"
+              rel="noreferrer"
+              className="mt-1 inline-block text-slate-300 transition-colors hover:text-white"
+            >
+              Created by Elis Kandel
+            </a>
+          </div>
+          <div className="flex items-center gap-2 self-start sm:self-auto">
             {[
               { href: 'https://github.com', icon: Code2, label: 'GitHub' },
               { href: 'https://twitter.com', icon: Share2, label: 'Twitter' },
