@@ -1,5 +1,5 @@
 import React from 'react';
-import { Calendar, MapPin, Users } from 'lucide-react';
+import { ArrowDown, Calendar, MapPin, Users } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useHackathon } from '../../context/HackathonContext';
 import { getMediaUrl } from '../../services/api';
@@ -37,38 +37,50 @@ export default function PreviousHackathonsPage() {
         </Section>
 
         <Section py="py-12 sm:py-16">
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {previousHackathons.map((edition) => (
-              <article key={edition.id} className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-md">
-                {edition.banner_image && (
-                  <img
-                    src={getMediaUrl(edition.banner_image)}
-                    alt={`${edition.title || 'Hackathon'} edition`}
-                    className="h-44 w-full object-cover"
-                  />
-                )}
-                <div className="p-5">
-                  <p className="text-xs font-bold uppercase tracking-[0.14em] text-brand-blue">
-                    {edition.version || edition.year || 'Previous edition'}
-                  </p>
-                  <h2 className="mt-2 text-xl font-extrabold text-slate-900">{edition.title}</h2>
-                  <div className="mt-4 space-y-2 text-xs text-slate-600">
-                    {(edition.start_date || edition.end_date) && (
-                      <p className="flex items-center gap-2"><Calendar className="h-4 w-4 text-brand-orange" />{formatDateRange(edition.start_date, edition.end_date)}</p>
-                    )}
-                    {edition.venue && (
-                      <p className="flex items-center gap-2"><MapPin className="h-4 w-4 text-brand-orange" />{edition.venue}</p>
-                    )}
-                    {(edition.minimum_team_size || edition.maximum_team_size) && (
-                      <p className="flex items-center gap-2"><Users className="h-4 w-4 text-brand-orange" />{edition.minimum_team_size || 1}–{edition.maximum_team_size || 4} members per team</p>
-                    )}
+          <div className="relative mx-auto max-w-5xl">
+            <div className="absolute left-5 top-6 bottom-8 w-px bg-gradient-to-b from-brand-orange via-brand-blue to-slate-200 sm:left-1/2 sm:-translate-x-1/2" />
+            <div className="space-y-10 sm:space-y-16">
+              {previousHackathons.map((edition, index) => (
+                <div key={edition.id} className="relative grid grid-cols-[2.5rem_1fr] items-start gap-4 sm:grid-cols-2 sm:gap-16">
+                  <div className={`absolute left-5 top-6 z-10 h-3.5 w-3.5 -translate-x-1/2 rounded-full border-[3px] border-white bg-brand-orange shadow-[0_0_0_4px_rgba(234,88,12,0.15)] sm:left-1/2 ${index % 2 === 0 ? '' : ''}`} />
+                  <div className={`col-start-2 sm:col-span-1 ${index % 2 === 0 ? 'sm:col-start-2' : 'sm:col-start-1 sm:row-start-1'}`}>
+                    <article className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:border-brand-orange/40 hover:shadow-lg">
+                      {edition.banner_image && (
+                        <img
+                          src={getMediaUrl(edition.banner_image)}
+                          alt={`${edition.title || 'Hackathon'} edition`}
+                          className="h-44 w-full object-cover"
+                        />
+                      )}
+                      <div className="p-5 sm:p-6">
+                        <p className="text-xs font-bold uppercase tracking-[0.14em] text-brand-blue">
+                          {edition.version || edition.year || 'Previous edition'}
+                        </p>
+                        <h2 className="mt-2 text-xl font-extrabold text-slate-900">{edition.title}</h2>
+                        <div className="mt-4 space-y-2 text-xs text-slate-600">
+                          {(edition.start_date || edition.end_date) && (
+                            <p className="flex items-center gap-2"><Calendar className="h-4 w-4 shrink-0 text-brand-orange" />{formatDateRange(edition.start_date, edition.end_date)}</p>
+                          )}
+                          {edition.venue && (
+                            <p className="flex items-center gap-2"><MapPin className="h-4 w-4 shrink-0 text-brand-orange" />{edition.venue}</p>
+                          )}
+                          {(edition.minimum_team_size || edition.maximum_team_size) && (
+                            <p className="flex items-center gap-2"><Users className="h-4 w-4 shrink-0 text-brand-orange" />{edition.minimum_team_size || 1}–{edition.maximum_team_size || 4} members per team</p>
+                          )}
+                        </div>
+                        {edition.description && (
+                          <p className="mt-4 line-clamp-4 text-sm leading-relaxed text-slate-600">{edition.description}</p>
+                        )}
+                      </div>
+                    </article>
                   </div>
-                  {edition.description && (
-                    <p className="mt-4 line-clamp-4 text-sm leading-relaxed text-slate-600">{edition.description}</p>
-                  )}
                 </div>
-              </article>
-            ))}
+              ))}
+            </div>
+            <div className="relative z-10 mx-auto mt-10 flex w-fit items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-500 shadow-sm">
+              <ArrowDown className="h-3.5 w-3.5 text-brand-orange" />
+              More stories ahead
+            </div>
           </div>
           <Link to="/" className="mt-10 inline-flex text-sm font-semibold text-brand-blue hover:text-brand-orange">
             Back to current edition

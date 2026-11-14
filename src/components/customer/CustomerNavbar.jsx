@@ -78,7 +78,7 @@ export default function CustomerNavbar({ onOpenRegister, onOpenLogin, onOpenProf
     ...(hasPrizesData ? [{ label: 'Prizes', hash: '#prizes' }] : []),
     ...(hasOrganizersData ? [{ label: 'Organizers', hash: '#organizers' }] : []),
     ...(hasFaqData ? [{ label: 'FAQ', hash: '#faq' }] : []),
-    ...(previousHackathons.length > 0 ? [{ label: 'Previous editions', href: '/previous-hackathons' }] : []),
+    ...(previousHackathons.length > 0 ? [{ label: 'History', href: '/previous-hackathons' }] : []),
   ];
 
   useEffect(() => {
