@@ -13,9 +13,6 @@ function OrganizerCard({ org }) {
     'Organizer';
   const img = getUserAvatarUrl(u.profile_picture || org.profile_picture || org.image);
   const role = org.designation || org.position || org.role || 'Committee Member';
-  const dept = org.department_name || org.department?.name;
-  const isActive = org.is_active !== false && org.status !== 'inactive';
-  const statusLabel = org.status === 'on_duty' ? 'On duty' : isActive ? 'Active' : 'Unavailable';
 
   return (
     <div className="group relative rounded-2xl bg-white border border-slate-200/80 hover:border-brand-blue/30 p-4 sm:p-5 flex flex-col items-center justify-center text-center transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md hover:shadow-brand-navy/5 shadow-2xs">
@@ -42,22 +39,6 @@ function OrganizerCard({ org }) {
       <p className="text-xs font-semibold text-brand-blue mt-0.5 line-clamp-1">
         {role}
       </p>
-
-      <div className="mt-2 flex items-center gap-1.5">
-        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border ${
-          isActive
-            ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
-            : 'bg-slate-100 text-slate-500 border-slate-200/60'
-        }`}>
-          <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-emerald-500' : 'bg-slate-400'}`} />
-          {statusLabel}
-        </span>
-        {dept && (
-          <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 text-slate-500 border border-slate-200/60">
-            {dept}
-          </span>
-        )}
-      </div>
     </div>
   );
 }
@@ -71,51 +52,6 @@ export default function OrganizersSection() {
       .filter(Boolean)
       .sort((a, b) => (typeof a?.order === 'number' ? a.order : 999) - (typeof b?.order === 'number' ? b.order : 999));
   }, [organizers]);
-
-  // Separate into top row (e.g. 2 leads) and main grid (3 cards per row) matching reference card hierarchy
-  const { topRow, mainGrid } = useMemo(() => {
-    if (!people || people.length === 0) return { topRow: [], mainGrid: [] };
-
-    // Identify leads / directors / heads by designation
-    const leadCandidates = people.filter((p) => {
-      const d = (p.designation || p.position || p.role || '').toLowerCase();
-      return (
-        d.includes('lead') ||
-        d.includes('director') ||
-        d.includes('head') ||
-        d.includes('president') ||
-        d.includes('convenor') ||
-        d.includes('chair')
-      );
-    });
-
-    if (leadCandidates.length === 2) {
-      const topIds = new Set(leadCandidates.map((c) => c.id));
-      return {
-        topRow: leadCandidates,
-        mainGrid: people.filter((p) => !topIds.has(p.id)),
-      };
-    }
-
-    if (people.length >= 4) {
-      return {
-        topRow: people.slice(0, 2),
-        mainGrid: people.slice(2),
-      };
-    }
-
-    if (people.length === 2) {
-      return {
-        topRow: people,
-        mainGrid: [],
-      };
-    }
-
-    return {
-      topRow: [],
-      mainGrid: people,
-    };
-  }, [people]);
 
   // Return null if no organizers data received
   if (people.length === 0) return null;
@@ -137,28 +73,18 @@ export default function OrganizersSection() {
           <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-ink">
             Meet the Organizers
           </h2>
-          <p className="mt-2 text-xs sm:text-sm text-slate-500 max-w-lg mx-auto">
-            The dedicated committee working behind the scenes to run the event. Find us on sprint days.
+          <p className="mt-2 text-xs sm:text-sm text-slate-600 max-w-lg mx-auto text-balance">
+            Meet the people coordinating the hackathon, from kickoff to final demos.
           </p>
         </div>
 
-        {/* Top Row: 2 Lead Cards Centered */}
-        {topRow.length > 0 && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 max-w-xl mx-auto mb-3.5">
-            {topRow.map((org) => (
-              <OrganizerCard key={org.id} org={org} />
-            ))}
-          </div>
-        )}
-
-        {/* Main Grid: 3 Cards Per Row */}
-        {mainGrid.length > 0 && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5">
-            {mainGrid.map((org) => (
-              <OrganizerCard key={org.id} org={org} />
-            ))}
-          </div>
-        )}
+        <div className="mx-auto flex max-w-6xl flex-wrap justify-center gap-4">
+          {people.map((org) => (
+            <div key={org.id} className="w-full max-w-[19rem] flex-1 basis-[17rem]">
+              <OrganizerCard org={org} />
+            </div>
+          ))}
+        </div>
       </div>
     </Section>
   );
