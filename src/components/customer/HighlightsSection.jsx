@@ -16,10 +16,6 @@ export default function HighlightsSection() {
     });
   }, [prizes]);
 
-  // Do not render section if no prizes data received
-  if (orderedPrizes.length === 0) return null;
-
-  const pool = orderedPrizes.reduce((acc, p) => acc + (Number(p.prize_money) || 0), 0);
   const placementById = useMemo(() => {
     const ranked = [...orderedPrizes]
       .map((prize, index) => ({ prize, index, amount: Number(prize?.prize_money) || 0 }))
@@ -27,6 +23,11 @@ export default function HighlightsSection() {
 
     return new Map(ranked.map(({ prize }, index) => [prize.id, index + 1]));
   }, [orderedPrizes]);
+
+  // Do not render section if no prizes data received
+  if (orderedPrizes.length === 0) return null;
+
+  const pool = orderedPrizes.reduce((acc, p) => acc + (Number(p.prize_money) || 0), 0);
 
   const podiumPrizes = orderedPrizes.slice(0, 3).map((prize) => ({
     ...prize,
